@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html {{block "html_attrs" .}}{{html_attrs .seo}}{{end}}>
+<head {{block "head_attrs" .}}{{head_attrs .seo}}{{end}}>
+    {{block "head_start" .}}{{end}}
+    <meta charset="utf-8">
+    {{block "meta_compatible" .}}
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    {{end}}
+    {{block "meta_viewport" .}}
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
+    {{end}}
+    {{block "favicons" .}}{{end}}
+    {{lang_alternates .seo}}
+    {{block "title" .}}{{title_tag .seo}}{{end}}
+    {{oembed_links .seo}}
+    {{link_canonical .seo}}
+    {{meta_tags .seo}}
+    {{block "head" .}}{{end}}
+    {{with .site.Stylesheet}}
+    <style>{{.|css}}</style>
+    {{end}}
+    {{with .page.Stylesheet}}
+    <style>{{.|css}}</style>
+    {{end}}
+    {{block "head_end" .}}{{end}}
+</head>
+<body {{block "body_attrs" .}}{{body_attrs .seo}}{{end}}>
+{{block "body_start" .}}{{end}}
+{{block "body" .}}{{end}}
+{{block "body_after" .}}{{end}}
+{{with .site.Javascript}}
+<script>{{.|js}}</script>
+{{end}}
+{{with .page.Javascript}}
+<script>{{.|js}}</script>
+{{end}}
+{{block "body_end" .}}{{end}}
+</body>
+</html>

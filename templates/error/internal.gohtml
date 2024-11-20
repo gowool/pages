@@ -1,0 +1,8 @@
+{{extends "@layout/base.gohtml"}}
+
+{{define "body"}}
+<h1><b>{{.status}}</b> {{.page.Title}}</h1>
+{{if .debug}}
+<p class="error-message">{{.err.Error}}</p>
+{{end}}
+{{end}}
