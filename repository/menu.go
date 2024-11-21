@@ -7,6 +7,6 @@ import (
 )
 
 type Menu interface {
-	repository[model.Menu, int64]
+	Repository[model.Menu, int64]
 	FindByHandle(ctx context.Context, handle string) (model.Menu, error)
 }

@@ -7,6 +7,6 @@ import (
 )
 
 type Template interface {
-	repository[model.Template, int64]
+	Repository[model.Template, int64]
 	FindByName(ctx context.Context, name string) (model.Template, error)
 }

@@ -7,6 +7,6 @@ import (
 )
 
 type Node interface {
-	repository[model.Node, int64]
+	Repository[model.Node, int64]
 	FindWithChildren(ctx context.Context, id int64) ([]model.Node, error)
 }
