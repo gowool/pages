@@ -2,6 +2,7 @@ package cache
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -117,7 +118,7 @@ func (r PageRepository) Delete(ctx context.Context, ids ...int64) error {
 
 func (r PageRepository) Update(ctx context.Context, m *model.Page) error {
 	if m == nil {
-		return fmt.Errorf("cache: page repository update called with %w", repository.ErrNil)
+		return errors.New("cache: page repository update called with nil model")
 	}
 
 	defer r.del(ctx, m.ID)

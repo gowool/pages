@@ -2,6 +2,7 @@ package cache
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/gowool/pages"
@@ -31,7 +32,7 @@ func (r MenuRepository) Delete(ctx context.Context, ids ...int64) error {
 
 func (r MenuRepository) Update(ctx context.Context, m *model.Menu) error {
 	if m == nil {
-		return fmt.Errorf("cache: menu repository update called with %w", repository.ErrNil)
+		return errors.New("cache: menu repository update called with nil model")
 	}
 
 	defer r.del(ctx, m.ID)

@@ -52,7 +52,7 @@ func PageSelector(cfg PageSelectorConfig) echo.MiddlewareFunc {
 
 			site := pages.CtxSite(r.Context())
 			if site == nil {
-				return errors.Join(repository.ErrSiteNotFound, pages.ErrInternal)
+				return errors.Join(pages.ErrSiteNotFound, pages.ErrInternal)
 			}
 
 			var now time.Time
@@ -62,7 +62,7 @@ func PageSelector(cfg PageSelectorConfig) echo.MiddlewareFunc {
 
 			page, err := cfg.PageRepository.FindByURL(r.Context(), site.ID, r.URL.Path, now)
 			if err != nil {
-				if errors.Is(err, repository.ErrPageNotFound) {
+				if errors.Is(err, pages.ErrPageNotFound) {
 					goto PATTERN
 				}
 				return err

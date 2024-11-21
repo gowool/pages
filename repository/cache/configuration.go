@@ -2,7 +2,7 @@ package cache
 
 import (
 	"context"
-	"fmt"
+	"errors"
 
 	"github.com/gowool/pages"
 	"github.com/gowool/pages/model"
@@ -38,7 +38,7 @@ func (r ConfigurationRepository) Load(ctx context.Context) (m model.Configuratio
 
 func (r ConfigurationRepository) Save(ctx context.Context, m *model.Configuration) error {
 	if m == nil {
-		return fmt.Errorf("cache: configuration repository save called with %w", repository.ErrNil)
+		return errors.New("cache: configuration repository save called with nil model")
 	}
 
 	defer func() {

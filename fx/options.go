@@ -10,34 +10,15 @@ import (
 	"go.uber.org/fx"
 
 	"github.com/gowool/pages"
+	v1 "github.com/gowool/pages/api/v1"
 	"github.com/gowool/pages/model"
 	"github.com/gowool/pages/repository"
 	cacherepo "github.com/gowool/pages/repository/cache"
 	"github.com/gowool/pages/repository/fallback"
 	fsrepo "github.com/gowool/pages/repository/fs"
-	"github.com/gowool/pages/repository/sql"
-	"github.com/gowool/pages/repository/sql/pg"
-	"github.com/gowool/pages/repository/sql/sqlite"
 )
 
 var (
-	OptionSQLDriverPG              = fx.Provide(pg.NewDriver)
-	OptionSQLConfigurationDriverPG = fx.Provide(pg.NewConfigurationDriver)
-	OptionSQLSequenceDriverPG      = fx.Provide(pg.NewSequenceDriver)
-
-	OptionSQLDriverSqlite              = fx.Provide(sqlite.NewDriver)
-	OptionSQLConfigurationDriverSqlite = fx.Provide(sqlite.NewConfigurationDriver)
-	OptionSQLSequenceDriverSqlite      = fx.Provide(sqlite.NewSequenceDriver)
-
-	OptionConfigurationRepository = fx.Provide(fx.Annotate(sql.NewConfigurationRepository, fx.As(new(repository.Configuration))))
-	OptionMenuRepository          = fx.Provide(fx.Annotate(sql.NewMenuRepository, fx.As(new(repository.Menu))))
-	OptionNodeRepository          = fx.Provide(fx.Annotate(sql.NewNodeRepository, fx.As(new(repository.Node))))
-	OptionNodeSequenceRepository  = fx.Provide(fx.Annotate(sql.NewSequenceNodeRepository, fx.As(new(repository.SequenceNode))))
-	OptionPageRepository          = fx.Provide(fx.Annotate(sql.NewPageRepository, fx.As(new(repository.Page))))
-	OptionSiteRepository          = fx.Provide(fx.Annotate(sql.NewSiteRepository, fx.As(new(repository.Site))))
-	OptionTemplateRepository      = fx.Provide(fx.Annotate(sql.NewTemplateRepository, fx.As(new(repository.Template))))
-	OptionThemeRepository         = fx.Provide(repository.NewThemeRepository)
-
 	OptionDecorateCacheConfigurationRepository = fx.Decorate(
 		fx.Annotate(
 			cacherepo.NewConfigurationRepository,
@@ -131,10 +112,10 @@ var (
 	OptionPageSelectorMiddleware = fx.Provide(echox.AsMiddleware(PageSelectorMiddleware))
 	OptionHybridPageMiddleware   = fx.Provide(echox.AsMiddleware(HybridPageMiddleware))
 
-	OptionConfigurationAPI = fx.Provide(api.AsHandler(NewConfigurationAPI, fx.ParamTags("", `group:"api-option"`)))
-	OptionSiteAPI          = fx.Provide(api.AsHandler(NewSiteAPI, fx.ParamTags("", `group:"api-option"`)))
-	OptionPageAPI          = fx.Provide(api.AsHandler(NewPageAPI, fx.ParamTags("", `group:"api-option"`)))
-	OptionTemplateAPI      = fx.Provide(api.AsHandler(NewTemplateAPI, fx.ParamTags("", `group:"api-option"`)))
-	OptionMenuAPI          = fx.Provide(api.AsHandler(NewMenuAPI, fx.ParamTags("", `group:"api-option"`)))
-	OptionNodeAPI          = fx.Provide(api.AsHandler(NewNodeAPI, fx.ParamTags("", `group:"api-option"`)))
+	OptionConfigurationAPI = fx.Provide(api.AsHandler(v1.NewConfiguration, fx.ParamTags("", "", `group:"api-option"`)))
+	OptionMenuAPI          = fx.Provide(api.AsHandler(v1.NewMenu, fx.ParamTags("", "", `group:"api-option"`)))
+	OptionNodeAPI          = fx.Provide(api.AsHandler(v1.NewNode, fx.ParamTags("", "", `group:"api-option"`)))
+	OptionPageAPI          = fx.Provide(api.AsHandler(v1.NewPage, fx.ParamTags("", "", `group:"api-option"`)))
+	OptionSiteAPI          = fx.Provide(api.AsHandler(v1.NewSite, fx.ParamTags("", "", `group:"api-option"`)))
+	OptionTemplateAPI      = fx.Provide(api.AsHandler(v1.NewTemplate, fx.ParamTags("", "", `group:"api-option"`)))
 )

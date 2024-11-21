@@ -19,8 +19,6 @@ import (
 	"github.com/gowool/pages/repository"
 )
 
-var ErrInternal = errors.New("internal server error")
-
 type ErrorResolverFunc func(*http.Request, error) (statusCode int, data any)
 
 type ErrorHandler struct {
@@ -149,7 +147,7 @@ func (h *ErrorHandler) Handle(err error, c echo.Context) {
 		return
 	}
 
-	if (errors.Is(err, repository.ErrPageNotFound) || status == http.StatusNotFound) && CtxEditor(r.Context()) {
+	if (errors.Is(err, ErrPageNotFound) || status == http.StatusNotFound) && CtxEditor(r.Context()) {
 		h.create(c, htmlData, cfg)
 		return
 	}
@@ -234,7 +232,7 @@ func (h *ErrorHandler) findPageByStatus(ctx context.Context, cfg model.Configura
 
 func (h *ErrorHandler) findPageByPattern(ctx context.Context, siteID int64, pattern string) (*model.Page, error) {
 	if pattern == "" {
-		return nil, repository.ErrPageNotFound
+		return nil, ErrPageNotFound
 	}
 
 	var now time.Time
@@ -272,13 +270,21 @@ func siteInternal(r *http.Request, cfg model.Configuration) *model.Site {
 
 func ErrorResolver(asHTTPError func(err error, target **echo.HTTPError)) ErrorResolverFunc {
 	return func(r *http.Request, err error) (int, any) {
-		he := &echo.HTTPError{
-			Code:    http.StatusInternalServerError,
-			Message: http.StatusText(http.StatusInternalServerError),
-		}
+		var he *echo.HTTPError
 		if errors.As(err, &he) {
 			if he.Internal != nil { // max 2 levels of checks even if internal could have also internal
 				errors.As(he.Internal, &he)
+			}
+		}
+
+		if he == nil {
+			if IsOneOfNotFound(err) {
+				he = echo.ErrNotFound.WithInternal(err)
+			} else {
+				he = &echo.HTTPError{
+					Code:    http.StatusInternalServerError,
+					Message: http.StatusText(http.StatusInternalServerError),
+				}
 			}
 		}
 

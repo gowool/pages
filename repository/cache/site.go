@@ -2,6 +2,7 @@ package cache
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"slices"
 	"strings"
@@ -59,7 +60,7 @@ func (r SiteRepository) Delete(ctx context.Context, ids ...int64) error {
 
 func (r SiteRepository) Update(ctx context.Context, m *model.Site) error {
 	if m == nil {
-		return fmt.Errorf("cache: site repository update called with %w", repository.ErrNil)
+		return errors.New("cache: site repository update called with nil model")
 	}
 
 	defer r.del(ctx, m.ID)

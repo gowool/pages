@@ -2,15 +2,8 @@ package repository
 
 import (
 	"context"
-	"errors"
 
 	"github.com/gowool/cr"
-)
-
-var (
-	ErrNotFound        = errors.New("not found")
-	ErrUniqueViolation = errors.New("unique violation")
-	ErrNil             = errors.New("nil model")
 )
 
 type Repository[M any, ID any] interface {

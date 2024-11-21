@@ -2,6 +2,7 @@ package cache
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/gowool/pages"
@@ -46,7 +47,7 @@ func (r TemplateRepository) Delete(ctx context.Context, ids ...int64) error {
 
 func (r TemplateRepository) Update(ctx context.Context, m *model.Template) error {
 	if m == nil {
-		return fmt.Errorf("cache: template repository update called with %w", repository.ErrNil)
+		return errors.New("cache: template repository update called with nil model")
 	}
 
 	defer r.del(ctx, m.ID)

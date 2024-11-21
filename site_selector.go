@@ -104,7 +104,7 @@ func (s *DefaultSiteSelector) HostByLocaleRetrieve(r *http.Request, fallbackLoca
 	if site := preferredSite(r, sites, fallbackLocale); site != nil {
 		return site, r.URL.Path, nil
 	}
-	return nil, "", repository.ErrSiteNotFound
+	return nil, "", ErrSiteNotFound
 }
 
 func (s *DefaultSiteSelector) HostPathRetrieve(r *http.Request, fallbackLocale string) (*model.Site, string, error) {
@@ -154,7 +154,7 @@ func (s *DefaultSiteSelector) HostPathRetrieve(r *http.Request, fallbackLocale s
 		defaultSite = internal.Ptr(defaultSite.WithHost(Scheme(r), host))
 		return nil, "", RedirectError{Status: http.StatusMovedPermanently, URL: defaultSite.URL()}
 	}
-	return nil, "", repository.ErrSiteNotFound
+	return nil, "", ErrSiteNotFound
 }
 
 func (s *DefaultSiteSelector) HostPathByLocaleRetrieve(r *http.Request, fallbackLocale string) (*model.Site, string, error) {
@@ -201,7 +201,7 @@ func (s *DefaultSiteSelector) HostPathByLocaleRetrieve(r *http.Request, fallback
 			return nil, "", RedirectError{Status: http.StatusFound, URL: defaultSite.URL()}
 		}
 	}
-	return nil, "", repository.ErrSiteNotFound
+	return nil, "", ErrSiteNotFound
 }
 
 func matchRequest(r *http.Request, site model.Site) (string, error) {

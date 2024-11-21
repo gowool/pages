@@ -42,7 +42,7 @@ func (m *DefaultMenu) Get(ctx context.Context, handle string) (model.Menu, error
 
 	if menu.NodeID == nil {
 		// not found root node
-		return model.Menu{}, errors.Join(sql.ErrNoRows, repository.ErrNotFound)
+		return model.Menu{}, errors.Join(sql.ErrNoRows, ErrMenuNotFound)
 	}
 	return menu, nil
 }

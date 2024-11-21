@@ -64,7 +64,7 @@ func HybridPage(cfg HybridPageConfig) echo.MiddlewareFunc {
 
 			page := pages.CtxPage(r.Context())
 			if page == nil {
-				return repository.ErrPageNotFound
+				return pages.ErrPageNotFound
 			}
 
 			if !page.IsHybrid() || !page.Decorate {

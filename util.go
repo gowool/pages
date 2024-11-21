@@ -132,7 +132,3 @@ func getLocale(r *http.Request, fallback string) string {
 	}
 	return fallback
 }
-
-func RandomString(length int) string {
-	return internal.RandomString(length)
-}

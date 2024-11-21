@@ -5,8 +5,6 @@ import (
 	"net/http"
 
 	"github.com/labstack/echo/v4"
-
-	"github.com/gowool/pages/repository"
 )
 
 var _ PageHandler = (*DefaultPageHandler)(nil)
@@ -26,12 +24,12 @@ func (h *DefaultPageHandler) Handle(c echo.Context) error {
 
 	site := CtxSite(ctx)
 	if site == nil {
-		return fmt.Errorf("page handler: %w", repository.ErrSiteNotFound)
+		return fmt.Errorf("page handler: %w", ErrSiteNotFound)
 	}
 
 	page := CtxPage(ctx)
 	if page == nil {
-		return fmt.Errorf("page handler: %w", repository.ErrPageNotFound)
+		return fmt.Errorf("page handler: %w", ErrPageNotFound)
 	}
 
 	status := http.StatusOK

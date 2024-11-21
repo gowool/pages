@@ -178,13 +178,13 @@ func (fm *FuncMap) findPage(ctx context.Context, id int64) model.Page {
 }
 
 func (fm *FuncMap) pageChildren(ctx context.Context, parentID int64, now time.Time) []model.Page {
-	pages, _ := fm.pageRepo.FindByParentID(ctx, parentID, now)
-	return pages
+	data, _ := fm.pageRepo.FindByParentID(ctx, parentID, now)
+	return data
 }
 
 func (fm *FuncMap) pagesByCriteria(ctx context.Context, criteria *cr.Criteria) map[string]any {
-	pages, total, _ := fm.pageRepo.FindAndCount(ctx, criteria)
-	return map[string]any{"pages": pages, "total": total}
+	data, total, _ := fm.pageRepo.FindAndCount(ctx, criteria)
+	return map[string]any{"pages": data, "total": total}
 }
 
 func titleTag(seo seo.SEO, args ...string) template.HTML {

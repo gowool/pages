@@ -2,13 +2,10 @@ package repository
 
 import (
 	"context"
-	"errors"
 	"time"
 
 	"github.com/gowool/pages/model"
 )
-
-var ErrPageNotFound = errors.New("page not found")
 
 type Page interface {
 	Repository[model.Page, int64]

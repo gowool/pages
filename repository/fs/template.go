@@ -111,7 +111,7 @@ func (r *TemplateRepository) FindByID(ctx context.Context, id int64) (model.Temp
 	})
 
 	if err1 != nil && !errors.Is(err1, fs.SkipAll) {
-		err = errors.Join(sql.ErrNoRows, repository.ErrNotFound, err, err1)
+		err = errors.Join(sql.ErrNoRows, err, err1)
 	}
 
 	if template.ID == 0 {
@@ -130,11 +130,11 @@ func (r *TemplateRepository) FindByName(ctx context.Context, name string) (model
 
 	info, err1 := fs.Stat(r.fs, path)
 	if err1 != nil {
-		return template, errors.Join(sql.ErrNoRows, repository.ErrNotFound, err, err1)
+		return template, errors.Join(sql.ErrNoRows, err, err1)
 	}
 
 	if info.IsDir() || !info.Mode().IsRegular() {
-		return template, errors.Join(sql.ErrNoRows, repository.ErrNotFound, err, fmt.Errorf("%s is not a file", name))
+		return template, errors.Join(sql.ErrNoRows, err, fmt.Errorf("%s is not a file", name))
 	}
 
 	t := Template{
@@ -145,7 +145,7 @@ func (r *TemplateRepository) FindByName(ctx context.Context, name string) (model
 
 	template, err1 = t.Model()
 	if err1 != nil {
-		return template, errors.Join(sql.ErrNoRows, repository.ErrNotFound, err, err1)
+		return template, errors.Join(sql.ErrNoRows, err, err1)
 	}
 	return template, nil
 }
