@@ -50,7 +50,7 @@ type Site struct {
 func NewSite(repo repository.Site, errorTransformer api.ErrorTransformerFunc, options ...api.Option) Site {
 	opts := make([]api.Option, 0, len(options)+2)
 	opts = append(opts, options...)
-	opts = append(opts, api.WithPath("/sites"), api.WithTags("site"))
+	opts = append(opts, api.WithPath("/sites"), api.WithAddTags("site"))
 
 	op := api.Operation(opts...)
 

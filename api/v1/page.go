@@ -67,7 +67,7 @@ type Page struct {
 func NewPage(pageRepo repository.Page, cfgRepo repository.Configuration, errorTransformer api.ErrorTransformerFunc, options ...api.Option) Page {
 	opts := make([]api.Option, 0, len(options)+2)
 	opts = append(opts, options...)
-	opts = append(opts, api.WithPath("/pages"), api.WithTags("page"))
+	opts = append(opts, api.WithPath("/pages"), api.WithAddTags("page"))
 
 	op := api.Operation(opts...)
 

@@ -31,7 +31,7 @@ type Menu struct {
 func NewMenu(repo repository.Menu, errorTransformer api.ErrorTransformerFunc, options ...api.Option) Menu {
 	opts := make([]api.Option, 0, len(options)+2)
 	opts = append(opts, options...)
-	opts = append(opts, api.WithPath("/menus"), api.WithTags("menu"))
+	opts = append(opts, api.WithPath("/menus"), api.WithAddTags("menu"))
 
 	op := api.Operation(opts...)
 

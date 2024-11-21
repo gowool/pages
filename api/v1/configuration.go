@@ -20,7 +20,7 @@ type Configuration struct {
 func NewConfiguration(repo repository.Configuration, errorTransformer api.ErrorTransformerFunc, options ...api.Option) Configuration {
 	opts := make([]api.Option, 0, len(options)+2)
 	opts = append(opts, options...)
-	opts = append(opts, api.WithPath("/pages/configuration"), api.WithTags("page"))
+	opts = append(opts, api.WithPath("/pages/configuration"), api.WithAddTags("page"))
 
 	return Configuration{
 		errorTransformer: errorTransformer,

@@ -29,7 +29,7 @@ type Template struct {
 func NewTemplate(repo repository.Template, errorTransformer api.ErrorTransformerFunc, options ...api.Option) Template {
 	opts := make([]api.Option, 0, len(options)+2)
 	opts = append(opts, options...)
-	opts = append(opts, api.WithPath("/templates"), api.WithTags("template"))
+	opts = append(opts, api.WithPath("/templates"), api.WithAddTags("template"))
 
 	op := api.Operation(opts...)
 

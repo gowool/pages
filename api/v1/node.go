@@ -47,7 +47,7 @@ type Node struct {
 func NewNode(repo repository.Node, errorTransformer api.ErrorTransformerFunc, options ...api.Option) Node {
 	opts := make([]api.Option, 0, len(options)+2)
 	opts = append(opts, options...)
-	opts = append(opts, api.WithPath("/nodes"), api.WithTags("node"))
+	opts = append(opts, api.WithPath("/nodes"), api.WithAddTags("node"))
 
 	op := api.Operation(opts...)
 
