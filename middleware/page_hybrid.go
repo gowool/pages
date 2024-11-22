@@ -92,16 +92,24 @@ func HybridPage(cfg HybridPageConfig) echo.MiddlewareFunc {
 			w.Writer = response.Writer
 			w.Committed = false
 
-			if !pages.IsTextHTML(c.Response().Header()) || response.Status != http.StatusOK || pages.PageNotDecorate(c.Response()) {
+			if pages.PageNotDecorate(c.Response()) {
 				if response.Committed || response.Buffer.Len() > 0 {
 					_, err = w.Write(response.Buffer.Bytes())
 				}
 				return err
 			}
 
+			if page.Status <= 0 {
+				page.Status = response.Status
+			}
+			if page.ContentType == "" {
+				page.ContentType = response.Header().Get("Content-Type")
+			}
+
 			data := pages.CtxData(r.Context())
 			data["content"] = template.HTML(internal.String(buffer.Bytes()))
 			ctx := pages.WithData(r.Context(), data)
+			ctx = pages.WithPage(ctx, page)
 			c.SetRequest(r.WithContext(ctx))
 
 			return cfg.PageHandler.Handle(c)

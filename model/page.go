@@ -19,31 +19,33 @@ const (
 )
 
 type Page struct {
-	ID         int64             `json:"id,omitempty" yaml:"id,omitempty" required:"true"`
-	SiteID     int64             `json:"siteID,omitempty" yaml:"siteID,omitempty" required:"true"`
-	ParentID   *int64            `json:"parentID,omitempty" yaml:"parentID,omitempty" required:"false"`
-	Name       string            `json:"name,omitempty" yaml:"name,omitempty" required:"true"`
-	Title      string            `json:"title,omitempty" yaml:"title,omitempty" required:"false"`
-	Pattern    string            `json:"pattern,omitempty" yaml:"pattern,omitempty" required:"true"`
-	Alias      string            `json:"alias,omitempty" yaml:"alias,omitempty" required:"false"`
-	Slug       string            `json:"slug,omitempty" yaml:"slug,omitempty" required:"false"`
-	URL        string            `json:"url,omitempty" yaml:"url,omitempty" required:"false"`
-	CustomURL  string            `json:"customURL,omitempty" yaml:"customURL,omitempty" required:"false"`
-	Javascript string            `json:"javascript,omitempty" yaml:"javascript,omitempty" required:"false"`
-	Stylesheet string            `json:"stylesheet,omitempty" yaml:"stylesheet,omitempty" required:"false"`
-	Template   string            `json:"template,omitempty" yaml:"template,omitempty" required:"true"`
-	Decorate   bool              `json:"decorate,omitempty" yaml:"decorate,omitempty" required:"false"`
-	Position   int               `json:"position,omitempty" yaml:"position,omitempty" required:"false"`
-	Headers    map[string]string `json:"headers,omitempty" yaml:"headers,omitempty" required:"false"`
-	Metas      []Meta            `json:"metas,omitempty" yaml:"metas,omitempty" required:"false"`
-	Metadata   map[string]string `json:"metadata,omitempty" yaml:"metadata,omitempty" required:"false"`
-	Created    time.Time         `json:"created,omitempty" yaml:"created,omitempty" required:"true"`
-	Updated    time.Time         `json:"updated,omitempty" yaml:"updated,omitempty" required:"true"`
-	Published  *time.Time        `json:"published,omitempty" yaml:"published,omitempty" required:"false"`
-	Expired    *time.Time        `json:"expired,omitempty" yaml:"expired,omitempty" required:"false"`
-	Site       *Site             `json:"-" yaml:"-"`
-	Parent     *Page             `json:"-" yaml:"-"`
-	Children   []Page            `json:"-" yaml:"-"`
+	ID          int64             `json:"id,omitempty" yaml:"id,omitempty" required:"true"`
+	SiteID      int64             `json:"siteID,omitempty" yaml:"siteID,omitempty" required:"true"`
+	ParentID    *int64            `json:"parentID,omitempty" yaml:"parentID,omitempty" required:"false"`
+	Name        string            `json:"name,omitempty" yaml:"name,omitempty" required:"true"`
+	Title       string            `json:"title,omitempty" yaml:"title,omitempty" required:"false"`
+	Pattern     string            `json:"pattern,omitempty" yaml:"pattern,omitempty" required:"true"`
+	Alias       string            `json:"alias,omitempty" yaml:"alias,omitempty" required:"false"`
+	Slug        string            `json:"slug,omitempty" yaml:"slug,omitempty" required:"false"`
+	URL         string            `json:"url,omitempty" yaml:"url,omitempty" required:"false"`
+	CustomURL   string            `json:"customURL,omitempty" yaml:"customURL,omitempty" required:"false"`
+	Javascript  string            `json:"javascript,omitempty" yaml:"javascript,omitempty" required:"false"`
+	Stylesheet  string            `json:"stylesheet,omitempty" yaml:"stylesheet,omitempty" required:"false"`
+	Template    string            `json:"template,omitempty" yaml:"template,omitempty" required:"true"`
+	Decorate    bool              `json:"decorate,omitempty" yaml:"decorate,omitempty" required:"false"`
+	Position    int               `json:"position,omitempty" yaml:"position,omitempty" required:"false"`
+	Status      int               `json:"status,omitempty" yaml:"status,omitempty" required:"false"`
+	ContentType string            `json:"contentType,omitempty" yaml:"contentType,omitempty" required:"false"`
+	Headers     map[string]string `json:"headers,omitempty" yaml:"headers,omitempty" required:"false"`
+	Metas       []Meta            `json:"metas,omitempty" yaml:"metas,omitempty" required:"false"`
+	Metadata    map[string]string `json:"metadata,omitempty" yaml:"metadata,omitempty" required:"false"`
+	Created     time.Time         `json:"created,omitempty" yaml:"created,omitempty" required:"true"`
+	Updated     time.Time         `json:"updated,omitempty" yaml:"updated,omitempty" required:"true"`
+	Published   *time.Time        `json:"published,omitempty" yaml:"published,omitempty" required:"false"`
+	Expired     *time.Time        `json:"expired,omitempty" yaml:"expired,omitempty" required:"false"`
+	Site        *Site             `json:"-" yaml:"-"`
+	Parent      *Page             `json:"-" yaml:"-"`
+	Children    []Page            `json:"-" yaml:"-"`
 }
 
 func (p Page) GetID() int64 {

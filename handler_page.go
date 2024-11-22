@@ -1,6 +1,7 @@
 package pages
 
 import (
+	"bytes"
 	"fmt"
 	"net/http"
 
@@ -33,9 +34,19 @@ func (h *DefaultPageHandler) Handle(c echo.Context) error {
 	}
 
 	status := http.StatusOK
-	if s, ok := CtxData(ctx)["status"].(int); ok {
+	if page.Status > 0 {
+		status = page.Status
+	} else if s, ok := CtxData(ctx)["status"].(int); ok {
 		status = s
 	}
 
-	return c.Render(status, page.Template, nil)
+	if page.ContentType == "" {
+		return c.Render(status, page.Template, nil)
+	}
+
+	buf := new(bytes.Buffer)
+	if err := c.Echo().Renderer.Render(buf, page.Template, nil, c); err != nil {
+		return err
+	}
+	return c.Blob(status, page.ContentType, buf.Bytes())
 }

@@ -16,24 +16,26 @@ import (
 )
 
 type PageBody struct {
-	SiteID     int64             `json:"siteID,omitempty" yaml:"siteID,omitempty" required:"true"`
-	ParentID   *int64            `json:"parentID,omitempty" yaml:"parentID,omitempty" required:"false"`
-	Name       string            `json:"name,omitempty" yaml:"name,omitempty" required:"true"`
-	Title      string            `json:"title,omitempty" yaml:"title,omitempty" required:"false"`
-	Pattern    string            `json:"pattern,omitempty" yaml:"pattern,omitempty" required:"true"`
-	Alias      string            `json:"alias,omitempty" yaml:"alias,omitempty" required:"false"`
-	Slug       string            `json:"slug,omitempty" yaml:"slug,omitempty" required:"false"`
-	CustomURL  string            `json:"customURL,omitempty" yaml:"customURL,omitempty" required:"false"`
-	Javascript string            `json:"javascript,omitempty" yaml:"javascript,omitempty" required:"false"`
-	Stylesheet string            `json:"stylesheet,omitempty" yaml:"stylesheet,omitempty" required:"false"`
-	Template   string            `json:"template,omitempty" yaml:"template,omitempty" required:"true"`
-	Decorate   bool              `json:"decorate,omitempty" yaml:"decorate,omitempty" required:"false"`
-	Position   int               `json:"position,omitempty" yaml:"position,omitempty" required:"false"`
-	Headers    map[string]string `json:"headers,omitempty" yaml:"headers,omitempty" required:"false"`
-	Metas      []model.Meta      `json:"metas,omitempty" yaml:"metas,omitempty" required:"false"`
-	Metadata   map[string]string `json:"metadata,omitempty" yaml:"metadata,omitempty" required:"false"`
-	Published  *time.Time        `json:"published,omitempty" yaml:"published,omitempty" required:"false"`
-	Expired    *time.Time        `json:"expired,omitempty" yaml:"expired,omitempty" required:"false"`
+	SiteID      int64             `json:"siteID,omitempty" yaml:"siteID,omitempty" required:"true"`
+	ParentID    *int64            `json:"parentID,omitempty" yaml:"parentID,omitempty" required:"false"`
+	Name        string            `json:"name,omitempty" yaml:"name,omitempty" required:"true"`
+	Title       string            `json:"title,omitempty" yaml:"title,omitempty" required:"false"`
+	Pattern     string            `json:"pattern,omitempty" yaml:"pattern,omitempty" required:"true"`
+	Alias       string            `json:"alias,omitempty" yaml:"alias,omitempty" required:"false"`
+	Slug        string            `json:"slug,omitempty" yaml:"slug,omitempty" required:"false"`
+	CustomURL   string            `json:"customURL,omitempty" yaml:"customURL,omitempty" required:"false"`
+	Javascript  string            `json:"javascript,omitempty" yaml:"javascript,omitempty" required:"false"`
+	Stylesheet  string            `json:"stylesheet,omitempty" yaml:"stylesheet,omitempty" required:"false"`
+	Template    string            `json:"template,omitempty" yaml:"template,omitempty" required:"true"`
+	Decorate    bool              `json:"decorate,omitempty" yaml:"decorate,omitempty" required:"false"`
+	Position    int               `json:"position,omitempty" yaml:"position,omitempty" required:"false"`
+	Status      int               `json:"status,omitempty" yaml:"status,omitempty" required:"false"`
+	ContentType string            `json:"contentType,omitempty" yaml:"contentType,omitempty" required:"false"`
+	Headers     map[string]string `json:"headers,omitempty" yaml:"headers,omitempty" required:"false"`
+	Metas       []model.Meta      `json:"metas,omitempty" yaml:"metas,omitempty" required:"false"`
+	Metadata    map[string]string `json:"metadata,omitempty" yaml:"metadata,omitempty" required:"false"`
+	Published   *time.Time        `json:"published,omitempty" yaml:"published,omitempty" required:"false"`
+	Expired     *time.Time        `json:"expired,omitempty" yaml:"expired,omitempty" required:"false"`
 }
 
 func (dto PageBody) Decode(_ context.Context, m *model.Page) error {
@@ -50,6 +52,8 @@ func (dto PageBody) Decode(_ context.Context, m *model.Page) error {
 	m.Template = dto.Template
 	m.Decorate = dto.Decorate
 	m.Position = dto.Position
+	m.Status = dto.Status
+	m.ContentType = dto.ContentType
 	m.Headers = dto.Headers
 	m.Metas = dto.Metas
 	m.Metadata = dto.Metadata
