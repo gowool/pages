@@ -4,6 +4,11 @@ import (
 	"maps"
 	"net/http"
 	"slices"
+	"sync"
+
+	"github.com/gowool/echox"
+	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v4/middleware"
 
 	"github.com/gowool/pages/internal"
 )
@@ -27,12 +32,36 @@ func (t MultisiteStrategy) String() string {
 	return string(t)
 }
 
+type Skippers struct {
+	EqualPaths  []string `json:"equalPaths,omitempty" yaml:"equalPaths,omitempty"`
+	PrefixPaths []string `json:"prefixPaths,omitempty" yaml:"prefixPaths,omitempty"`
+	SuffixPaths []string `json:"suffixPaths,omitempty" yaml:"suffixPaths,omitempty"`
+	Expressions []string `json:"expressions,omitempty" yaml:"expressions,omitempty"`
+
+	once    sync.Once
+	skipper middleware.Skipper
+}
+
+func (s *Skippers) Skipper(c echo.Context) bool {
+	s.once.Do(func() {
+		s.skipper = echox.ChainSkipper(
+			echox.EqualPathSkipper(s.EqualPaths...),
+			echox.PrefixPathSkipper(s.PrefixPaths...),
+			echox.SuffixPathSkipper(s.SuffixPaths...),
+			echox.ExpressionSkipper(s.Expressions...),
+		)
+	})
+	return s.skipper(c)
+}
+
 type Configuration struct {
 	Debug                 bool              `json:"debug,omitempty" yaml:"debug,omitempty" required:"true"`
 	Multisite             MultisiteStrategy `json:"multisite,omitempty" yaml:"multisite,omitempty" required:"false" enum:"host,host-by-locale,host-with-path,host-with-path-by-locale"`
 	FallbackLocale        string            `json:"fallbackLocale,omitempty" yaml:"fallbackLocale,omitempty" required:"false"`
 	IgnoreRequestPatterns []string          `json:"ignoreRequestPatterns,omitempty" yaml:"ignoreRequestPatterns,omitempty" required:"false"`
 	IgnoreRequestURIs     []string          `json:"ignoreRequestURIs,omitempty" yaml:"ignoreRequestURIs,omitempty" required:"false"`
+	SiteSkippers          *Skippers         `json:"siteSkippers,omitempty" yaml:"siteSkippers,omitempty" required:"false"`
+	PageSkippers          *Skippers         `json:"pageSkippers,omitempty" yaml:"pageSkippers,omitempty" required:"false"`
 	CatchErrors           map[string][]int  `json:"catchErrors,omitempty" yaml:"catchErrors,omitempty" required:"false"`
 	Additional            map[string]string `json:"additional,omitempty" yaml:"additional,omitempty" required:"false"`
 }
@@ -124,19 +153,22 @@ func (c Configuration) With(other Configuration) Configuration {
 		c.Multisite = other.Multisite
 	}
 
-	c.IgnoreRequestPatterns = internal.Unique(slices.Concat(c.IgnoreRequestPatterns, other.IgnoreRequestPatterns))
-	c.IgnoreRequestURIs = internal.Unique(slices.Concat(c.IgnoreRequestURIs, other.IgnoreRequestURIs))
-
 	if other.FallbackLocale != "" {
 		c.FallbackLocale = other.FallbackLocale
 	}
+
+	c.IgnoreRequestPatterns = concat(c.IgnoreRequestPatterns, other.IgnoreRequestPatterns)
+	c.IgnoreRequestURIs = concat(c.IgnoreRequestURIs, other.IgnoreRequestURIs)
+
+	c.SiteSkippers = skippersMerge(c.SiteSkippers, other.SiteSkippers)
+	c.PageSkippers = skippersMerge(c.PageSkippers, other.PageSkippers)
 
 	if other.CatchErrors != nil {
 		if c.CatchErrors == nil {
 			c.CatchErrors = make(map[string][]int)
 		}
 		for pattern, codes := range other.CatchErrors {
-			c.CatchErrors[pattern] = internal.Unique(slices.Concat(c.CatchErrors[pattern], codes))
+			c.CatchErrors[pattern] = concat(c.CatchErrors[pattern], codes)
 		}
 	}
 
@@ -146,5 +178,19 @@ func (c Configuration) With(other Configuration) Configuration {
 		}
 		maps.Copy(c.Additional, other.Additional)
 	}
+
 	return c
+}
+
+func skippersMerge(a, b *Skippers) *Skippers {
+	return &Skippers{
+		EqualPaths:  concat(a.EqualPaths, b.EqualPaths),
+		PrefixPaths: concat(a.PrefixPaths, b.PrefixPaths),
+		SuffixPaths: concat(a.SuffixPaths, b.SuffixPaths),
+		Expressions: concat(a.Expressions, b.Expressions),
+	}
+}
+
+func concat[T comparable](a, b []T) []T {
+	return internal.Unique(slices.Concat(a, b))
 }

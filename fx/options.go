@@ -11,7 +11,6 @@ import (
 
 	"github.com/gowool/pages"
 	v1 "github.com/gowool/pages/api/v1"
-	"github.com/gowool/pages/model"
 	"github.com/gowool/pages/repository"
 	cacherepo "github.com/gowool/pages/repository/cache"
 	"github.com/gowool/pages/repository/fallback"
@@ -25,10 +24,8 @@ var (
 			fx.ParamTags("", `name:"repository-cache"`),
 		),
 	)
-	OptionDecorateFallbackConfigurationRepository = fx.Decorate(func(r repository.Configuration) repository.Configuration {
-		return fallback.NewConfigurationRepository(r, model.NewConfiguration())
-	})
-	OptionDecorateCacheSiteRepository = fx.Decorate(
+	OptionDecorateFallbackConfigurationRepository = fx.Decorate(fallback.NewConfigurationRepository)
+	OptionDecorateCacheSiteRepository             = fx.Decorate(
 		fx.Annotate(
 			cacherepo.NewSiteRepository,
 			fx.ParamTags("", `name:"repository-cache"`),
@@ -111,6 +108,8 @@ var (
 	OptionSiteSelectorMiddleware = fx.Provide(echox.AsMiddleware(SiteSelectorMiddleware))
 	OptionPageSelectorMiddleware = fx.Provide(echox.AsMiddleware(PageSelectorMiddleware))
 	OptionHybridPageMiddleware   = fx.Provide(echox.AsMiddleware(HybridPageMiddleware))
+	OptionSiteSkipperMiddleware  = fx.Provide(echox.AsMiddleware(SiteSkipperMiddleware))
+	OptionPageSkipperMiddleware  = fx.Provide(echox.AsMiddleware(PageSkipperMiddleware))
 
 	OptionConfigurationAPI = fx.Provide(api.AsHandler(v1.NewConfiguration, fx.ParamTags("", "", `group:"api-option"`)))
 	OptionMenuAPI          = fx.Provide(api.AsHandler(v1.NewMenu, fx.ParamTags("", "", `group:"api-option"`)))

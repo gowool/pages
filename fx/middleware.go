@@ -37,3 +37,11 @@ func HybridPageMiddleware(pageHandler pages.PageHandler, cfgRepository repositor
 		CfgRepository: cfgRepository,
 	}))
 }
+
+func SiteSkipperMiddleware(cfgRepository repository.Configuration) echox.Middleware {
+	return echox.NewMiddleware("site-skipper", middleware.SiteSkipper(cfgRepository))
+}
+
+func PageSkipperMiddleware(cfgRepository repository.Configuration) echox.Middleware {
+	return echox.NewMiddleware("page-skipper", middleware.PageSkipper(cfgRepository))
+}

@@ -4,6 +4,8 @@ github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/dlclark/regexp2 v1.11.4 h1:rPYF9/LECdNymJufQKmri9gV604RvvABwgOA8un7yAo=
 github.com/dlclark/regexp2 v1.11.4/go.mod h1:DHkYz0B9wPfa6wondMfaivmHpzrQ3v9q8cnmRbL6yW8=
+github.com/expr-lang/expr v1.16.9 h1:WUAzmR0JNI9JCiF0/ewwHB1gmcGw5wW7nWt8gc6PpCI=
+github.com/expr-lang/expr v1.16.9/go.mod h1:8/vRC7+7HBzESEqt5kKpYXxrxkr31SaO8r40VO/1IT4=
 github.com/frankban/quicktest v1.14.6 h1:7Xjx+VpznH+oBnejlPUj8oUpdxnVs4f8XU8WnHkI4W8=
 github.com/frankban/quicktest v1.14.6/go.mod h1:4ptaffx2x8+WTWXmUCuVU6aPUX1/Mz7zb5vbUoiM6w0=
 github.com/go-chi/chi/v5 v5.1.0 h1:acVI1TYaD+hhedDJ3r54HyA6sExp3HfXq7QWEEY/xMw=
@@ -20,8 +22,8 @@ github.com/gosimple/unidecode v1.0.1 h1:hZzFTMMqSswvf0LBJZCZgThIZrpDHFXux9KeGmn6
 github.com/gosimple/unidecode v1.0.1/go.mod h1:CP0Cr1Y1kogOtx0bJblKzsVWrqYaqfNOnHzpgWw4Awc=
 github.com/gowool/cr v0.0.1 h1:bVFwL6S/1QKqnSr7NBdBf9dfBKZAVNhTPD1t2cW2N1c=
 github.com/gowool/cr v0.0.1/go.mod h1:T/NLk7whhzD6dBY6TUb/TMslUu/ot/1TyPBk/eBZxTo=
-github.com/gowool/echox v0.0.7 h1:/DM4iBIP43g0W1+wvptLH/kQyWn9dUCmKC5AgMlbXyE=
-github.com/gowool/echox v0.0.7/go.mod h1:8G7eoQpYKNx4XP5t8uGSfu7gzbvDF4CFPliH+QeszbI=
+github.com/gowool/echox v0.0.8 h1:mzZwO8LhfMMh0IujpyHdyiRRPnmcdIT5qX76LJ6nIAY=
+github.com/gowool/echox v0.0.8/go.mod h1:3AuoK2rKb22I8ZB1d4DaOs87x2ydiLGRRo3SptgkyQQ=
 github.com/gowool/extends-template v0.0.0-20240901012006-3ead36bbe616 h1:bH7whT1lZDTNI4wsORBQSysybWqjoiFkYHAxdJDMxRM=
 github.com/gowool/extends-template v0.0.0-20240901012006-3ead36bbe616/go.mod h1:W3K9AY0pIFcL5e0+YbGnad/wHqmKdkih8fR1ZBJuBgE=
 github.com/gowool/theme v1.0.4 h1:vnQwI09cMwgSGN3W3TVcxHdCv8FmkKhV9T1tAjjilZ8=

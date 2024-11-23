@@ -7,7 +7,7 @@ require (
 	github.com/dlclark/regexp2 v1.11.4
 	github.com/gosimple/slug v1.14.0
 	github.com/gowool/cr v0.0.1
-	github.com/gowool/echox v0.0.7
+	github.com/gowool/echox v0.0.8
 	github.com/gowool/theme v1.0.4
 	github.com/labstack/echo/v4 v4.12.0
 	github.com/spf13/cast v1.7.0
@@ -18,6 +18,7 @@ require (
 
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
+	github.com/expr-lang/expr v1.16.9 // indirect
 	github.com/golang-jwt/jwt v3.2.2+incompatible // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/gosimple/unidecode v1.0.1 // indirect
