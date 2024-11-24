@@ -66,7 +66,7 @@ func (s *DefaultSiteSelector) Retrieve(r *http.Request) (*model.Site, string, er
 
 func (s *DefaultSiteSelector) HostRetrieve(r *http.Request, fallbackLocale string) (*model.Site, string, error) {
 	host := Host(r)
-	sites, err := s.siteRepository.FindByHosts(r.Context(), hosts(host), time.Now())
+	sites, err := s.siteRepository.FindByHosts(r.Context(), hosts(host), time.Now().UTC())
 	if err != nil {
 		return nil, "", err
 	}
@@ -90,7 +90,7 @@ func (s *DefaultSiteSelector) HostRetrieve(r *http.Request, fallbackLocale strin
 
 func (s *DefaultSiteSelector) HostByLocaleRetrieve(r *http.Request, fallbackLocale string) (*model.Site, string, error) {
 	host := Host(r)
-	sites, err := s.siteRepository.FindByHosts(r.Context(), hosts(host), time.Now())
+	sites, err := s.siteRepository.FindByHosts(r.Context(), hosts(host), time.Now().UTC())
 	if err != nil {
 		return nil, "", err
 	}
@@ -115,7 +115,7 @@ func (s *DefaultSiteSelector) HostPathRetrieve(r *http.Request, fallbackLocale s
 	)
 
 	host := Host(r)
-	sites, err := s.siteRepository.FindByHosts(r.Context(), hosts(host), time.Now())
+	sites, err := s.siteRepository.FindByHosts(r.Context(), hosts(host), time.Now().UTC())
 	if err != nil {
 		return nil, "", err
 	}
@@ -165,7 +165,7 @@ func (s *DefaultSiteSelector) HostPathByLocaleRetrieve(r *http.Request, fallback
 	)
 
 	host := Host(r)
-	sites, err := s.siteRepository.FindByHosts(r.Context(), hosts(host), time.Now())
+	sites, err := s.siteRepository.FindByHosts(r.Context(), hosts(host), time.Now().UTC())
 	if err != nil {
 		return nil, "", err
 	}

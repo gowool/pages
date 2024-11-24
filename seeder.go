@@ -75,7 +75,7 @@ func (s *DefaultSeeder) FindOrCreateLocalhost(ctx context.Context) ([]model.Site
 		return sites, nil
 	}
 
-	now := time.Now()
+	now := time.Now().UTC()
 	site := model.Site{
 		ID:        -1,
 		Name:      "Localhost",
@@ -101,7 +101,7 @@ func (s *DefaultSeeder) CreateErrorPages(ctx context.Context, site model.Site) e
 			continue
 		}
 
-		now := time.Now()
+		now := time.Now().UTC()
 		page.Published = &now
 		page.SiteID = site.ID
 		if err = s.pageRepository.Create(ctx, &page); err != nil {
@@ -118,7 +118,7 @@ func (s *DefaultSeeder) InternalCreatePage(ctx context.Context, site model.Site)
 		return nil
 	}
 
-	now := time.Now()
+	now := time.Now().UTC()
 	if err = s.pageRepository.Create(ctx, &model.Page{
 		SiteID:    site.ID,
 		Pattern:   model.PageInternalCreate,

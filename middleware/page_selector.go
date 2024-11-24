@@ -57,7 +57,7 @@ func PageSelector(cfg PageSelectorConfig) echo.MiddlewareFunc {
 
 			var now time.Time
 			if !pages.CtxEditor(r.Context()) {
-				now = time.Now()
+				now = time.Now().UTC()
 			}
 
 			page, err := cfg.PageRepository.FindByURL(r.Context(), site.ID, r.URL.Path, now)

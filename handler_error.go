@@ -237,7 +237,7 @@ func (h *ErrorHandler) findPageByPattern(ctx context.Context, siteID int64, patt
 
 	var now time.Time
 	if !CtxEditor(ctx) {
-		now = time.Now()
+		now = time.Now().UTC()
 	}
 
 	page, err := h.PageRepository.FindByPattern(ctx, siteID, pattern, now)
@@ -248,7 +248,7 @@ func (h *ErrorHandler) findPageByPattern(ctx context.Context, siteID int64, patt
 }
 
 func siteInternal(r *http.Request, cfg model.Configuration) *model.Site {
-	now := time.Now()
+	now := time.Now().UTC()
 
 	locale := "en_US"
 	if cfg.FallbackLocale != "" {

@@ -57,7 +57,7 @@ func (fm *FuncMapPage) pageURLByAlias(ctx context.Context, alias string, args ..
 	if site == nil {
 		return ""
 	}
-	page, err := fm.pageRepo.FindByAlias(ctx, site.ID, alias, time.Now())
+	page, err := fm.pageRepo.FindByAlias(ctx, site.ID, alias, time.Now().UTC())
 	if err != nil {
 		return ""
 	}
