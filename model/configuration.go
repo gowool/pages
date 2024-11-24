@@ -62,6 +62,7 @@ type Configuration struct {
 	IgnoreRequestURIs     []string          `json:"ignoreRequestURIs,omitempty" yaml:"ignoreRequestURIs,omitempty" required:"false"`
 	SiteSkippers          *Skippers         `json:"siteSkippers,omitempty" yaml:"siteSkippers,omitempty" required:"false"`
 	PageSkippers          *Skippers         `json:"pageSkippers,omitempty" yaml:"pageSkippers,omitempty" required:"false"`
+	LoggerSkippers        *Skippers         `json:"loggerSkippers,omitempty" yaml:"loggerSkippers,omitempty" required:"false"`
 	CatchErrors           map[string][]int  `json:"catchErrors,omitempty" yaml:"catchErrors,omitempty" required:"false"`
 	Additional            map[string]string `json:"additional,omitempty" yaml:"additional,omitempty" required:"false"`
 }
@@ -162,6 +163,7 @@ func (c Configuration) With(other Configuration) Configuration {
 
 	c.SiteSkippers = skippersMerge(c.SiteSkippers, other.SiteSkippers)
 	c.PageSkippers = skippersMerge(c.PageSkippers, other.PageSkippers)
+	c.LoggerSkippers = skippersMerge(c.LoggerSkippers, other.LoggerSkippers)
 
 	if other.CatchErrors != nil {
 		if c.CatchErrors == nil {

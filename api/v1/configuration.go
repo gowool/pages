@@ -19,6 +19,7 @@ type ConfigurationBody struct {
 	IgnoreRequestURIs     *[]string                `json:"ignoreRequestURIs,omitempty" yaml:"ignoreRequestURIs,omitempty" required:"false"`
 	SiteSkippers          *model.Skippers          `json:"siteSkippers,omitempty" yaml:"siteSkippers,omitempty" required:"false"`
 	PageSkippers          *model.Skippers          `json:"pageSkippers,omitempty" yaml:"pageSkippers,omitempty" required:"false"`
+	LoggerSkippers        *model.Skippers          `json:"loggerSkippers,omitempty" yaml:"loggerSkippers,omitempty" required:"false"`
 	CatchErrors           *map[string][]int        `json:"catchErrors,omitempty" yaml:"catchErrors,omitempty" required:"false"`
 	Additional            *map[string]string       `json:"additional,omitempty" yaml:"additional,omitempty" required:"false"`
 }
@@ -88,6 +89,9 @@ func (h Configuration) save(ctx context.Context, in *api.CreateInput[Configurati
 	}
 	if in.Body.PageSkippers != nil {
 		cfg.PageSkippers = in.Body.PageSkippers
+	}
+	if in.Body.LoggerSkippers != nil {
+		cfg.LoggerSkippers = in.Body.LoggerSkippers
 	}
 	if in.Body.CatchErrors != nil {
 		cfg.CatchErrors = *in.Body.CatchErrors

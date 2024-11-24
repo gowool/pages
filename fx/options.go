@@ -102,14 +102,17 @@ var (
 	OptionErrorResolver     = fx.Provide(pages.ErrorResolver)
 	OptionRenderer          = fx.Provide(fx.Annotate(pages.NewRenderer, fx.As(new(echo.Renderer))))
 
-	OptionThemeFuncMap = fx.Provide(fx.Annotate(FuncMap, fx.ResultTags(`group:"theme-func-map"`)))
-	OptionThemeLoader  = fx.Provide(fx.Annotate(theme.NewRepositoryLoader, fx.As(new(theme.Loader))))
+	OptionThemeFuncMap     = fx.Provide(AsFuncMap(FuncMap))
+	OptionThemeFuncMapMenu = fx.Provide(AsFuncMap(FuncMapMenu))
+	OptionThemeFuncMapPage = fx.Provide(AsFuncMap(FuncMapPage))
+	OptionThemeLoader      = fx.Provide(fx.Annotate(theme.NewRepositoryLoader, fx.As(new(theme.Loader))))
 
 	OptionSiteSelectorMiddleware = fx.Provide(echox.AsMiddleware(SiteSelectorMiddleware))
 	OptionPageSelectorMiddleware = fx.Provide(echox.AsMiddleware(PageSelectorMiddleware))
 	OptionHybridPageMiddleware   = fx.Provide(echox.AsMiddleware(HybridPageMiddleware))
 	OptionSiteSkipperMiddleware  = fx.Provide(echox.AsMiddleware(SiteSkipperMiddleware))
 	OptionPageSkipperMiddleware  = fx.Provide(echox.AsMiddleware(PageSkipperMiddleware))
+	OptionLoggerMiddleware       = fx.Provide(echox.AsMiddleware(LoggerMiddleware))
 
 	OptionConfigurationAPI = fx.Provide(api.AsHandler(v1.NewConfiguration, fx.ParamTags("", "", `group:"api-option"`)))
 	OptionMenuAPI          = fx.Provide(api.AsHandler(v1.NewMenu, fx.ParamTags("", "", `group:"api-option"`)))
