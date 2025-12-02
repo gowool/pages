@@ -3,6 +3,8 @@ package pages
 import (
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestPage_AbsURL(t *testing.T) {
@@ -124,9 +126,8 @@ func TestPage_AbsURL(t *testing.T) {
 				Position:  tt.fields.Position,
 				Decorate:  tt.fields.Decorate,
 			}
-			if got := p.AbsURL(tt.args.args...); got != tt.want {
-				t.Errorf("AbsURL() = %v, want %v", got, tt.want)
-			}
+			got := p.AbsURL(tt.args.args...)
+			assert.Equal(t, tt.want, got, "AbsURL() should return the expected URL")
 		})
 	}
 }
@@ -196,9 +197,7 @@ func TestPage_FixURL(t *testing.T) {
 				Decorate:  tt.fields.Decorate,
 			}
 			p.FixURL()
-			if got := p.URL; got != tt.want {
-				t.Errorf("URL = %v, want %v", got, tt.want)
-			}
+			assert.Equal(t, tt.want, p.URL, "URL should be correctly fixed")
 		})
 	}
 }
@@ -264,9 +263,7 @@ func TestPage_IsCMS(t *testing.T) {
 				Position:  tt.fields.Position,
 				Decorate:  tt.fields.Decorate,
 			}
-			if got := p.IsCMS(); got != tt.want {
-				t.Errorf("IsCMS() = %v, want %v", got, tt.want)
-			}
+			assert.Equal(t, tt.want, p.IsCMS(), "IsCMS() should return the expected boolean value")
 		})
 	}
 }
@@ -333,9 +330,7 @@ func TestPage_IsDynamic(t *testing.T) {
 				Position:  tt.fields.Position,
 				Decorate:  tt.fields.Decorate,
 			}
-			if got := p.IsDynamic(); got != tt.want {
-				t.Errorf("IsDynamic() = %v, want %v", got, tt.want)
-			}
+			assert.Equal(t, tt.want, p.IsDynamic(), "IsDynamic() should return the expected boolean value")
 		})
 	}
 }
@@ -403,9 +398,7 @@ func TestPage_IsError(t *testing.T) {
 				Position:  tt.fields.Position,
 				Decorate:  tt.fields.Decorate,
 			}
-			if got := p.IsError(); got != tt.want {
-				t.Errorf("IsError() = %v, want %v", got, tt.want)
-			}
+			assert.Equal(t, tt.want, p.IsError(), "IsError() should return the expected boolean value")
 		})
 	}
 }
@@ -473,9 +466,7 @@ func TestPage_IsHybrid(t *testing.T) {
 				Position:  tt.fields.Position,
 				Decorate:  tt.fields.Decorate,
 			}
-			if got := p.IsHybrid(); got != tt.want {
-				t.Errorf("IsHybrid() = %v, want %v", got, tt.want)
-			}
+			assert.Equal(t, tt.want, p.IsHybrid(), "IsHybrid() should return the expected boolean value")
 		})
 	}
 }
@@ -543,9 +534,7 @@ func TestPage_IsInternal(t *testing.T) {
 				Position:  tt.fields.Position,
 				Decorate:  tt.fields.Decorate,
 			}
-			if got := p.IsInternal(); got != tt.want {
-				t.Errorf("IsInternal() = %v, want %v", got, tt.want)
-			}
+			assert.Equal(t, tt.want, p.IsInternal(), "IsInternal() should return the expected boolean value")
 		})
 	}
 }
@@ -614,9 +603,7 @@ func TestPage_SetAlias(t *testing.T) {
 				Decorate:  tt.fields.Decorate,
 			}
 			p.SetAlias(tt.args.alias)
-			if got := p.Alias; got != tt.want {
-				t.Errorf("Alias = %v, want %v", got, tt.want)
-			}
+			assert.Equal(t, tt.want, p.Alias, "Alias should be correctly set")
 		})
 	}
 }
@@ -680,9 +667,7 @@ func TestPage_String(t *testing.T) {
 				Position:  tt.fields.Position,
 				Decorate:  tt.fields.Decorate,
 			}
-			if got := p.String(); got != tt.want {
-				t.Errorf("String() = %v, want %v", got, tt.want)
-			}
+			assert.Equal(t, tt.want, p.String(), "String() should return the expected string representation")
 		})
 	}
 }

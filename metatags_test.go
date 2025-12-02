@@ -1,8 +1,9 @@
 package pages
 
 import (
-	"reflect"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestNewMetaTags(t *testing.T) {
@@ -116,21 +117,10 @@ func TestNewMetaTags(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			got := NewMetaTags(tt.charset, tt.other...)
 
-			if got.Charset != tt.want.Charset {
-				t.Errorf("NewMetaTags().Charset = %v, want %v", got.Charset, tt.want.Charset)
-			}
-
-			if !reflect.DeepEqual(got.Name, tt.want.Name) {
-				t.Errorf("NewMetaTags().Name = %v, want %v", got.Name, tt.want.Name)
-			}
-
-			if !reflect.DeepEqual(got.Property, tt.want.Property) {
-				t.Errorf("NewMetaTags().Property = %v, want %v", got.Property, tt.want.Property)
-			}
-
-			if !reflect.DeepEqual(got.HTTPEquiv, tt.want.HTTPEquiv) {
-				t.Errorf("NewMetaTags().HTTPEquiv = %v, want %v", got.HTTPEquiv, tt.want.HTTPEquiv)
-			}
+			assert.Equal(t, tt.want.Charset, got.Charset, "NewMetaTags().Charset should match")
+			assert.Equal(t, tt.want.Name, got.Name, "NewMetaTags().Name should match")
+			assert.Equal(t, tt.want.Property, got.Property, "NewMetaTags().Property should match")
+			assert.Equal(t, tt.want.HTTPEquiv, got.HTTPEquiv, "NewMetaTags().HTTPEquiv should match")
 		})
 	}
 }
@@ -160,23 +150,19 @@ func TestMetaTags_With(t *testing.T) {
 	)
 
 	// Verify original is not modified
-	if len(base.Name["author"]) != 1 || base.Name["author"][0] != "Original Author" {
-		t.Errorf("With() should not modify original MetaTags")
-	}
+	assert.Equal(t, 1, len(base.Name["author"]), "With() should not modify original MetaTags - author length")
+	assert.Equal(t, "Original Author", base.Name["author"][0], "With() should not modify original MetaTags - author value")
 
-	if len(newTags.Name["author"]) != 1 || newTags.Name["author"][0] != "Original Author" {
-		t.Errorf("With() should not modify author in original")
-	}
+	assert.Equal(t, 1, len(newTags.Name["author"]), "With() should not modify author in original - length")
+	assert.Equal(t, "Original Author", newTags.Name["author"][0], "With() should not modify author in original - value")
 
 	// Verify description is added
-	if len(newTags.Name["description"]) != 1 || newTags.Name["description"][0] != "Additional Description" {
-		t.Errorf("With() should add description from other")
-	}
+	assert.Equal(t, 1, len(newTags.Name["description"]), "With() should add description from other - length")
+	assert.Equal(t, "Additional Description", newTags.Name["description"][0], "With() should add description from other - value")
 
 	// Verify og:title is preserved and description is added
-	if len(newTags.Property["og:title"]) != 1 || newTags.Property["og:title"][0] != "Original Title" {
-		t.Errorf("With() should preserve og:title from original")
-	}
+	assert.Equal(t, 1, len(newTags.Property["og:title"]), "With() should preserve og:title from original - length")
+	assert.Equal(t, "Original Title", newTags.Property["og:title"][0], "With() should preserve og:title from original - value")
 }
 
 func TestMetaTags_Set(t *testing.T) {
@@ -198,21 +184,10 @@ func TestMetaTags_Set(t *testing.T) {
 
 	mt.Set(other)
 
-	if mt.Charset != "ISO-8859-1" {
-		t.Errorf("Set().Charset = %v, want %v", mt.Charset, "ISO-8859-1")
-	}
-
-	if !reflect.DeepEqual(mt.Name, other.Name) {
-		t.Errorf("Set().Name = %v, want %v", mt.Name, other.Name)
-	}
-
-	if !reflect.DeepEqual(mt.Property, other.Property) {
-		t.Errorf("Set().Property = %v, want %v", mt.Property, other.Property)
-	}
-
-	if !reflect.DeepEqual(mt.HTTPEquiv, other.HTTPEquiv) {
-		t.Errorf("Set().HTTPEquiv = %v, want %v", mt.HTTPEquiv, other.HTTPEquiv)
-	}
+	assert.Equal(t, "ISO-8859-1", mt.Charset, "Set().Charset should match expected value")
+	assert.Equal(t, other.Name, mt.Name, "Set().Name should match expected value")
+	assert.Equal(t, other.Property, mt.Property, "Set().Property should match expected value")
+	assert.Equal(t, other.HTTPEquiv, mt.HTTPEquiv, "Set().HTTPEquiv should match expected value")
 }
 
 func TestMetaTags_Set_Nil(t *testing.T) {
@@ -228,13 +203,9 @@ func TestMetaTags_Set_Nil(t *testing.T) {
 	mt.Set(nil)
 
 	// Should remain unchanged
-	if mt.Charset != "UTF-8" {
-		t.Errorf("Set(nil).Charset = %v, want %v", mt.Charset, "UTF-8")
-	}
-
-	if len(mt.Name) != 1 || mt.Name["description"][0] != "Original" {
-		t.Errorf("Set(nil) modified original data unexpectedly")
-	}
+	assert.Equal(t, "UTF-8", mt.Charset, "Set(nil).Charset should remain unchanged")
+	assert.Equal(t, 1, len(mt.Name), "Set(nil) should not modify Name map length")
+	assert.Equal(t, "Original", mt.Name["description"][0], "Set(nil) should not modify Name description value")
 }
 
 func TestMetaTags_Append(t *testing.T) {
@@ -270,24 +241,18 @@ func TestMetaTags_Append(t *testing.T) {
 		"keywords":    {"original"},
 		"author":      {"New Author"},
 	}
-	if !reflect.DeepEqual(mt.Name, expectedName) {
-		t.Errorf("Append().Name = %v, want %v", mt.Name, expectedName)
-	}
+	assert.Equal(t, expectedName, mt.Name, "Append().Name should match expected value")
 
 	expectedProperty := map[string][]string{
 		"og:title":       {"Original Title"},
 		"og:description": {"New Description"},
 	}
-	if !reflect.DeepEqual(mt.Property, expectedProperty) {
-		t.Errorf("Append().Property = %v, want %v", mt.Property, expectedProperty)
-	}
+	assert.Equal(t, expectedProperty, mt.Property, "Append().Property should match expected value")
 
 	expectedHTTPEquiv := map[string][]string{
 		"refresh": {"30"},
 	}
-	if !reflect.DeepEqual(mt.HTTPEquiv, expectedHTTPEquiv) {
-		t.Errorf("Append().HTTPEquiv = %v, want %v", mt.HTTPEquiv, expectedHTTPEquiv)
-	}
+	assert.Equal(t, expectedHTTPEquiv, mt.HTTPEquiv, "Append().HTTPEquiv should match expected value")
 }
 
 func TestMetaTags_Append_Nil(t *testing.T) {
@@ -303,13 +268,9 @@ func TestMetaTags_Append_Nil(t *testing.T) {
 	mt.Append(nil)
 
 	// Should remain unchanged
-	if mt.Charset != "UTF-8" {
-		t.Errorf("Append(nil).Charset = %v, want %v", mt.Charset, "UTF-8")
-	}
-
-	if len(mt.Name) != 1 || mt.Name["description"][0] != "Original" {
-		t.Errorf("Append(nil) modified original data unexpectedly")
-	}
+	assert.Equal(t, "UTF-8", mt.Charset, "Append(nil).Charset should remain unchanged")
+	assert.Equal(t, 1, len(mt.Name), "Append(nil) should not modify Name map length")
+	assert.Equal(t, "Original", mt.Name["description"][0], "Append(nil) should not modify Name description value")
 }
 
 func TestMetaTags_SetName(t *testing.T) {
@@ -327,9 +288,7 @@ func TestMetaTags_SetName(t *testing.T) {
 		"keywords":    {"test", "meta"},
 	}
 
-	if !reflect.DeepEqual(mt.Name, expected) {
-		t.Errorf("SetName() = %v, want %v", mt.Name, expected)
-	}
+	assert.Equal(t, expected, mt.Name, "SetName() should match expected value")
 
 	// Test overwriting existing value
 	mt.SetName("description", "New description")
@@ -339,9 +298,7 @@ func TestMetaTags_SetName(t *testing.T) {
 		"keywords":    {"test", "meta"},
 	}
 
-	if !reflect.DeepEqual(mt.Name, expected) {
-		t.Errorf("SetName() overwrite = %v, want %v", mt.Name, expected)
-	}
+	assert.Equal(t, expected, mt.Name, "SetName() overwrite should match expected value")
 }
 
 func TestMetaTags_AppendName(t *testing.T) {
@@ -358,9 +315,7 @@ func TestMetaTags_AppendName(t *testing.T) {
 		"keywords": {"test", "meta", "tags"},
 	}
 
-	if !reflect.DeepEqual(mt.Name, expected) {
-		t.Errorf("AppendName() = %v, want %v", mt.Name, expected)
-	}
+	assert.Equal(t, expected, mt.Name, "AppendName() should match expected value")
 
 	// Test appending to non-existent key
 	mt.AppendName("author", "John Doe")
@@ -370,9 +325,7 @@ func TestMetaTags_AppendName(t *testing.T) {
 		"author":   {"John Doe"},
 	}
 
-	if !reflect.DeepEqual(mt.Name, expected) {
-		t.Errorf("AppendName() to new key = %v, want %v", mt.Name, expected)
-	}
+	assert.Equal(t, expected, mt.Name, "AppendName() to new key should match expected value")
 }
 
 func TestMetaTags_SetProperty(t *testing.T) {
@@ -390,9 +343,7 @@ func TestMetaTags_SetProperty(t *testing.T) {
 		"og:description": {"Test description", "Additional"},
 	}
 
-	if !reflect.DeepEqual(mt.Property, expected) {
-		t.Errorf("SetProperty() = %v, want %v", mt.Property, expected)
-	}
+	assert.Equal(t, expected, mt.Property, "SetProperty() should match expected value")
 
 	// Test overwriting existing value
 	mt.SetProperty("og:title", "New Title")
@@ -402,9 +353,7 @@ func TestMetaTags_SetProperty(t *testing.T) {
 		"og:description": {"Test description", "Additional"},
 	}
 
-	if !reflect.DeepEqual(mt.Property, expected) {
-		t.Errorf("SetProperty() overwrite = %v, want %v", mt.Property, expected)
-	}
+	assert.Equal(t, expected, mt.Property, "SetProperty() overwrite should match expected value")
 }
 
 func TestMetaTags_AppendProperty(t *testing.T) {
@@ -421,9 +370,7 @@ func TestMetaTags_AppendProperty(t *testing.T) {
 		"og:title": {"Original Title", "Additional Title"},
 	}
 
-	if !reflect.DeepEqual(mt.Property, expected) {
-		t.Errorf("AppendProperty() = %v, want %v", mt.Property, expected)
-	}
+	assert.Equal(t, expected, mt.Property, "AppendProperty() should match expected value")
 
 	// Test appending to non-existent key
 	mt.AppendProperty("og:image", "image.jpg")
@@ -433,9 +380,7 @@ func TestMetaTags_AppendProperty(t *testing.T) {
 		"og:image": {"image.jpg"},
 	}
 
-	if !reflect.DeepEqual(mt.Property, expected) {
-		t.Errorf("AppendProperty() to new key = %v, want %v", mt.Property, expected)
-	}
+	assert.Equal(t, expected, mt.Property, "AppendProperty() to new key should match expected value")
 }
 
 func TestMetaTags_SetHTTPEquiv(t *testing.T) {
@@ -453,9 +398,7 @@ func TestMetaTags_SetHTTPEquiv(t *testing.T) {
 		"content-type": {"text/html; charset=UTF-8"},
 	}
 
-	if !reflect.DeepEqual(mt.HTTPEquiv, expected) {
-		t.Errorf("SetHTTPEquiv() = %v, want %v", mt.HTTPEquiv, expected)
-	}
+	assert.Equal(t, expected, mt.HTTPEquiv, "SetHTTPEquiv() should match expected value")
 
 	// Test overwriting existing value
 	mt.SetHTTPEquiv("refresh", "60")
@@ -465,9 +408,7 @@ func TestMetaTags_SetHTTPEquiv(t *testing.T) {
 		"content-type": {"text/html; charset=UTF-8"},
 	}
 
-	if !reflect.DeepEqual(mt.HTTPEquiv, expected) {
-		t.Errorf("SetHTTPEquiv() overwrite = %v, want %v", mt.HTTPEquiv, expected)
-	}
+	assert.Equal(t, expected, mt.HTTPEquiv, "SetHTTPEquiv() overwrite should match expected value")
 }
 
 func TestMetaTags_AppendHTTPEquiv(t *testing.T) {
@@ -484,9 +425,7 @@ func TestMetaTags_AppendHTTPEquiv(t *testing.T) {
 		"cache-control": {"no-cache", "no-store"},
 	}
 
-	if !reflect.DeepEqual(mt.HTTPEquiv, expected) {
-		t.Errorf("AppendHTTPEquiv() = %v, want %v", mt.HTTPEquiv, expected)
-	}
+	assert.Equal(t, expected, mt.HTTPEquiv, "AppendHTTPEquiv() should match expected value")
 
 	// Test appending to non-existent key
 	mt.AppendHTTPEquiv("x-frame-options", "DENY")
@@ -496,17 +435,13 @@ func TestMetaTags_AppendHTTPEquiv(t *testing.T) {
 		"x-frame-options": {"DENY"},
 	}
 
-	if !reflect.DeepEqual(mt.HTTPEquiv, expected) {
-		t.Errorf("AppendHTTPEquiv() to new key = %v, want %v", mt.HTTPEquiv, expected)
-	}
+	assert.Equal(t, expected, mt.HTTPEquiv, "AppendHTTPEquiv() to new key should match expected value")
 }
 
 func TestMetaTags_DefaultCharset(t *testing.T) {
 	mt := NewMetaTags(DefaultCharset)
 
-	if mt.Charset != DefaultCharset {
-		t.Errorf("DefaultCharset = %v, want %v", mt.Charset, DefaultCharset)
-	}
+	assert.Equal(t, DefaultCharset, mt.Charset, "DefaultCharset should match expected value")
 }
 
 func TestMetaTags_EmptyMethods(t *testing.T) {
@@ -525,15 +460,9 @@ func TestMetaTags_EmptyMethods(t *testing.T) {
 	mt.AppendHTTPEquiv("test")
 
 	// Should not panic and maps should be initialized
-	if mt.Name == nil {
-		t.Error("Name map should be initialized")
-	}
-	if mt.Property == nil {
-		t.Error("Property map should be initialized")
-	}
-	if mt.HTTPEquiv == nil {
-		t.Error("HTTPEquiv map should be initialized")
-	}
+	assert.NotNil(t, mt.Name, "Name map should be initialized")
+	assert.NotNil(t, mt.Property, "Property map should be initialized")
+	assert.NotNil(t, mt.HTTPEquiv, "HTTPEquiv map should be initialized")
 }
 
 func TestMetaTags_CloneBehavior(t *testing.T) {
@@ -562,15 +491,7 @@ func TestMetaTags_CloneBehavior(t *testing.T) {
 	original.HTTPEquiv["refresh"] = []string{"60"}
 
 	// New instance should not be affected
-	if newMt.Name["test"][0] != "original" {
-		t.Errorf("Set() should clone data, got %v, want %v", newMt.Name["test"][0], "original")
-	}
-
-	if newMt.Property["og:title"][0] != "original title" {
-		t.Errorf("Set() should clone property data, got %v, want %v", newMt.Property["og:title"][0], "original title")
-	}
-
-	if newMt.HTTPEquiv["refresh"][0] != "30" {
-		t.Errorf("Set() should clone HTTPEquiv data, got %v, want %v", newMt.HTTPEquiv["refresh"][0], "30")
-	}
+	assert.Equal(t, "original", newMt.Name["test"][0], "Set() should clone data")
+	assert.Equal(t, "original title", newMt.Property["og:title"][0], "Set() should clone property data")
+	assert.Equal(t, "30", newMt.HTTPEquiv["refresh"][0], "Set() should clone HTTPEquiv data")
 }

@@ -3,58 +3,36 @@ package pages
 import (
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestNewSite(t *testing.T) {
 	site := NewSite()
 
-	if site.Created.IsZero() {
-		t.Error("Created time should be set")
-	}
+	assert.False(t, site.Created.IsZero(), "Created time should be set")
 
-	if site.Updated.IsZero() {
-		t.Error("Updated time should be set")
-	}
+	assert.False(t, site.Updated.IsZero(), "Updated time should be set")
 
-	if site.Name != "Localhost" {
-		t.Errorf("Name = %v, want %v", site.Name, "Localhost")
-	}
+	assert.Equal(t, "Localhost", site.Name, "Name should be 'Localhost'")
 
-	if site.Host != "localhost" {
-		t.Errorf("Host = %v, want %v", site.Host, "localhost")
-	}
+	assert.Equal(t, "localhost", site.Host, "Host should be 'localhost'")
 
-	if site.Scheme != "https" {
-		t.Errorf("Scheme = %v, want %v", site.Scheme, "https")
-	}
+	assert.Equal(t, "https", site.Scheme, "Scheme should be 'https'")
 
-	if site.Locale != "en" {
-		t.Errorf("Locale = %v, want %v", site.Locale, "en")
-	}
+	assert.Equal(t, "en", site.Locale, "Locale should be 'en'")
 
-	if site.Timezone != "UTC" {
-		t.Errorf("Timezone = %v, want %v", site.Timezone, "UTC")
-	}
+	assert.Equal(t, "UTC", site.Timezone, "Timezone should be 'UTC'")
 
-	if site.Separator != " | " {
-		t.Errorf("Separator = %v, want %v", site.Separator, " | ")
-	}
+	assert.Equal(t, " | ", site.Separator, "Separator should be ' | '")
 
-	if site.MetaTags.Charset != "UTF-8" {
-		t.Errorf("MetaTags.Charset = %v, want %v", site.MetaTags.Charset, "UTF-8")
-	}
+	assert.Equal(t, "UTF-8", site.MetaTags.Charset, "MetaTags.Charset should be 'UTF-8'")
 
-	if site.Metadata == nil {
-		t.Error("Metadata map should be initialized")
-	}
+	assert.NotNil(t, site.Metadata, "Metadata map should be initialized")
 
-	if site.Enabled {
-		t.Error("Enabled should be false by default")
-	}
+	assert.False(t, site.Enabled, "Enabled should be false by default")
 
-	if site.IsDefault {
-		t.Error("IsDefault should be false by default")
-	}
+	assert.False(t, site.IsDefault, "IsDefault should be false by default")
 }
 
 func TestSite_String(t *testing.T) {
@@ -77,9 +55,8 @@ func TestSite_String(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := tt.site.String(); got != tt.want {
-				t.Errorf("Site.String() = %v, want %v", got, tt.want)
-			}
+			got := tt.site.String()
+			assert.Equal(t, tt.want, got, "Site.String() should return the expected value")
 		})
 	}
 }
@@ -119,9 +96,8 @@ func TestSite_IsLocalhost(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := tt.site.IsLocalhost(); got != tt.want {
-				t.Errorf("Site.IsLocalhost() = %v, want %v", got, tt.want)
-			}
+			got := tt.site.IsLocalhost()
+			assert.Equal(t, tt.want, got, "Site.IsLocalhost() should return the expected value")
 		})
 	}
 }
@@ -151,9 +127,8 @@ func TestSite_Origin(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := tt.site.Origin(); got != tt.want {
-				t.Errorf("Site.Origin() = %v, want %v", got, tt.want)
-			}
+			got := tt.site.Origin()
+			assert.Equal(t, tt.want, got, "Site.Origin() should return the expected value")
 		})
 	}
 }
@@ -193,9 +168,8 @@ func TestSite_URL(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := tt.site.URL(); got != tt.want {
-				t.Errorf("Site.URL() = %v, want %v", got, tt.want)
-			}
+			got := tt.site.URL()
+			assert.Equal(t, tt.want, got, "Site.URL() should return the expected value")
 		})
 	}
 }
@@ -244,9 +218,8 @@ func TestSite_Home(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			tt.site.isRoot = tt.isRoot
-			if got := tt.site.Home(); got != tt.want {
-				t.Errorf("Site.Home() = %v, want %v", got, tt.want)
-			}
+			got := tt.site.Home()
+			assert.Equal(t, tt.want, got, "Site.Home() should return the expected value")
 		})
 	}
 }
@@ -287,9 +260,7 @@ func TestSite_Location(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got := tt.site.Location()
-			if got.String() != tt.wantName {
-				t.Errorf("Site.Location() = %v, want %v", got.String(), tt.wantName)
-			}
+			assert.Equal(t, tt.wantName, got.String(), "Site.Location() should return the expected timezone name")
 		})
 	}
 }
@@ -335,9 +306,7 @@ func TestSite_Tag(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got := tt.site.Tag()
-			if got.String() != tt.wantLang {
-				t.Errorf("Site.Tag() = %v, want %v", got.String(), tt.wantLang)
-			}
+			assert.Equal(t, tt.wantLang, got.String(), "Site.Tag() should return the expected language tag")
 		})
 	}
 }
@@ -351,14 +320,10 @@ func TestSite_LocationCaching(t *testing.T) {
 	// Second call should return cached location
 	loc2 := site.Location()
 
-	if loc1 != loc2 {
-		t.Error("Location() should return cached location on subsequent calls")
-	}
+	assert.Equal(t, loc1, loc2, "Location() should return cached location on subsequent calls")
 
 	// Verify location is cached
-	if site.location == nil {
-		t.Error("Location() should cache the location in the site struct")
-	}
+	assert.NotNil(t, site.location, "Location() should cache the location in the site struct")
 }
 
 func TestSite_TagCaching(t *testing.T) {
@@ -370,14 +335,10 @@ func TestSite_TagCaching(t *testing.T) {
 	// Second call should return cached tag
 	tag2 := site.Tag()
 
-	if tag1 != tag2 {
-		t.Error("Tag() should return cached tag on subsequent calls")
-	}
+	assert.Equal(t, tag1, tag2, "Tag() should return cached tag on subsequent calls")
 
 	// Verify tag is cached
-	if site.tag == nil {
-		t.Error("Tag() should cache the tag in the site struct")
-	}
+	assert.NotNil(t, site.tag, "Tag() should cache the tag in the site struct")
 }
 
 func TestSite_FieldDefaults(t *testing.T) {
@@ -393,13 +354,9 @@ func TestSite_FieldDefaults(t *testing.T) {
 	_ = site.Tag()
 
 	// Should not panic even with empty fields
-	if !site.IsLocalhost() {
-		t.Error("Empty host should be considered localhost")
-	}
+	assert.True(t, site.IsLocalhost(), "Empty host should be considered localhost")
 
-	if site.Origin() != "://" {
-		t.Errorf("Empty scheme and host should produce '://', got %v", site.Origin())
-	}
+	assert.Equal(t, "://", site.Origin(), "Empty scheme and host should produce '://'")
 }
 
 func TestSite_CompleteExample(t *testing.T) {
@@ -422,63 +379,41 @@ func TestSite_CompleteExample(t *testing.T) {
 	}
 
 	// Test all methods
-	if site.String() != "Example Website" {
-		t.Errorf("String() = %v, want %v", site.String(), "Example Website")
-	}
+	assert.Equal(t, "Example Website", site.String(), "String() should return 'Example Website'")
 
-	if site.IsLocalhost() {
-		t.Error("Should not be localhost")
-	}
+	assert.False(t, site.IsLocalhost(), "Should not be localhost")
 
-	if site.Origin() != "https://example.com" {
-		t.Errorf("Origin() = %v, want %v", site.Origin(), "https://example.com")
-	}
+	assert.Equal(t, "https://example.com", site.Origin(), "Origin() should return 'https://example.com'")
 
-	if site.URL() != "https://example.com/blog" {
-		t.Errorf("URL() = %v, want %v", site.URL(), "https://example.com/blog")
-	}
+	assert.Equal(t, "https://example.com/blog", site.URL(), "URL() should return 'https://example.com/blog'")
 
-	if site.Home() != "https://example.com/blog" {
-		t.Errorf("Home() = %v, want %v", site.Home(), "https://example.com/blog")
-	}
+	assert.Equal(t, "https://example.com/blog", site.Home(), "Home() should return 'https://example.com/blog'")
 
 	location := site.Location()
-	if location.String() != "America/New_York" {
-		t.Errorf("Location() = %v, want %v", location.String(), "America/New_York")
-	}
+	assert.Equal(t, "America/New_York", location.String(), "Location() should return 'America/New_York'")
 
 	tag := site.Tag()
-	if tag.String() != "en-US" {
-		t.Errorf("Tag() = %v, want %v", tag.String(), "en-US")
-	}
+	assert.Equal(t, "en-US", tag.String(), "Tag() should return 'en-US'")
 }
 
 func TestSite_EdgeCases(t *testing.T) {
 	t.Run("Site with special characters in host", func(t *testing.T) {
 		site := &Site{Scheme: "https", Host: "sub-domain.example.co.uk"}
-		if site.Origin() != "https://sub-domain.example.co.uk" {
-			t.Errorf("Origin() with special characters = %v", site.Origin())
-		}
+		assert.Equal(t, "https://sub-domain.example.co.uk", site.Origin(), "Origin() with special characters should return the expected value")
 	})
 
 	t.Run("Site with port", func(t *testing.T) {
 		site := &Site{Scheme: "http", Host: "localhost:8080"}
-		if site.Origin() != "http://localhost:8080" {
-			t.Errorf("Origin() with port = %v", site.Origin())
-		}
+		assert.Equal(t, "http://localhost:8080", site.Origin(), "Origin() with port should return the expected value")
 	})
 
 	t.Run("Site with IPv6", func(t *testing.T) {
 		site := &Site{Scheme: "https", Host: "[::1]"}
-		if site.Origin() != "https://[::1]" {
-			t.Errorf("Origin() with IPv6 = %v", site.Origin())
-		}
+		assert.Equal(t, "https://[::1]", site.Origin(), "Origin() with IPv6 should return the expected value")
 	})
 
 	t.Run("Complex relative path", func(t *testing.T) {
 		site := &Site{Scheme: "https", Host: "example.com", RelativePath: "/api/v1/users"}
-		if site.URL() != "https://example.com/api/v1/users" {
-			t.Errorf("URL() with complex path = %v", site.URL())
-		}
+		assert.Equal(t, "https://example.com/api/v1/users", site.URL(), "URL() with complex path should return the expected value")
 	})
 }

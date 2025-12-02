@@ -1,59 +1,37 @@
 package pages
 
 import (
-	"reflect"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestNewSEO(t *testing.T) {
 	seo := NewSEO()
-	if seo == nil {
-		t.Fatal("NewSEO() should not return nil")
-	}
+	require.NotNil(t, seo, "NewSEO() should not return nil")
 
 	// Check default separator
-	if seo.separator != " - " {
-		t.Errorf("Separator = %v, want %v", seo.separator, " - ")
-	}
+	assert.Equal(t, " - ", seo.separator, "Separator should be default")
 
 	// Check default HTML attributes
-	if seo.htmlAttrs == nil {
-		t.Error("htmlAttrs should be initialized")
-	}
+	assert.NotNil(t, seo.htmlAttrs, "htmlAttrs should be initialized")
 
 	// Check default meta tags
-	if seo.metaTags == nil {
-		t.Error("MetaTags should be initialized")
-	}
+	assert.NotNil(t, seo.metaTags, "MetaTags should be initialized")
 
 	// Check that the default meta tags have expected og:type
-	if len(seo.metaTags.Property["og:type"]) != 1 || seo.metaTags.Property["og:type"][0] != "website" {
-		t.Errorf("og:type = %v, want %v", seo.metaTags.Property["og:type"], []string{"website"})
-	}
+	assert.Equal(t, []string{"website"}, seo.metaTags.Property["og:type"], "og:type should be website")
 
 	// Check other initializations
-	if seo.titles != nil {
-		t.Error("titles should be nil initially")
-	}
-	if seo.siteURL != "" {
-		t.Error("siteURL should be empty initially")
-	}
-	if seo.separator != " - " {
-		t.Errorf("separator = %v, want %v", seo.separator, " - ")
-	}
-	if seo.htmlAttrs == nil {
-		t.Error("headAttrs should be initialized")
-	}
-	if seo.bodyAttrs == nil {
-		t.Error("bodyAttrs should be initialized")
-	}
-	if seo.langAlternates == nil {
-		t.Error("langAlternates should be initialized")
-	}
-	if len(seo.headLinks) != 0 {
-		t.Error("headLinks should be nil initially")
-	}
+	assert.Nil(t, seo.titles, "titles should be nil initially")
+	assert.Empty(t, seo.siteURL, "siteURL should be empty initially")
+	assert.Equal(t, " - ", seo.separator, "separator should be default")
+	assert.NotNil(t, seo.htmlAttrs, "headAttrs should be initialized")
+	assert.NotNil(t, seo.bodyAttrs, "bodyAttrs should be initialized")
+	assert.NotNil(t, seo.langAlternates, "langAlternates should be initialized")
+	assert.Empty(t, seo.headLinks, "headLinks should be empty initially")
 }
 
 func TestSEO_Reset(t *testing.T) {
@@ -73,24 +51,13 @@ func TestSEO_Reset(t *testing.T) {
 	seo.Reset()
 
 	// Check values are reset to defaults
-	if len(seo.titles) != 0 {
-		t.Error("titles should be nil after reset")
-	}
-	if seo.siteURL != "" {
-		t.Errorf("siteURL = %v, want empty", seo.siteURL)
-	}
-	if seo.separator != " - " {
-		t.Errorf("separator = %v, want %v", seo.separator, " - ")
-	}
-	if seo.htmlAttrs["test"] == "value" || seo.headAttrs["test"] == "value" {
-		t.Error("HTML attributes should be reset to defaults")
-	}
-	if seo.bodyAttrs["test"] == "value" {
-		t.Error("Body attributes should be reset to defaults")
-	}
-	if seo.langAlternates["test"] == "value" {
-		t.Error("Lang alternates should be reset to defaults")
-	}
+	assert.Empty(t, seo.titles, "titles should be empty after reset")
+	assert.Empty(t, seo.siteURL, "siteURL should be empty after reset")
+	assert.Equal(t, " - ", seo.separator, "separator should be reset to default")
+	assert.NotEqual(t, "value", seo.htmlAttrs["test"], "HTML attributes should be reset to defaults")
+	assert.NotEqual(t, "value", seo.headAttrs["test"], "Head attributes should be reset to defaults")
+	assert.NotEqual(t, "value", seo.bodyAttrs["test"], "Body attributes should be reset to defaults")
+	assert.NotEqual(t, "value", seo.langAlternates["test"], "Lang alternates should be reset to defaults")
 }
 
 func TestSEO_Site(t *testing.T) {
@@ -140,27 +107,23 @@ func TestSEO_Site(t *testing.T) {
 			}
 			seo.Site(tt.site)
 
-			if tt.want != "" && (len(seo.titles) != 1 || seo.titles[0] != tt.want) {
-				t.Errorf("Site() titles = %v, want %v", seo.titles, []string{tt.want})
+			if tt.want != "" {
+				assert.Equal(t, []string{tt.want}, seo.titles, "Site() titles should match expected")
 			}
 
-			if tt.site.Separator != "" && seo.separator != tt.site.Separator {
-				t.Errorf("Site() separator = %v, want %v", seo.separator, tt.site.Separator)
+			if tt.site.Separator != "" {
+				assert.Equal(t, tt.site.Separator, seo.separator, "Site() separator should match site separator")
 			}
 
-			if tt.site.Locale != "" && seo.htmlAttrs["lang"] != "en-US" {
-				t.Errorf("Site() lang = %v, want %v", seo.htmlAttrs["lang"], "en-US")
+			if tt.site.Locale != "" {
+				assert.Equal(t, "en-US", seo.htmlAttrs["lang"], "Site() lang should be en-US for US locale")
 			}
 
 			expectedHome := tt.site.Origin()
-			if len(seo.metaTags.Property["og:url"]) == 0 || seo.metaTags.Property["og:url"][0] != expectedHome {
-				t.Errorf("Site() og:url = %v, want %v", seo.metaTags.Property["og:url"], []string{expectedHome})
-			}
+			assert.Equal(t, []string{expectedHome}, seo.metaTags.Property["og:url"], "Site() og:url should match site origin")
 
 			if tt.site.MetaTags != nil {
-				if len(seo.metaTags.Name["description"]) == 0 || seo.metaTags.Name["description"][0] != tt.site.MetaTags.Name["description"][0] {
-					t.Errorf("Site() description = %v, want %v", seo.metaTags.Name["description"], tt.site.MetaTags.Name["description"][0])
-				}
+				assert.Equal(t, tt.site.MetaTags.Name["description"], seo.metaTags.Name["description"], "Site() description should match site meta description")
 			}
 		})
 	}
@@ -175,25 +138,19 @@ func TestSEO_Prefix(t *testing.T) {
 
 	seo.AddHTMLPrefixAttribute(newPrefix)
 	expectedPrefix := originalPrefix + " " + newPrefix
-	if seo.htmlAttrs["prefix"] != expectedPrefix {
-		t.Errorf("AddHTMLPrefixAttribute() = %v, want %v", seo.htmlAttrs["prefix"], expectedPrefix)
-	}
+	assert.Equal(t, expectedPrefix, seo.htmlAttrs["prefix"], "AddHTMLPrefixAttribute() should append to existing prefix")
 
 	// Test adding prefix to empty prefix
 	seo.Reset()
 	seo.AddHTMLPrefixAttribute("test: http://example.com")
 
-	if seo.htmlAttrs["prefix"] != "og: https://ogp.me/ns# test: http://example.com" {
-		t.Errorf("AddHTMLPrefixAttribute() to empty = %v, want %v", seo.htmlAttrs["prefix"], "og: https://ogp.me/ns# test: http://example.com")
-	}
+	assert.Equal(t, "og: https://ogp.me/ns# test: http://example.com", seo.htmlAttrs["prefix"], "AddHTMLPrefixAttribute() should work with empty prefix")
 
 	// Test adding prefix that starts with http
 	seo.Reset()
 	seo.AddHTMLPrefixAttribute("http://example.com")
 
-	if seo.htmlAttrs["prefix"] != "og: https://ogp.me/ns# http://example.com" {
-		t.Errorf("AddHTMLPrefixAttribute() to http = %v, want %v", seo.htmlAttrs["prefix"], "og: https://ogp.me/ns# http://example.com")
-	}
+	assert.Equal(t, "og: https://ogp.me/ns# http://example.com", seo.htmlAttrs["prefix"], "AddHTMLPrefixAttribute() should work with http prefix")
 }
 
 func TestSEO_AttributeMethods(t *testing.T) {
@@ -201,79 +158,49 @@ func TestSEO_AttributeMethods(t *testing.T) {
 
 	// Test HTML attributes
 	htmlAttrs := seo.HTMLAttributes()
-	if htmlAttrs == nil {
-		t.Error("HTMLAttributes() should not return nil")
-	}
+	assert.NotNil(t, htmlAttrs, "HTMLAttributes() should not return nil")
 
 	// Test setting attributes
 	seo.SetHTMLAttributes(map[string]string{
 		"test": "value",
 	})
-	if seo.htmlAttrs["test"] != "value" {
-		t.Errorf("SetHTMLAttributes() = %v, want %v", seo.htmlAttrs, map[string]string{"test": "value"})
-	}
+	assert.Equal(t, "value", seo.htmlAttrs["test"], "SetHTMLAttributes() should set attributes")
 
 	// Test setting single attribute
 	seo.SetHTMLAttribute("new", "attr")
-	if seo.htmlAttrs["new"] != "attr" {
-		t.Errorf("SetHTMLAttribute() = %v, want %v", seo.htmlAttrs, map[string]string{"test": "value", "new": "attr"})
-	}
+	assert.Equal(t, "attr", seo.htmlAttrs["new"], "SetHTMLAttribute() should set single attribute")
 
 	// Test removing attribute
 	seo.RemoveHTMLAttribute("test")
-	if _, exists := seo.htmlAttrs["test"]; exists {
-		t.Error("RemoveHTMLAttribute() should remove attribute")
-	}
+	assert.False(t, seo.HasHTMLAttribute("test"), "RemoveHTMLAttribute() should remove attribute")
 
 	// Test has attribute
-	if !seo.HasHTMLAttribute("new") {
-		t.Error("HasHTMLAttribute() should return true for existing attribute")
-	}
-
-	if seo.HasHTMLAttribute("nonexistent") {
-		t.Error("HasHTMLAttribute() should return false for non-existent attribute")
-	}
+	assert.True(t, seo.HasHTMLAttribute("new"), "HasHTMLAttribute() should return true for existing attribute")
+	assert.False(t, seo.HasHTMLAttribute("nonexistent"), "HasHTMLAttribute() should return false for non-existent attribute")
 
 	// Test head attributes
 	headAttrs := seo.HeadAttributes()
-	if headAttrs == nil {
-		t.Error("HeadAttributes() should not return nil")
-	}
+	assert.NotNil(t, headAttrs, "HeadAttributes() should not return nil")
 
 	seo.SetHeadAttribute("head", "attr")
-	if headAttrs["head"] != "attr" {
-		t.Errorf("SetHeadAttribute() = %v, want %v", headAttrs, map[string]string{"head": "attr"})
-	}
+	assert.Equal(t, "attr", seo.headAttrs["head"], "SetHeadAttribute() should set head attribute")
 
 	seo.RemoveHeadAttribute("head")
-	if _, exists := seo.headAttrs["head"]; exists {
-		t.Error("RemoveHeadAttribute() should remove attribute")
-	}
+	assert.False(t, seo.HasHeadAttribute("head"), "RemoveHeadAttribute() should remove head attribute")
 
 	// Test body attributes
 	bodyAttrs := seo.BodyAttributes()
-	if bodyAttrs == nil {
-		t.Error("BodyAttributes() should not return nil")
-	}
+	assert.NotNil(t, bodyAttrs, "BodyAttributes() should not return nil")
 
 	seo.SetBodyAttribute("body", "attr")
-	if bodyAttrs["body"] != "attr" {
-		t.Errorf("SetBodyAttribute() = %v, want %v", bodyAttrs, map[string]string{"body": "attr"})
-	}
+	assert.Equal(t, "attr", seo.bodyAttrs["body"], "SetBodyAttribute() should set body attribute")
 
 	seo.RemoveBodyAttribute("body")
-	if _, exists := seo.bodyAttrs["body"]; exists {
-		t.Error("RemoveBodyAttribute() should remove attribute")
-	}
+	assert.False(t, seo.HasBodyAttribute("body"), "RemoveBodyAttribute() should remove body attribute")
 
-	// Test has attributes
-	if !seo.HasHTMLAttribute("new") {
-		t.Error("HasHTMLAttribute() should return true for existing attribute")
-	}
-
-	if seo.HasHTMLAttribute("nonexistent") {
-		t.Error("HasHTMLAttribute() should return false for non-existent attribute")
-	}
+	// Test has attributes (repeated check)
+	assert.True(t, seo.HasHTMLAttribute("new"), "HasHTMLAttribute() should return true for existing attribute")
+	assert.False(t, seo.HasHTMLAttribute("nonexistent"), "HasHTMLAttribute() should return false for non-existent attribute")
 }
 
 func TestSEO_Links(t *testing.T) {
@@ -281,21 +208,15 @@ func TestSEO_Links(t *testing.T) {
 
 	// Test Links returns nil initially
 	links := seo.Links()
-	if links != nil {
-		t.Error("Links() should return nil initially")
-	}
+	assert.Empty(t, links, "Links() should return nil initially")
 
 	// Test setting links
 	seo.SetLinks([]HeadLink{{Rel: "stylesheet", Href: "/style1.css"}})
-	if len(seo.headLinks) != 1 {
-		t.Errorf("SetLinks() length = %v, want 1", len(seo.headLinks))
-	}
+	assert.Len(t, seo.headLinks, 1, "SetLinks() should set one link")
 
 	// Test replacing links with a different one
 	seo.SetLinks([]HeadLink{{Rel: "stylesheet", Href: "/style2.css"}})
-	if len(seo.headLinks) != 1 {
-		t.Errorf("SetLinks() length = %v, want 1", len(seo.headLinks))
-	}
+	assert.Len(t, seo.headLinks, 1, "SetLinks() should replace with one link")
 
 	seo.AddCanonicalLink("https://example.com/canonical")
 	seo.AddPrevLink("https://example.com/prev")
@@ -316,34 +237,20 @@ func TestSEO_Links(t *testing.T) {
 		}
 	}
 
-	if !foundCanonical {
-		t.Error("AddCanonicalLink() should add canonical link")
-	}
-
-	if !foundPrev {
-		t.Error("AddPrevLink() should add prev link")
-	}
-
-	if !foundNext {
-		t.Error("AddNextLink() should add next link")
-	}
+	assert.True(t, foundCanonical, "AddCanonicalLink() should add canonical link")
+	assert.True(t, foundPrev, "AddPrevLink() should add prev link")
+	assert.True(t, foundNext, "AddNextLink() should add next link")
 
 	// Test that AddLink appends to existing links
 	originalCount := len(seo.headLinks)
 	seo.AddLink(HeadLink{Rel: "test", Href: "/test"})
-	if len(seo.headLinks) != originalCount+1 {
-		t.Errorf("AddLink() should append to existing links, got %v, want %v", len(seo.headLinks), originalCount+1)
-	}
+	assert.Len(t, seo.headLinks, originalCount+1, "AddLink() should append to existing links")
 
 	// Test replacing links
 	seo.SetLinks([]HeadLink{{Rel: "stylesheet", Href: "/new.css"}})
-	if len(seo.headLinks) != 1 {
-		t.Errorf("SetLinks() should replace existing links, got %v, want 1", len(seo.headLinks))
-	}
-
-	if seo.headLinks[0].Rel != "stylesheet" || seo.headLinks[0].Href != "/new.css" {
-		t.Errorf("SetLinks() should replace links with new ones")
-	}
+	assert.Len(t, seo.headLinks, 1, "SetLinks() should replace existing links with one link")
+	assert.Equal(t, "stylesheet", seo.headLinks[0].Rel, "SetLinks() should set correct rel attribute")
+	assert.Equal(t, "/new.css", seo.headLinks[0].Href, "SetLinks() should set correct href attribute")
 }
 
 func TestSEO_RemoveLinks(t *testing.T) {
@@ -351,14 +258,11 @@ func TestSEO_RemoveLinks(t *testing.T) {
 
 	// Test replacing links with single stylesheet
 	seo.SetLinks([]HeadLink{{Rel: "stylesheet", Href: "/style2.css"}})
-	if len(seo.headLinks) != 1 {
-		t.Errorf("SetLinks() should set single link, got %v, want 1", len(seo.headLinks))
-	}
+	assert.Len(t, seo.headLinks, 1, "SetLinks() should set single link")
 
 	if len(seo.headLinks) == 1 {
-		if seo.headLinks[0].Rel != "stylesheet" || seo.headLinks[0].Href != "/style2.css" {
-			t.Error("SetLinks() should set correct stylesheet link")
-		}
+		assert.Equal(t, "stylesheet", seo.headLinks[0].Rel, "SetLinks() should set correct rel attribute")
+		assert.Equal(t, "/style2.css", seo.headLinks[0].Href, "SetLinks() should set correct href attribute")
 	}
 }
 
@@ -367,9 +271,7 @@ func TestSEO_LangAlternates(t *testing.T) {
 
 	// Test lang alternates returns empty map initially
 	langAlts := seo.LangAlternates()
-	if len(langAlts) != 0 {
-		t.Errorf("LangAlternates() should return empty map initially, got %v", langAlts)
-	}
+	assert.Empty(t, langAlts, "LangAlternates() should return empty map initially")
 
 	// Test setting lang alternates
 	newLangAlts := map[string]string{
@@ -380,39 +282,27 @@ func TestSEO_LangAlternates(t *testing.T) {
 
 	// Test values are properly set by getting fresh reference
 	currentLangAlts := seo.LangAlternates()
-	if !reflect.DeepEqual(currentLangAlts, newLangAlts) {
-		t.Errorf("SetLangAlternates() = %v, want %v", currentLangAlts, newLangAlts)
-	}
+	assert.Equal(t, newLangAlts, currentLangAlts, "SetLangAlternates() should set lang alternates correctly")
 
 	// Test adding lang alternate
 	seo.AddLangAlternate("https://example.com/de", "de")
 
 	// Test has lang alternate
-	if !seo.HasLangAlternate("https://example.com/fr") {
-		t.Error("AddLangAlternate() should add lang alternate")
-	}
+	assert.True(t, seo.HasLangAlternate("https://example.com/fr"), "AddLangAlternate() should add lang alternate")
 
 	// Test getting lang alternates
 	retrievedLangAlts := seo.LangAlternates()
-	if len(retrievedLangAlts) != 3 {
-		t.Errorf("LangAlternates() = %v, want 3", len(retrievedLangAlts))
-	}
+	assert.Len(t, retrievedLangAlts, 3, "LangAlternates() should contain 3 entries")
 
 	// Test contains lang alternate
-	if !seo.HasLangAlternate("https://example.com/de") {
-		t.Error("LangAlternates should contain de alternate")
-	}
+	assert.True(t, seo.HasLangAlternate("https://example.com/de"), "LangAlternates should contain de alternate")
 
 	// Test removing lang alternate
 	seo.RemoveLangAlternate("https://example.com/fr")
-	if _, exists := seo.langAlternates["https://example.com/fr"]; exists {
-		t.Error("RemoveLangAlternate() should remove lang alternate")
-	}
+	assert.False(t, seo.HasLangAlternate("https://example.com/fr"), "RemoveLangAlternate() should remove lang alternate")
 
 	// Test has non-existent lang alternate
-	if seo.HasLangAlternate("https://example.com/it") {
-		t.Error("HasLangAlternate() should return false for non-existent alternate")
-	}
+	assert.False(t, seo.HasLangAlternate("https://example.com/it"), "HasLangAlternate() should return false for non-existent alternate")
 }
 
 func TestSEO_MergeMetaTags(t *testing.T) {
@@ -429,13 +319,8 @@ func TestSEO_MergeMetaTags(t *testing.T) {
 	}
 
 	seo.MergeMetaTags(newMetaTags)
-	if len(seo.metaTags.Name["description"]) == 0 || seo.metaTags.Name["description"][0] != "New description" {
-		t.Errorf("MergeMetaTags() description = %v, want %v", seo.metaTags.Name["description"][0], "New description")
-	}
-
-	if len(seo.metaTags.Property["og:description"]) == 0 || seo.metaTags.Property["og:description"][0] != "New OG description" {
-		t.Errorf("MergeMetaTags() og:description = %v, want %v", seo.metaTags.Property["og:description"][0], "New OG description")
-	}
+	assert.Equal(t, []string{"New description"}, seo.metaTags.Name["description"], "MergeMetaTags() should set description")
+	assert.Equal(t, []string{"New OG description"}, seo.metaTags.Property["og:description"], "MergeMetaTags() should set og:description")
 }
 
 func TestSEO_MergeMetaTags_DescriptionCopy(t *testing.T) {
@@ -449,13 +334,8 @@ func TestSEO_MergeMetaTags_DescriptionCopy(t *testing.T) {
 	}
 
 	seo.MergeMetaTags(newMetaTags)
-	if len(seo.metaTags.Name["description"]) == 0 || seo.metaTags.Name["description"][0] != "Test description" {
-		t.Errorf("MergeMetaTags() should copy description to og:description, got %v", seo.metaTags.Name["description"][0])
-	}
-
-	if len(seo.metaTags.Property["og:description"]) != 1 || seo.metaTags.Property["og:description"][0] != "Test description" {
-		t.Errorf("MergeMetaTags() should copy description to og:description, got %v", seo.metaTags.Property["og:description"])
-	}
+	assert.Equal(t, []string{"Test description"}, seo.metaTags.Name["description"], "MergeMetaTags() should set description")
+	assert.Equal(t, []string{"Test description"}, seo.metaTags.Property["og:description"], "MergeMetaTags() should copy description to og:description")
 }
 
 func TestSEO_MergeMetaTags_DescriptionOverride(t *testing.T) {
@@ -471,9 +351,7 @@ func TestSEO_MergeMetaTags_DescriptionOverride(t *testing.T) {
 	}
 
 	seo.MergeMetaTags(newMetaTags)
-	if len(seo.metaTags.Property["og:description"]) == 0 || seo.metaTags.Property["og:description"][0] != "Existing OG description" {
-		t.Errorf("MergeMetaTags() should NOT copy description to og:description when present, got %v", seo.metaTags.Property["og:description"][0])
-	}
+	assert.Equal(t, []string{"Existing OG description"}, seo.metaTags.Property["og:description"], "MergeMetaTags() should NOT copy description to og:description when present")
 }
 
 func TestSEO_MergeMetaTags_OriginalNotModified(t *testing.T) {
@@ -487,21 +365,16 @@ func TestSEO_MergeMetaTags_OriginalNotModified(t *testing.T) {
 	}
 
 	seo.MergeMetaTags(originalMetaTags)
-	if len(seo.metaTags.Name["description"]) != 1 || seo.metaTags.Name["description"][0] != "Original description" {
-		t.Errorf("MergeMetaTags() should not modify original")
-	}
+	assert.Equal(t, []string{"Original description"}, seo.metaTags.Name["description"], "MergeMetaTags() should not modify original")
 }
 
 func TestSEO_ResetDefaults(t *testing.T) {
 	// Test Reset restores defaults
 	seo := NewSEO()
 	seo.Reset()
-	if len(seo.metaTags.Name) != 0 || len(seo.metaTags.Property) != 1 {
-		t.Error("Reset() should restore default meta tags")
-	}
-	if len(seo.metaTags.Property["og:type"]) != 1 || seo.metaTags.Property["og:type"][0] != "website" {
-		t.Error("Reset() should restore default og:type")
-	}
+	assert.Empty(t, seo.metaTags.Name, "Reset() should restore default meta tags names")
+	assert.Len(t, seo.metaTags.Property, 1, "Reset() should restore default meta tags properties")
+	assert.Equal(t, []string{"website"}, seo.metaTags.Property["og:type"], "Reset() should restore default og:type")
 }
 
 func TestSEO_IntegrationExample(t *testing.T) {
@@ -546,62 +419,29 @@ func TestSEO_IntegrationExample(t *testing.T) {
 
 	expectedTitle := "My Blog | Understanding Go Testing"
 	expectedHome := "https://myblog.com/go-testing"
-	if seo.Title() != expectedTitle {
-		t.Errorf("Integration test title = %v, want %v", seo.Title(), expectedTitle)
-	}
+	assert.Equal(t, expectedTitle, seo.Title(), "Integration test title should match expected")
+	assert.Len(t, seo.titles, 2, "Integration test should have 2 titles")
 
-	if len(seo.titles) != 2 {
-		t.Errorf("Integration test titles = %v, want 2", len(seo.titles))
-	}
+	links := seo.Links()
+	assert.Len(t, links, 1, "Integration test should have 1 link")
+	assert.Equal(t, LinkRelCanonical, links[0].Rel, "Integration test canonical link not found")
 
-	if len(seo.Links()) != 1 || seo.Links()[0].Rel != LinkRelCanonical {
-		t.Error("Integration test canonical link not found")
-	}
-
-	if len(seo.titles) != 2 || seo.titles[0] != "My Blog" {
-		t.Errorf("Integration test site name not in titles, got %v, want %v", seo.titles, []string{"My Blog", "Understanding Go Testing"})
-	}
-
-	if seo.metaTags.Property["og:site_name"][0] != "My Blog" {
-		t.Errorf("Integration test site name = %v, want %v", seo.metaTags.Property["og:site_name"][0], "My Blog")
-	}
-
-	if len(seo.metaTags.Property["og:url"]) == 0 || seo.metaTags.Property["og:url"][0] != expectedHome {
-		t.Errorf("Integration test og:url = %v, want %v", seo.metaTags.Property["og:url"], []string{expectedHome})
-	}
-
-	if len(seo.metaTags.Property["og:type"]) != 1 || seo.metaTags.Property["og:type"][0] != "article" {
-		t.Errorf("Integration test type = %v, want %v", seo.metaTags.Property["og:type"][0], "article")
-	}
-
-	if len(seo.metaTags.Property["article:section"]) != 1 || seo.metaTags.Property["article:section"][0] != "Programming" {
-		t.Errorf("Integration test section = %v, want %v", seo.metaTags.Property["article:section"][0], "Programming")
-	}
-
-	if len(seo.metaTags.Property["article:tag"]) != 1 || seo.metaTags.Property["article:tag"][0] != "Go" {
-		t.Errorf("Integration test tags length = %v, want 1", len(seo.metaTags.Property["article:tag"]))
-	}
-
-	if seo.metaTags.Property["article:published_time"][0] != published.Format(time.RFC3339) {
-		t.Errorf("Integration test published time = %v, want %v", seo.metaTags.Property["article:published_time"][0], published.Format(time.RFC3339))
-	}
-
-	if seo.metaTags.Property["article:modified_time"][0] != modified.Format(time.RFC3339) {
-		t.Errorf("Integration test modified time = %v, want %v", seo.metaTags.Property["article:modified_time"][0], modified.Format(time.RFC3339))
-	}
-
-	if seo.metaTags.Property["article:expiration_time"][0] != expired.Format(time.RFC3339) {
-		t.Errorf("Integration test expiration time = %v, want %v", seo.metaTags.Property["article:expiration_time"][0], expired.Format(time.RFC3339))
-	}
+	assert.Equal(t, []string{"My Blog", "Understanding Go Testing"}, seo.titles, "Integration test site name should be in titles")
+	assert.Equal(t, []string{"My Blog"}, seo.metaTags.Property["og:site_name"], "Integration test site name should match")
+	assert.Equal(t, []string{expectedHome}, seo.metaTags.Property["og:url"], "Integration test og:url should match")
+	assert.Equal(t, []string{"article"}, seo.metaTags.Property["og:type"], "Integration test type should be article")
+	assert.Equal(t, []string{"Programming"}, seo.metaTags.Property["article:section"], "Integration test section should match")
+	assert.Equal(t, []string{"Go"}, seo.metaTags.Property["article:tag"], "Integration test tags should match")
+	assert.Equal(t, []string{published.Format(time.RFC3339)}, seo.metaTags.Property["article:published_time"], "Integration test published time should match")
+	assert.Equal(t, []string{modified.Format(time.RFC3339)}, seo.metaTags.Property["article:modified_time"], "Integration test modified time should match")
+	assert.Equal(t, []string{expired.Format(time.RFC3339)}, seo.metaTags.Property["article:expiration_time"], "Integration test expiration time should match")
 }
 
 func TestSEO_EdgeCases(t *testing.T) {
 	t.Run("Empty titles", func(t *testing.T) {
 		seo := NewSEO()
 		seo.titles = []string{}
-		if seo.Title() != "" {
-			t.Errorf("Title() with empty slice = %v, want empty", seo.Title())
-		}
+		assert.Empty(t, seo.Title(), "Title() with empty slice should return empty")
 	})
 
 	t.Run("Empty values", func(t *testing.T) {
@@ -618,9 +458,7 @@ func TestSEO_EdgeCases(t *testing.T) {
 		seo.AddCanonicalLink("")
 		seo.AddPrevLink("")
 		seo.AddNextLink("")
-		if len(seo.metaTags.Name) != 0 {
-			t.Errorf("Empty values should not be added")
-		}
+		assert.Empty(t, seo.metaTags.Name, "Empty values should not be added")
 	})
 
 	t.Run("Multiple AddLink calls", func(t *testing.T) {
@@ -631,16 +469,12 @@ func TestSEO_EdgeCases(t *testing.T) {
 		seo.AddLink(HeadLink{Rel: "icon", Href: "/favicon.ico"})
 		seo.AddLink(HeadLink{Rel: "stylesheet", Href: "/style2.css"})
 
-		if len(seo.Links()) != 3 {
-			t.Errorf("AddLink() should append to existing links")
-		}
+		assert.Len(t, seo.Links(), 3, "AddLink() should append to existing links")
 
 		// Replace all links with three new ones
 		seo.SetLinks([]HeadLink{{Rel: "stylesheet", Href: "/new.css"}})
 
-		if len(seo.Links()) != 1 {
-			t.Errorf("SetLinks() should replace existing links")
-		}
+		assert.Len(t, seo.Links(), 1, "SetLinks() should replace existing links")
 	})
 }
 
@@ -658,9 +492,7 @@ func TestSEO_ConstantValues(t *testing.T) {
 		}
 
 		for _, rel := range expectedRels {
-			if rel == "" {
-				t.Errorf("Empty link rel constant")
-			}
+			assert.NotEmpty(t, rel, "Link rel constant should not be empty")
 		}
 	})
 
@@ -676,9 +508,7 @@ func TestSEO_ConstantValues(t *testing.T) {
 		}
 
 		for name, policy := range expectedPolicies {
-			if policy == "" {
-				t.Errorf("Empty referrer policy for %v", name)
-			}
+			assert.NotEmpty(t, policy, "Referrer policy for %s should not be empty", name)
 		}
 	})
 }
