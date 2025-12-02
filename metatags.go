@@ -12,6 +12,10 @@ type MetaTags struct {
 }
 
 func NewMetaTags(charset string, other ...*MetaTags) *MetaTags {
+	if charset == "" {
+		charset = DefaultCharset
+	}
+
 	if len(other) == 0 {
 		return &MetaTags{
 			Charset:   charset,
@@ -30,70 +34,104 @@ func NewMetaTags(charset string, other ...*MetaTags) *MetaTags {
 }
 
 func (m *MetaTags) With(other *MetaTags) *MetaTags {
-	return NewMetaTags(m.Charset, m, other)
+	charset := DefaultCharset
+	mt := make([]*MetaTags, 0, 2)
+
+	if m != nil {
+		charset = m.Charset
+		mt = append(mt, m)
+	}
+	if other != nil {
+		if other.Charset != "" {
+			charset = other.Charset
+		}
+		mt = append(mt, other)
+	}
+
+	return NewMetaTags(charset, mt...)
 }
 
 func (m *MetaTags) Set(other *MetaTags) {
-	if other == nil {
+	if m == nil || other == nil {
 		return
 	}
 
-	m.Charset = other.Charset
-
-	m.Name = make(map[string][]string)
-	for k, v := range other.Name {
-		m.Name[k] = slices.Clone(v)
+	if other.Charset != "" {
+		m.Charset = other.Charset
 	}
 
-	m.Property = make(map[string][]string)
-	for k, v := range other.Property {
-		m.Property[k] = slices.Clone(v)
+	if len(other.Name) > 0 {
+		m.Name = make(map[string][]string)
+		for k, v := range other.Name {
+			m.SetName(k, slices.Clone(v)...)
+		}
 	}
 
-	m.HTTPEquiv = make(map[string][]string)
-	for k, v := range other.HTTPEquiv {
-		m.HTTPEquiv[k] = slices.Clone(v)
+	if len(other.Property) > 0 {
+		m.Property = make(map[string][]string)
+		for k, v := range other.Property {
+			m.SetProperty(k, slices.Clone(v)...)
+		}
+	}
+
+	if len(other.HTTPEquiv) > 0 {
+		m.HTTPEquiv = make(map[string][]string)
+		for k, v := range other.HTTPEquiv {
+			m.SetHTTPEquiv(k, slices.Clone(v)...)
+		}
 	}
 }
 
 func (m *MetaTags) Append(other *MetaTags) {
-	if other == nil {
+	if m == nil || other == nil {
 		return
 	}
 
 	for k, v := range other.Name {
-		m.Name[k] = append(m.Name[k], v...)
+		m.AppendName(k, v...)
 	}
 
 	for k, v := range other.Property {
-		m.Property[k] = append(m.Property[k], v...)
+		m.AppendProperty(k, v...)
 	}
 
 	for k, v := range other.HTTPEquiv {
-		m.HTTPEquiv[k] = append(m.HTTPEquiv[k], v...)
+		m.AppendHTTPEquiv(k, v...)
 	}
 }
 
 func (m *MetaTags) SetName(name string, content ...string) {
-	m.Name[name] = content
+	if name != "" {
+		m.Name[name] = content
+	}
 }
 
 func (m *MetaTags) AppendName(name string, content ...string) {
-	m.Name[name] = append(m.Name[name], content...)
+	if name != "" {
+		m.Name[name] = append(m.Name[name], content...)
+	}
 }
 
 func (m *MetaTags) SetProperty(name string, content ...string) {
-	m.Property[name] = content
+	if name != "" {
+		m.Property[name] = content
+	}
 }
 
 func (m *MetaTags) AppendProperty(name string, content ...string) {
-	m.Property[name] = append(m.Property[name], content...)
+	if name != "" {
+		m.Property[name] = append(m.Property[name], content...)
+	}
 }
 
 func (m *MetaTags) SetHTTPEquiv(name string, content ...string) {
-	m.HTTPEquiv[name] = content
+	if name != "" {
+		m.HTTPEquiv[name] = content
+	}
 }
 
 func (m *MetaTags) AppendHTTPEquiv(name string, content ...string) {
-	m.HTTPEquiv[name] = append(m.HTTPEquiv[name], content...)
+	if name != "" {
+		m.HTTPEquiv[name] = append(m.HTTPEquiv[name], content...)
+	}
 }

@@ -73,11 +73,8 @@ func (s *SEO) Reset() {
 		"lang":   "en",
 		"prefix": "og: https://ogp.me/ns#",
 	}
-	s.metaTags = &MetaTags{
-		Property: map[string][]string{
-			"og:type": {"website"},
-		},
-	}
+	s.metaTags = NewMetaTags(DefaultCharset)
+	s.metaTags.SetProperty("og:type", "website")
 	s.headAttrs = map[string]string{}
 	s.bodyAttrs = map[string]string{}
 	s.langAlternates = map[string]string{}
@@ -90,16 +87,24 @@ func (s *SEO) Site(site *Site) {
 
 	s.siteURL = site.URL()
 
-	if site.Title != "" {
+	if site.Title == "" {
+		s.titles = nil
+		delete(s.metaTags.Property, "og:site_name")
+	} else {
 		s.SetTitle(site.Title)
 		s.metaTags.SetProperty("og:site_name", site.Title)
 	}
 
-	if site.Separator != "" {
+	if site.Separator == "" {
+		s.SetSeparator(" - ")
+	} else {
 		s.SetSeparator(site.Separator)
 	}
 
-	if site.Locale != "" {
+	if site.Locale == "" {
+		s.RemoveHTMLAttribute("lang")
+		delete(s.metaTags.Property, "og:locale")
+	} else {
 		locale := strings.ReplaceAll(site.Locale, "_", "-")
 		s.SetHTMLAttribute("lang", locale)
 		s.metaTags.SetProperty("og:locale", locale)
@@ -114,6 +119,8 @@ func (s *SEO) Page(page *Page, args ...any) {
 	if page == nil {
 		return
 	}
+
+	s.Site(page.Site)
 
 	if page.Title != "" {
 		s.AddTitle(page.Title)
@@ -213,9 +220,13 @@ func (s *SEO) MetaTags() *MetaTags {
 }
 
 func (s *SEO) MergeMetaTags(metaTags *MetaTags) {
+	if metaTags == nil {
+		return
+	}
+
 	s.metaTags.Set(metaTags)
 
-	if content, ok := metaTags.Property["description"]; ok {
+	if content, ok := metaTags.Name["description"]; ok {
 		if _, ok := s.metaTags.Property["og:description"]; !ok {
 			s.metaTags.SetProperty("og:description", content...)
 		}
