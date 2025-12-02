@@ -1,395 +1,326 @@
-package pages_test
+package pages
 
 import (
 	"context"
-	"errors"
-	"strings"
 	"testing"
 
 	"github.com/google/uuid"
-
-	"github.com/gowool/pages"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 )
 
-// MockPageManager implements PageManager interface for testing
+// MockPageManager implements PageManager interface using testify/mock
 type MockPageManager struct {
-	pages     map[pages.ID]*pages.Page
-	byURL     map[string]*pages.Page
-	byPattern map[string]*pages.Page
-	byAlias   map[string]*pages.Page
+	mock.Mock
 }
 
-func NewMockPageManager() *MockPageManager {
-	return &MockPageManager{
-		pages:     make(map[pages.ID]*pages.Page),
-		byURL:     make(map[string]*pages.Page),
-		byPattern: make(map[string]*pages.Page),
-		byAlias:   make(map[string]*pages.Page),
+func (m *MockPageManager) GetByID(ctx context.Context, id ID) (*Page, error) {
+	args := m.Called(ctx, id)
+	if page := args.Get(0); page != nil {
+		return page.(*Page), args.Error(1)
 	}
+	return nil, args.Error(1)
 }
 
-func (m *MockPageManager) AddPage(page *pages.Page) {
-	if page.ID != "" {
-		m.pages[page.ID] = page
+func (m *MockPageManager) GetByURL(ctx context.Context, site *Site, url string) (*Page, error) {
+	args := m.Called(ctx, site, url)
+	if page := args.Get(0); page != nil {
+		return page.(*Page), args.Error(1)
 	}
-	if page.URL != "" {
-		m.byURL[page.URL] = page
-	}
-	if page.Pattern != "" {
-		m.byPattern[page.Pattern] = page
-	}
-	if page.Alias != "" {
-		m.byAlias[page.Alias] = page
-	}
+	return nil, args.Error(1)
 }
 
-func (m *MockPageManager) GetByID(ctx context.Context, id pages.ID) (*pages.Page, error) {
-	if page, exists := m.pages[id]; exists {
-		return page, nil
+func (m *MockPageManager) GetByPattern(ctx context.Context, site *Site, pattern string) (*Page, error) {
+	args := m.Called(ctx, site, pattern)
+	if page := args.Get(0); page != nil {
+		return page.(*Page), args.Error(1)
 	}
-	return nil, errors.New("page not found")
+	return nil, args.Error(1)
 }
 
-func (m *MockPageManager) GetByURL(ctx context.Context, site *pages.Site, url string) (*pages.Page, error) {
-	if page, exists := m.byURL[url]; exists {
-		return page, nil
+func (m *MockPageManager) GetByAlias(ctx context.Context, site *Site, alias string) (*Page, error) {
+	args := m.Called(ctx, site, alias)
+	if page := args.Get(0); page != nil {
+		return page.(*Page), args.Error(1)
 	}
-	return nil, errors.New("page not found")
-}
-
-func (m *MockPageManager) GetByPattern(ctx context.Context, site *pages.Site, pattern string) (*pages.Page, error) {
-	if page, exists := m.byPattern[pattern]; exists {
-		return page, nil
-	}
-	return nil, errors.New("page not found")
-}
-
-func (m *MockPageManager) GetByAlias(ctx context.Context, site *pages.Site, alias string) (*pages.Page, error) {
-	if !strings.HasPrefix(alias, pages.PageAliasPrefix) {
-		alias = pages.PageAliasPrefix + alias
-	}
-	if page, exists := m.byAlias[alias]; exists {
-		return page, nil
-	}
-	return nil, errors.New("page not found")
+	return nil, args.Error(1)
 }
 
 // Helper functions for testing
-func NewTestSite() *pages.Site {
-	return &pages.Site{
-		ID:     pages.ID(uuid.New().String()),
+func NewTestSite() *Site {
+	return &Site{
+		ID:     ID(uuid.New().String()),
 		Scheme: "https",
 		Host:   "example.com",
 	}
 }
 
-func NewTestPage(pattern string) *pages.Page {
-	page := pages.NewPage()
-	page.ID = pages.ID(uuid.New().String())
+func NewTestPage(pattern string) *Page {
+	page := NewPage()
+	page.ID = ID(uuid.New().String())
 	page.Pattern = pattern
 	page.Name = "Test Page"
 	page.Site = NewTestSite()
-	page.Status = pages.PublishStatus
+	page.Status = PublishStatus
 	return page
 }
 
 func TestNewPageURLGenerator(t *testing.T) {
-	mockManager := NewMockPageManager()
-	generator := pages.NewPageURLGenerator(mockManager)
+	mockManager := &MockPageManager{}
+	generator := NewPageURLGenerator(mockManager)
 
 	// Test that generator implements interface
-	var _ pages.URLGenerator = generator
-	if generator == nil {
-		t.Errorf("NewPageURLGenerator() should return non-nil URLGenerator")
-	}
+	assert.NotNil(t, generator, "NewPageURLGenerator() should return non-nil URLGenerator")
+	var _ URLGenerator = generator
 
 	// Test with nil site
 	ctx := context.Background()
-	if _, err := generator.Generate(ctx, nil, ""); err == nil {
-		t.Errorf("Generate() with nil site should return error")
-	}
+	_, err := generator.Generate(ctx, nil, "")
+	assert.Error(t, err, "Generate() with nil site should return error")
 
 	// Test with nil page
 	site := NewTestSite()
-	if _, err := generator.GenerateByPage(site, nil); err == nil {
-		t.Errorf("GenerateByPage() with nil page should return error")
-	}
+	_, err = generator.GenerateByPage(site, nil)
+	assert.Error(t, err, "GenerateByPage() with nil page should return error")
 }
 
 func TestPageManager(t *testing.T) {
-	manager := NewMockPageManager()
+	manager := &MockPageManager{}
 
-	// Test with nil context
+	// Test with empty ID
 	ctx := context.Background()
-	if _, err := manager.GetByID(ctx, ""); err == nil {
-		t.Errorf("GetByID() with empty ID should return error")
-	}
+	manager.On("GetByID", ctx, ID("")).Return(nil, assert.AnError)
+	_, err := manager.GetByID(ctx, "")
+	assert.Error(t, err, "GetByID() with empty ID should return error")
 
-	if _, err := manager.GetByURL(ctx, nil, ""); err == nil {
-		t.Errorf("GetByURL() with nil site should return error")
-	}
+	// Test with nil site
+	manager.On("GetByURL", ctx, (*Site)(nil), "").Return(nil, assert.AnError)
+	_, err = manager.GetByURL(ctx, nil, "")
+	assert.Error(t, err, "GetByURL() with nil site should return error")
 
 	site := NewTestSite()
-	if _, err := manager.GetByURL(ctx, site, ""); err == nil {
-		t.Errorf("GetByURL() with empty URL should return error")
-	}
+	manager.On("GetByURL", ctx, site, "").Return(nil, assert.AnError)
+	_, err = manager.GetByURL(ctx, site, "")
+	assert.Error(t, err, "GetByURL() with empty URL should return error")
 }
 
 func TestPageURLGenerator_GetByID(t *testing.T) {
-	mockManager := NewMockPageManager()
-	generator := pages.NewPageURLGenerator(mockManager)
+	mockManager := &MockPageManager{}
+	generator := NewPageURLGenerator(mockManager)
 
 	// Test simple ID lookup
 	ctx := context.Background()
 	site := NewTestPage("/test")
-	mockManager.AddPage(site)
+	mockManager.On("GetByID", ctx, site.ID).Return(site, nil)
 
-	if _, err := generator.GenerateByID(ctx, site.Site, site.ID); err != nil {
-		t.Errorf("GenerateByID() with valid ID = %v, want no error", err)
-	}
+	result, err := generator.GenerateByID(ctx, site.Site, site.ID)
+	assert.NoError(t, err, "GenerateByID() with valid ID should not return error")
+	assert.Equal(t, "https://example.com/test", result, "GenerateByID() should return correct URL")
 
 	// Test with invalid ID
-	if _, err := generator.GenerateByID(ctx, site.Site, "invalid-id"); err == nil {
-		t.Errorf("GenerateByID() with invalid ID should return error")
-	}
+	invalidID := ID("invalid-id")
+	mockManager.On("GetByID", ctx, invalidID).Return(nil, assert.AnError)
+	_, err = generator.GenerateByID(ctx, site.Site, invalidID)
+	assert.Error(t, err, "GenerateByID() with invalid ID should return error")
 }
 
 func TestPageURLGenerator_GetByAlias(t *testing.T) {
-	mockManager := NewMockPageManager()
-	generator := pages.NewPageURLGenerator(mockManager)
+	mockManager := &MockPageManager{}
+	generator := NewPageURLGenerator(mockManager)
 
 	// Test simple alias lookup
 	ctx := context.Background()
 	site := NewTestPage("/test")
 	site.SetAlias("test-alias")
-	mockManager.AddPage(site)
+	mockManager.On("GetByAlias", ctx, site.Site, "test-alias").Return(site, nil)
 
-	if _, err := generator.GenerateByAlias(ctx, site.Site, "test-alias"); err != nil {
-		t.Errorf("GenerateByAlias() with valid alias = %v, want no error", err)
-	}
+	result, err := generator.GenerateByAlias(ctx, site.Site, "test-alias")
+	assert.NoError(t, err, "GenerateByAlias() with valid alias should not return error")
+	assert.Equal(t, "https://example.com/test", result, "GenerateByAlias() should return correct URL")
 
 	// Test with invalid alias
-	if _, err := generator.GenerateByAlias(ctx, site.Site, "invalid-alias"); err == nil {
-		t.Errorf("GenerateByAlias() with invalid alias should return error")
-	}
+	mockManager.On("GetByAlias", ctx, site.Site, "invalid-alias").Return(nil, assert.AnError)
+	_, err = generator.GenerateByAlias(ctx, site.Site, "invalid-alias")
+	assert.Error(t, err, "GenerateByAlias() with invalid alias should return error")
 
 	// Test with empty alias
-	if _, err := generator.GenerateByAlias(ctx, site.Site, ""); err == nil {
-		t.Errorf("GenerateByAlias() with empty alias should return error")
-	}
+	mockManager.On("GetByAlias", ctx, site.Site, "").Return(nil, assert.AnError)
+	_, err = generator.GenerateByAlias(ctx, site.Site, "")
+	assert.Error(t, err, "GenerateByAlias() with empty alias should return error")
 }
 
 func TestPageURLGenerator_GetByPattern(t *testing.T) {
-	mockManager := NewMockPageManager()
-	generator := pages.NewPageURLGenerator(mockManager)
+	mockManager := &MockPageManager{}
+	generator := NewPageURLGenerator(mockManager)
 
 	// Test simple pattern lookup
 	ctx := context.Background()
 	site := NewTestPage("/test/{name}")
-	mockManager.AddPage(site)
+	mockManager.On("GetByPattern", ctx, site.Site, "/test/{name}").Return(site, nil)
 
-	if _, err := generator.GenerateByPattern(ctx, site.Site, "/test/{name}"); err != nil {
-		t.Errorf("GenerateByPattern() with valid pattern = %v, want no error", err)
-	}
+	result, err := generator.GenerateByPattern(ctx, site.Site, "/test/{name}")
+	assert.NoError(t, err, "GenerateByPattern() with valid pattern should not return error")
+	assert.Equal(t, "https://example.com/test/{name}", result, "GenerateByPattern() should return correct URL")
 
 	// Test with invalid pattern
-	if _, err := generator.GenerateByPattern(ctx, site.Site, "/invalid/{pattern}"); err == nil {
-		t.Errorf("GenerateByPattern() with invalid pattern should return error")
-	}
+	mockManager.On("GetByPattern", ctx, site.Site, "/invalid/{pattern}").Return(nil, assert.AnError)
+	_, err = generator.GenerateByPattern(ctx, site.Site, "/invalid/{pattern}")
+	assert.Error(t, err, "GenerateByPattern() with invalid pattern should return error")
 
 	// Test with empty pattern
-	if _, err := generator.GenerateByPattern(ctx, site.Site, ""); err == nil {
-		t.Errorf("GenerateByPattern() with empty pattern should return error")
-	}
+	mockManager.On("GetByPattern", ctx, site.Site, "").Return(nil, assert.AnError)
+	_, err = generator.GenerateByPattern(ctx, site.Site, "")
+	assert.Error(t, err, "GenerateByPattern() with empty pattern should return error")
 }
 
 func TestPageURLGenerator_GenerateByURL(t *testing.T) {
-	mockManager := NewMockPageManager()
-	generator := pages.NewPageURLGenerator(mockManager)
+	mockManager := &MockPageManager{}
+	generator := NewPageURLGenerator(mockManager)
 	ctx := context.Background()
 	site := NewTestSite()
 
 	// Create a page with URL
 	page := NewTestPage("/cms-page")
-	page.Pattern = pages.PageCMS
+	page.Pattern = PageCMS
 	page.URL = "/test/page"
-	mockManager.AddPage(page)
+	mockManager.On("GetByURL", ctx, site, "/test/page").Return(page, nil)
 
 	// Test direct URL generation
 	result, err := generator.GenerateByURL(ctx, site, "/test/page")
-	if err != nil {
-		t.Errorf("GenerateByURL() error = %v, want no error", err)
-	}
-	if result != "https://example.com/test/page" {
-		t.Errorf("GenerateByURL() result = %v, want %v", result, "https://example.com/test/page")
-	}
+	assert.NoError(t, err, "GenerateByURL() with valid URL should not return error")
+	assert.Equal(t, "https://example.com/test/page", result, "GenerateByURL() should return correct URL")
 
 	// Test with invalid URL
-	if _, err := generator.GenerateByURL(ctx, site, "/invalid/page"); err == nil {
-		t.Errorf("GenerateByURL() with invalid URL should return error")
-	}
+	mockManager.On("GetByURL", ctx, site, "/invalid/page").Return(nil, assert.AnError)
+	_, err = generator.GenerateByURL(ctx, site, "/invalid/page")
+	assert.Error(t, err, "GenerateByURL() with invalid URL should return error")
 }
 
 func TestPageURLGenerator_GenerateByPattern(t *testing.T) {
-	mockManager := NewMockPageManager()
-	generator := pages.NewPageURLGenerator(mockManager)
+	mockManager := &MockPageManager{}
+	generator := NewPageURLGenerator(mockManager)
 	ctx := context.Background()
 	site := NewTestSite()
 
 	// Create a page with pattern
 	page := NewTestPage("/test/{name}")
-	mockManager.AddPage(page)
+	mockManager.On("GetByPattern", ctx, site, "/test/{name}").Return(page, nil)
 
 	// Test direct pattern-based generation
 	result, err := generator.GenerateByPattern(ctx, site, "/test/{name}", "{name}", "test-value")
-	if err != nil {
-		t.Errorf("GenerateByPattern() error = %v, want no error", err)
-	}
-	if result != "https://example.com/test/test-value" {
-		t.Errorf("GenerateByPattern() result = %v, want %v", result, "https://example.com/test/test-value")
-	}
+	assert.NoError(t, err, "GenerateByPattern() with valid pattern should not return error")
+	assert.Equal(t, "https://example.com/test/test-value", result, "GenerateByPattern() should return correct URL")
 }
 
 func TestPageURLGenerator_GenerateByPageID(t *testing.T) {
-	mockManager := NewMockPageManager()
-	generator := pages.NewPageURLGenerator(mockManager)
+	mockManager := &MockPageManager{}
+	generator := NewPageURLGenerator(mockManager)
 	ctx := context.Background()
 
 	// Create a page with ID
 	page := NewTestPage("/test/{id}/test/{value}")
-	mockManager.AddPage(page)
+	mockManager.On("GetByID", ctx, page.ID).Return(page, nil)
 
 	// Test ID-based generation using the main Generate method
 	result, err := generator.Generate(ctx, page.Site, page.ID, "{id}", "test-id", "{value}", "test-value")
-	if err != nil {
-		t.Errorf("Generate() with ID = %v, want no error", err)
-	}
-	if result != "https://example.com/test/test-id/test/test-value" {
-		t.Errorf("Generate() result = %v, want %v", result, "https://example.com/test/test-id/test/test-value")
-	}
+	assert.NoError(t, err, "Generate() with valid ID should not return error")
+	assert.Equal(t, "https://example.com/test/test-id/test/test-value", result, "Generate() should return correct URL")
 }
 
 func TestPageURLGenerator_ErrorCases(t *testing.T) {
-	mockManager := NewMockPageManager()
-	generator := pages.NewPageURLGenerator(mockManager)
+	mockManager := &MockPageManager{}
+	generator := NewPageURLGenerator(mockManager)
 	site := NewTestSite()
 
 	// Test with nil page
-	if _, err := generator.GenerateByPage(site, nil); err == nil {
-		t.Errorf("GenerateByPage() with nil page should return error")
-	}
+	_, err := generator.GenerateByPage(site, nil)
+	assert.Error(t, err, "GenerateByPage() with nil page should return error")
 
 	// Test with CMS page (should work for CMS pages)
-	cmsPage := NewTestPage(pages.PageCMS)
+	cmsPage := NewTestPage(PageCMS)
 	cmsPage.URL = "/cms-page"
 	cmsPage.Site = site
-	mockManager.AddPage(cmsPage)
 
-	if result, err := generator.GenerateByPage(site, cmsPage); err != nil {
-		t.Errorf("GenerateByPage() with CMS page error = %v, want no error", err)
-	} else if result != "https://example.com/cms-page" {
-		t.Errorf("GenerateByPage() with CMS page result = %v, want %v", result, "https://example.com/cms-page")
-	}
+	result, err := generator.GenerateByPage(site, cmsPage)
+	assert.NoError(t, err, "GenerateByPage() with CMS page should not return error")
+	assert.Equal(t, "https://example.com/cms-page", result, "GenerateByPage() with CMS page should return correct URL")
 
 	// Test with internal page (should return empty string)
-	internalPage := NewTestPage(pages.PageInternalCreate)
+	internalPage := NewTestPage(PageInternalCreate)
 	internalPage.Site = site
 
-	if result, err := generator.GenerateByPage(site, internalPage); err != nil {
-		t.Errorf("GenerateByPage() with internal page error = %v, want no error", err)
-	} else if result != "" {
-		t.Errorf("GenerateByPage() with internal page result = %v, want empty string", result)
-	}
+	result, err = generator.GenerateByPage(site, internalPage)
+	assert.NoError(t, err, "GenerateByPage() with internal page should not return error")
+	assert.Empty(t, result, "GenerateByPage() with internal page should return empty string")
 }
 
 func TestPageURLGenerator_PatternMatching(t *testing.T) {
-	mockManager := NewMockPageManager()
-	generator := pages.NewPageURLGenerator(mockManager)
+	mockManager := &MockPageManager{}
+	generator := NewPageURLGenerator(mockManager)
 	ctx := context.Background()
 	site := NewTestSite()
 
 	// Create pages with patterns
 	userPage := NewTestPage("/users/{username}")
-	mockManager.AddPage(userPage)
+	mockManager.On("GetByPattern", ctx, site, "/users/{username}").Return(userPage, nil)
 
 	blogPage := NewTestPage("/blog/{category}/{slug}")
-	mockManager.AddPage(blogPage)
+	mockManager.On("GetByPattern", ctx, site, "/blog/{category}/{slug}").Return(blogPage, nil)
 
 	// Test exact pattern match
 	result, err := generator.GenerateByPattern(ctx, site, "/users/{username}", "{username}", "john.doe")
-	if err != nil {
-		t.Errorf("GenerateByPattern() error = %v, want no error", err)
-	}
-	if result != "https://example.com/users/john.doe" {
-		t.Errorf("GenerateByPattern() result = %v, want %v", result, "https://example.com/users/john.doe")
-	}
+	assert.NoError(t, err, "GenerateByPattern() with valid pattern should not return error")
+	assert.Equal(t, "https://example.com/users/john.doe", result, "GenerateByPattern() should return correct URL")
 
 	// Test pattern with multiple parameters
 	result, err = generator.GenerateByPattern(ctx, site, "/blog/{category}/{slug}", "{category}", "technology", "{slug}", "golang-tips")
-	if err != nil {
-		t.Errorf("GenerateByPattern() error = %v, want no error", err)
-	}
-	if result != "https://example.com/blog/technology/golang-tips" {
-		t.Errorf("GenerateByPattern() result = %v, want %v", result, "https://example.com/blog/technology/golang-tips")
-	}
+	assert.NoError(t, err, "GenerateByPattern() with valid pattern should not return error")
+	assert.Equal(t, "https://example.com/blog/technology/golang-tips", result, "GenerateByPattern() should return correct URL")
 }
 
 func TestPageURLGenerator_GenerateMethod(t *testing.T) {
-	mockManager := NewMockPageManager()
-	generator := pages.NewPageURLGenerator(mockManager)
+	mockManager := &MockPageManager{}
+	generator := NewPageURLGenerator(mockManager)
 	ctx := context.Background()
 	site := NewTestSite()
 
 	// Test with Page struct
 	page := NewTestPage("/test")
-	mockManager.AddPage(page)
+	result, err := generator.Generate(ctx, site, page)
+	assert.NoError(t, err, "Generate() with Page should not return error")
+	assert.Equal(t, "https://example.com/test", result, "Generate() with Page should return correct URL")
 
-	if result, err := generator.Generate(ctx, site, page); err != nil {
-		t.Errorf("Generate() with Page error = %v, want no error", err)
-	} else if result != "https://example.com/test" {
-		t.Errorf("Generate() with Page result = %v, want %v", result, "https://example.com/test")
-	}
-
-	// Test with *Page
-	if result, err := generator.Generate(ctx, site, page); err != nil {
-		t.Errorf("Generate() with *Page error = %v, want no error", err)
-	} else if result != "https://example.com/test" {
-		t.Errorf("Generate() with *Page result = %v, want %v", result, "https://example.com/test")
-	}
+	// Test with *Page (same as above)
+	result, err = generator.Generate(ctx, site, page)
+	assert.NoError(t, err, "Generate() with *Page should not return error")
+	assert.Equal(t, "https://example.com/test", result, "Generate() with *Page should return correct URL")
 
 	// Test with ID
-	if result, err := generator.Generate(ctx, site, page.ID); err != nil {
-		t.Errorf("Generate() with ID error = %v, want no error", err)
-	} else if result != "https://example.com/test" {
-		t.Errorf("Generate() with ID result = %v, want %v", result, "https://example.com/test")
-	}
+	mockManager.On("GetByID", ctx, page.ID).Return(page, nil)
+	result, err = generator.Generate(ctx, site, page.ID)
+	assert.NoError(t, err, "Generate() with ID should not return error")
+	assert.Equal(t, "https://example.com/test", result, "Generate() with ID should return correct URL")
 
 	// Test with pattern
-	if result, err := generator.Generate(ctx, site, "/test"); err != nil {
-		t.Errorf("Generate() with pattern error = %v, want no error", err)
-	} else if result != "https://example.com/test" {
-		t.Errorf("Generate() with pattern result = %v, want %v", result, "https://example.com/test")
-	}
+	mockManager.On("GetByPattern", ctx, site, "/test").Return(page, nil)
+	result, err = generator.Generate(ctx, site, "/test")
+	assert.NoError(t, err, "Generate() with pattern should not return error")
+	assert.Equal(t, "https://example.com/test", result, "Generate() with pattern should return correct URL")
 
 	// Test with CMS pattern
-	cmsPage := NewTestPage(pages.PageCMS)
+	cmsPage := NewTestPage(PageCMS)
 	cmsPage.URL = "/cms-page"
 	cmsPage.Site = site
-	mockManager.AddPage(cmsPage)
-
-	if result, err := generator.Generate(ctx, site, pages.PageCMS, "url", "/cms-page"); err != nil {
-		t.Errorf("Generate() with CMS pattern error = %v, want no error", err)
-	} else if result != "https://example.com/cms-page" {
-		t.Errorf("Generate() with CMS pattern result = %v, want %v", result, "https://example.com/cms-page")
-	}
+	mockManager.On("GetByURL", ctx, site, "/cms-page").Return(cmsPage, nil)
+	result, err = generator.Generate(ctx, site, PageCMS, "url", "/cms-page")
+	assert.NoError(t, err, "Generate() with CMS pattern should not return error")
+	assert.Equal(t, "https://example.com/cms-page", result, "Generate() with CMS pattern should return correct URL")
 
 	// Test with unsupported type
-	if _, err := generator.Generate(ctx, site, 123); err == nil {
-		t.Errorf("Generate() with unsupported type should return error")
-	}
+	_, err = generator.Generate(ctx, site, 123)
+	assert.Error(t, err, "Generate() with unsupported type should return error")
 
 	// Test with nil site
-	if _, err := generator.Generate(ctx, nil, page); err == nil {
-		t.Errorf("Generate() with nil site should return error")
-	}
+	_, err = generator.Generate(ctx, nil, page)
+	assert.Error(t, err, "Generate() with nil site should return error")
 }
