@@ -42,7 +42,10 @@ func SiteMiddleware[T Resolver](selector SiteSelector, skippers ...middleware.Sk
 			r.URL.Path = pathInfo
 		}
 
-		site.Scheme = e.Scheme()
+		if scheme := e.Scheme(); scheme != "" {
+			site.Scheme = scheme
+		}
+
 		site.Host = r.Host
 
 		e.SetSite(site)
