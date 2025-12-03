@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"html/template"
-	"io"
 	"net/http"
 	"strings"
 
@@ -17,10 +16,6 @@ const (
 	HeaderXPageDecorable    = "X-Page-Decorable"
 	HeaderXPageNotDecorable = "X-Page-Not-Decorable"
 )
-
-type Theme interface {
-	Write(ctx context.Context, w io.Writer, template string, data any) error
-}
 
 type Resolver interface {
 	wo.Resolver

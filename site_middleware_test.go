@@ -1,44 +1,13 @@
 package pages
 
 import (
-	"context"
 	"errors"
-	"io"
-	"net/http"
 	"net/http/httptest"
 	"testing"
 
 	"github.com/gowool/wo"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 )
-
-// MockSiteSelector is a mock implementation of SiteSelector
-type MockSiteSelector struct {
-	mock.Mock
-}
-
-func NewMockSiteSelector(site *Site, pathInfo string, err error) *MockSiteSelector {
-	selector := &MockSiteSelector{}
-	selector.On("Retrieve", mock.Anything).Return(site, pathInfo, err)
-	return selector
-}
-
-func (m *MockSiteSelector) Retrieve(r *http.Request) (*Site, string, error) {
-	args := m.Called(r)
-	if args.Get(0) == nil {
-		return nil, "", args.Error(2)
-	}
-	return args.Get(0).(*Site), args.String(1), nil
-}
-
-// MockThemeForSite is a simple mock implementation of Theme for testing
-type MockThemeForSite struct {
-}
-
-func (m *MockThemeForSite) Write(ctx context.Context, w io.Writer, template string, data any) error {
-	return nil
-}
 
 func TestSiteMiddleware_SuccessfulSiteResolution(t *testing.T) {
 	t.Run("valid site should be set and next called", func(t *testing.T) {
@@ -49,7 +18,7 @@ func TestSiteMiddleware_SuccessfulSiteResolution(t *testing.T) {
 
 		mockSelector := NewMockSiteSelector(site, "/test", nil)
 		event := &Event{}
-		event.Reset(&wo.Response{ResponseWriter: resp}, req, &MockThemeForSite{})
+		event.Reset(&wo.Response{ResponseWriter: resp}, req, &MockPageTheme{})
 
 		// Execute
 		middleware := SiteMiddleware[Resolver](mockSelector)
@@ -99,7 +68,7 @@ func TestSiteMiddleware_PathHandling(t *testing.T) {
 
 			mockSelector := NewMockSiteSelector(site, "", nil)
 			event := &Event{}
-			event.Reset(&wo.Response{ResponseWriter: resp}, req, &MockThemeForSite{})
+			event.Reset(&wo.Response{ResponseWriter: resp}, req, &MockPageTheme{})
 
 			// Execute
 			middleware := SiteMiddleware[Resolver](mockSelector)
@@ -156,7 +125,7 @@ func TestSiteMiddleware_ErrorHandling(t *testing.T) {
 
 			mockSelector := NewMockSiteSelector(tt.site, tt.pathInfo, tt.err)
 			event := &Event{}
-			event.Reset(&wo.Response{ResponseWriter: resp}, req, &MockThemeForSite{})
+			event.Reset(&wo.Response{ResponseWriter: resp}, req, &MockPageTheme{})
 
 			// Execute
 			middleware := SiteMiddleware[Resolver](mockSelector)
@@ -187,7 +156,7 @@ func TestSiteMiddleware_PathOverride(t *testing.T) {
 
 	mockSelector := NewMockSiteSelector(site, pathInfo, nil)
 	event := &Event{}
-	event.Reset(&wo.Response{ResponseWriter: resp}, req, &MockThemeForSite{})
+	event.Reset(&wo.Response{ResponseWriter: resp}, req, &MockPageTheme{})
 
 	// Execute
 	middleware := SiteMiddleware[Resolver](mockSelector)
