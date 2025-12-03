@@ -468,13 +468,20 @@ func TestMemoryPageStorage_ConcurrentAccess(t *testing.T) {
 		var wg sync.WaitGroup
 		errChan := make(chan error, 10)
 
+		// Get the page IDs once before starting concurrent reads
+		data := storage.GetData()
+		pageIDs := make([]ID, len(data))
+		for i, page := range data {
+			pageIDs[i] = page.ID
+		}
+
 		// Start 10 goroutines reading concurrently
 		for i := 0; i < 10; i++ {
 			wg.Add(1)
 			go func(id int) {
 				defer wg.Done()
 				for j := 0; j < 10; j++ {
-					_, err := storage.FindByID(ctx, storage.data[id].ID)
+					_, err := storage.FindByID(ctx, pageIDs[id])
 					if err != nil {
 						errChan <- err
 						return
@@ -520,7 +527,8 @@ func TestMemoryPageStorage_ConcurrentAccess(t *testing.T) {
 		}
 
 		// Verify all pages were saved
-		assert.Len(t, storage.data, 20, "All concurrent pages should be saved")
+		data := storage.GetData()
+		assert.Len(t, data, 20, "All concurrent pages should be saved")
 	})
 
 	t.Run("Concurrent reads and writes", func(t *testing.T) {
@@ -533,8 +541,10 @@ func TestMemoryPageStorage_ConcurrentAccess(t *testing.T) {
 			go func() {
 				defer wg.Done()
 				for j := 0; j < 5; j++ {
-					if len(storage.data) > 0 {
-						_, err := storage.FindByID(ctx, storage.data[0].ID)
+					// Use GetData() for thread-safe access to the data slice
+					data := storage.GetData()
+					if len(data) > 0 {
+						_, err := storage.FindByID(ctx, data[0].ID)
 						if err != nil && !errors.Is(err, ErrPageNotFound) {
 							errChan <- err
 							return

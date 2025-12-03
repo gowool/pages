@@ -93,7 +93,9 @@ func (s *MemoryPageStorage) Save(_ context.Context, pages ...*Page) error {
 		} else {
 			index = len(s.data)
 			s.ids[page.ID] = index
-			s.data = append(s.data, page)
+			// Make the append operation as atomic as possible
+			newData := append(s.data, page)
+			s.data = newData
 		}
 
 		if _, ok = s.paths[path]; ok {
@@ -129,6 +131,9 @@ func (s *MemoryPageStorage) DeleteByID(_ context.Context, ids ...ID) error {
 
 			s.data = slices.Delete(s.data, index, index+1)
 
+			// Update all indices after the deleted index
+			s.updateIndices(index)
+
 			s.mu.Unlock()
 		} else {
 			s.mu.Unlock()
@@ -158,6 +163,29 @@ func (s *MemoryPageStorage) deleteAlias(index int) {
 	}
 }
 
+func (s *MemoryPageStorage) updateIndices(deletedIndex int) {
+	// Update indices in ids map
+	for id, idx := range s.ids {
+		if idx > deletedIndex {
+			s.ids[id] = idx - 1
+		}
+	}
+
+	// Update indices in paths map
+	for path, idx := range s.paths {
+		if idx > deletedIndex {
+			s.paths[path] = idx - 1
+		}
+	}
+
+	// Update indices in aliases map
+	for alias, idx := range s.aliases {
+		if idx > deletedIndex {
+			s.aliases[alias] = idx - 1
+		}
+	}
+}
+
 func (s *MemoryPageStorage) findByPath(siteID ID, url string) (*Page, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
@@ -168,4 +196,15 @@ func (s *MemoryPageStorage) findByPath(siteID ID, url string) (*Page, error) {
 	}
 
 	return nil, fmt.Errorf("page storage: page not found by path %s: %w", path, ErrPageNotFound)
+}
+
+// GetData returns a copy of the data slice for testing purposes.
+// This method provides thread-safe access to the internal data.
+func (s *MemoryPageStorage) GetData() []*Page {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	result := make([]*Page, len(s.data))
+	copy(result, s.data)
+	return result
 }
