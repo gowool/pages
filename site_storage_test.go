@@ -10,15 +10,15 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestNewSiteStorage(t *testing.T) {
-	storage := NewSiteStorage()
+func TestNewLocalhostSiteStorage(t *testing.T) {
+	storage := NewLocalhostSiteStorage()
 
-	require.NotNil(t, storage, "NewSiteStorage() should not return nil")
-	assert.IsType(t, &DefaultSiteStorage{}, storage, "Should return DefaultSiteStorage instance")
+	require.NotNil(t, storage, "NewLocalhostSiteStorage() should not return nil")
+	assert.IsType(t, &LocalhostSiteStorage{}, storage, "Should return LocalhostSiteStorage instance")
 }
 
-func TestDefaultSiteStorage_FindEnabled(t *testing.T) {
-	storage := NewSiteStorage()
+func TestLocalhostSiteStorage_FindEnabled(t *testing.T) {
+	storage := NewLocalhostSiteStorage()
 	ctx := context.Background()
 
 	t.Run("FindEnabled returns iterator", func(t *testing.T) {
@@ -121,10 +121,10 @@ func TestDefaultSiteStorage_FindEnabled(t *testing.T) {
 	})
 }
 
-func TestDefaultSiteStorage_InterfaceCompliance(t *testing.T) {
-	var _ SiteStorage = (*DefaultSiteStorage)(nil)
+func TestLocalhostSiteStorage_InterfaceCompliance(t *testing.T) {
+	var _ SiteStorage = (*LocalhostSiteStorage)(nil)
 
-	storage := NewSiteStorage()
+	storage := NewLocalhostSiteStorage()
 	ctx := context.Background()
 
 	// Test that all interface methods are implemented and work
@@ -133,8 +133,8 @@ func TestDefaultSiteStorage_InterfaceCompliance(t *testing.T) {
 	assert.NotNil(t, iterator, "FindEnabled should return iterator")
 }
 
-func TestDefaultSiteStorage_ConcurrentAccess(t *testing.T) {
-	storage := NewSiteStorage()
+func TestLocalhostSiteStorage_ConcurrentAccess(t *testing.T) {
+	storage := NewLocalhostSiteStorage()
 	ctx := context.Background()
 
 	t.Run("Concurrent iterator calls", func(t *testing.T) {
@@ -155,8 +155,8 @@ func TestDefaultSiteStorage_ConcurrentAccess(t *testing.T) {
 	})
 }
 
-func TestDefaultSiteStorage_IteratorBehavior(t *testing.T) {
-	storage := NewSiteStorage()
+func TestLocalhostSiteStorage_IteratorBehavior(t *testing.T) {
+	storage := NewLocalhostSiteStorage()
 	ctx := context.Background()
 
 	t.Run("Iterator yields different instances", func(t *testing.T) {
@@ -221,8 +221,8 @@ func TestDefaultSiteStorage_IteratorBehavior(t *testing.T) {
 	})
 }
 
-func TestDefaultSiteStorage_SiteProperties(t *testing.T) {
-	storage := NewSiteStorage()
+func TestLocalhostSiteStorage_SiteProperties(t *testing.T) {
+	storage := NewLocalhostSiteStorage()
 	ctx := context.Background()
 
 	iterator, err := storage.FindEnabled(ctx)
@@ -269,8 +269,8 @@ func TestDefaultSiteStorage_SiteProperties(t *testing.T) {
 	})
 }
 
-func TestDefaultSiteStorage_IteratorPerformance(t *testing.T) {
-	storage := NewSiteStorage()
+func TestLocalhostSiteStorage_IteratorPerformance(t *testing.T) {
+	storage := NewLocalhostSiteStorage()
 	ctx := context.Background()
 
 	t.Run("Iterator completes quickly", func(t *testing.T) {
@@ -291,8 +291,8 @@ func TestDefaultSiteStorage_IteratorPerformance(t *testing.T) {
 	})
 }
 
-func TestDefaultSiteStorage_EdgeCases(t *testing.T) {
-	storage := NewSiteStorage()
+func TestLocalhostSiteStorage_EdgeCases(t *testing.T) {
+	storage := NewLocalhostSiteStorage()
 
 	t.Run("Nil context", func(t *testing.T) {
 		iterator, err := storage.FindEnabled(nil)
@@ -340,8 +340,8 @@ func collectSites(iterator iter.Seq2[*Site, error]) ([]*Site, []error) {
 	return sites, errors
 }
 
-func TestDefaultSiteStorage_Integration(t *testing.T) {
-	storage := NewSiteStorage()
+func TestLocalhostSiteStorage_Integration(t *testing.T) {
+	storage := NewLocalhostSiteStorage()
 	ctx := context.Background()
 
 	t.Run("Integration test with realistic usage", func(t *testing.T) {

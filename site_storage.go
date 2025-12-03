@@ -5,19 +5,19 @@ import (
 	"iter"
 )
 
-var _ SiteStorage = (*DefaultSiteStorage)(nil)
+var _ SiteStorage = (*LocalhostSiteStorage)(nil)
 
 type SiteStorage interface {
 	FindEnabled(ctx context.Context) (iter.Seq2[*Site, error], error)
 }
 
-type DefaultSiteStorage struct{}
+type LocalhostSiteStorage struct{}
 
-func NewSiteStorage() *DefaultSiteStorage {
-	return &DefaultSiteStorage{}
+func NewLocalhostSiteStorage() *LocalhostSiteStorage {
+	return &LocalhostSiteStorage{}
 }
 
-func (s *DefaultSiteStorage) FindEnabled(context.Context) (iter.Seq2[*Site, error], error) {
+func (s *LocalhostSiteStorage) FindEnabled(context.Context) (iter.Seq2[*Site, error], error) {
 	return func(yield func(*Site, error) bool) {
 		site := NewSite()
 		site.Enabled = true
