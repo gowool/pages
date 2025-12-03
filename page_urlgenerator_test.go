@@ -9,7 +9,7 @@ import (
 )
 
 // Helper functions for testing
-func newTestSite() *Site {
+func NewTestSite() *Site {
 	return &Site{
 		ID:     ID(uuid.New().String()),
 		Scheme: "https",
@@ -17,12 +17,12 @@ func newTestSite() *Site {
 	}
 }
 
-func newTestPage(pattern string) *Page {
+func NewTestPage(pattern string) *Page {
 	page := NewPage()
 	page.ID = ID(uuid.New().String())
 	page.Pattern = pattern
 	page.Name = "Test Page"
-	page.Site = newTestSite()
+	page.Site = NewTestSite()
 	page.Status = PublishStatus
 	return page
 }
@@ -41,7 +41,7 @@ func TestNewPageURLGenerator(t *testing.T) {
 	assert.Error(t, err, "Generate() with nil site should return error")
 
 	// Test with nil page
-	site := newTestSite()
+	site := NewTestSite()
 	_, err = generator.GenerateByPage(site, nil)
 	assert.Error(t, err, "GenerateByPage() with nil page should return error")
 }
@@ -60,7 +60,7 @@ func TestPageManager(t *testing.T) {
 	_, err = manager.GetByURL(ctx, nil, "")
 	assert.Error(t, err, "GetByURL() with nil site should return error")
 
-	site := newTestSite()
+	site := NewTestSite()
 	manager.On("GetByURL", ctx, site, "").Return(nil, assert.AnError)
 	_, err = manager.GetByURL(ctx, site, "")
 	assert.Error(t, err, "GetByURL() with empty URL should return error")
@@ -72,7 +72,7 @@ func TestPageURLGenerator_GetByID(t *testing.T) {
 
 	// Test simple ID lookup
 	ctx := context.Background()
-	site := newTestPage("/test")
+	site := NewTestPage("/test")
 	mockManager.On("GetByID", ctx, site.ID).Return(site, nil)
 
 	result, err := generator.GenerateByID(ctx, site.Site, site.ID)
@@ -92,7 +92,7 @@ func TestPageURLGenerator_GetByAlias(t *testing.T) {
 
 	// Test simple alias lookup
 	ctx := context.Background()
-	site := newTestPage("/test")
+	site := NewTestPage("/test")
 	site.SetAlias("test-alias")
 	mockManager.On("GetByAlias", ctx, site.Site, "test-alias").Return(site, nil)
 
@@ -117,7 +117,7 @@ func TestPageURLGenerator_GetByPattern(t *testing.T) {
 
 	// Test simple pattern lookup
 	ctx := context.Background()
-	site := newTestPage("/test/{name}")
+	site := NewTestPage("/test/{name}")
 	mockManager.On("GetByPattern", ctx, site.Site, "/test/{name}").Return(site, nil)
 
 	result, err := generator.GenerateByPattern(ctx, site.Site, "/test/{name}")
@@ -139,10 +139,10 @@ func TestPageURLGenerator_GenerateByURL(t *testing.T) {
 	mockManager := &MockPageManager{}
 	generator := NewPageURLGenerator(mockManager)
 	ctx := context.Background()
-	site := newTestSite()
+	site := NewTestSite()
 
 	// Create a page with URL
-	page := newTestPage("/cms-page")
+	page := NewTestPage("/cms-page")
 	page.Pattern = PageCMS
 	page.URL = "/test/page"
 	mockManager.On("GetByURL", ctx, site, "/test/page").Return(page, nil)
@@ -162,10 +162,10 @@ func TestPageURLGenerator_GenerateByPattern(t *testing.T) {
 	mockManager := &MockPageManager{}
 	generator := NewPageURLGenerator(mockManager)
 	ctx := context.Background()
-	site := newTestSite()
+	site := NewTestSite()
 
 	// Create a page with pattern
-	page := newTestPage("/test/{name}")
+	page := NewTestPage("/test/{name}")
 	mockManager.On("GetByPattern", ctx, site, "/test/{name}").Return(page, nil)
 
 	// Test direct pattern-based generation
@@ -180,7 +180,7 @@ func TestPageURLGenerator_GenerateByPageID(t *testing.T) {
 	ctx := context.Background()
 
 	// Create a page with ID
-	page := newTestPage("/test/{id}/test/{value}")
+	page := NewTestPage("/test/{id}/test/{value}")
 	mockManager.On("GetByID", ctx, page.ID).Return(page, nil)
 
 	// Test ID-based generation using the main Generate method
@@ -192,14 +192,14 @@ func TestPageURLGenerator_GenerateByPageID(t *testing.T) {
 func TestPageURLGenerator_ErrorCases(t *testing.T) {
 	mockManager := &MockPageManager{}
 	generator := NewPageURLGenerator(mockManager)
-	site := newTestSite()
+	site := NewTestSite()
 
 	// Test with nil page
 	_, err := generator.GenerateByPage(site, nil)
 	assert.Error(t, err, "GenerateByPage() with nil page should return error")
 
 	// Test with CMS page (should work for CMS pages)
-	cmsPage := newTestPage(PageCMS)
+	cmsPage := NewTestPage(PageCMS)
 	cmsPage.URL = "/cms-page"
 	cmsPage.Site = site
 
@@ -208,7 +208,7 @@ func TestPageURLGenerator_ErrorCases(t *testing.T) {
 	assert.Equal(t, "https://example.com/cms-page", result, "GenerateByPage() with CMS page should return correct URL")
 
 	// Test with internal page (should return empty string)
-	internalPage := newTestPage(PageInternalCreate)
+	internalPage := NewTestPage(PageInternalCreate)
 	internalPage.Site = site
 
 	result, err = generator.GenerateByPage(site, internalPage)
@@ -220,13 +220,13 @@ func TestPageURLGenerator_PatternMatching(t *testing.T) {
 	mockManager := &MockPageManager{}
 	generator := NewPageURLGenerator(mockManager)
 	ctx := context.Background()
-	site := newTestSite()
+	site := NewTestSite()
 
 	// Create pages with patterns
-	userPage := newTestPage("/users/{username}")
+	userPage := NewTestPage("/users/{username}")
 	mockManager.On("GetByPattern", ctx, site, "/users/{username}").Return(userPage, nil)
 
-	blogPage := newTestPage("/blog/{category}/{slug}")
+	blogPage := NewTestPage("/blog/{category}/{slug}")
 	mockManager.On("GetByPattern", ctx, site, "/blog/{category}/{slug}").Return(blogPage, nil)
 
 	// Test exact pattern match
@@ -244,10 +244,10 @@ func TestPageURLGenerator_GenerateMethod(t *testing.T) {
 	mockManager := &MockPageManager{}
 	generator := NewPageURLGenerator(mockManager)
 	ctx := context.Background()
-	site := newTestSite()
+	site := NewTestSite()
 
 	// Test with Page struct
-	page := newTestPage("/test")
+	page := NewTestPage("/test")
 	result, err := generator.Generate(ctx, site, page)
 	assert.NoError(t, err, "Generate() with Page should not return error")
 	assert.Equal(t, "https://example.com/test", result, "Generate() with Page should return correct URL")
@@ -270,7 +270,7 @@ func TestPageURLGenerator_GenerateMethod(t *testing.T) {
 	assert.Equal(t, "https://example.com/test", result, "Generate() with pattern should return correct URL")
 
 	// Test with CMS pattern
-	cmsPage := newTestPage(PageCMS)
+	cmsPage := NewTestPage(PageCMS)
 	cmsPage.URL = "/cms-page"
 	cmsPage.Site = site
 	mockManager.On("GetByURL", ctx, site, "/cms-page").Return(cmsPage, nil)

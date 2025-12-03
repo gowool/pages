@@ -79,7 +79,7 @@ func TestDefaultPageSelector_Retrieve(t *testing.T) {
 	t.Run("retrieve cms page", func(t *testing.T) {
 		mockManager := &MockPageManager{}
 
-		cmsPage := newTestPage(PageCMS)
+		cmsPage := NewTestPage(PageCMS)
 		cmsPage.URL = "/foo/boo"
 		cmsPage.SiteID = cmsPage.Site.ID
 
@@ -87,7 +87,7 @@ func TestDefaultPageSelector_Retrieve(t *testing.T) {
 
 		selector := NewPageSelector(mockManager)
 
-		req := createTestRequest("GET", cmsPage.AbsURL(), nil)
+		req := CreateTestRequest("GET", cmsPage.AbsURL(), nil)
 		req.Pattern = PageCMSPattern
 
 		require.Equal(t, req.URL.Path, cmsPage.URL, "Pattern should be set to URL path")
@@ -103,14 +103,14 @@ func TestDefaultPageSelector_Retrieve(t *testing.T) {
 	t.Run("retrieve dynamic hybrid page", func(t *testing.T) {
 		mockManager := &MockPageManager{}
 
-		page1 := newTestPage("/foo/{slug}")
+		page1 := NewTestPage("/foo/{slug}")
 		page1.SiteID = page1.Site.ID
 
 		mockManager.On("GetByPattern", mock.Anything, page1.Site, page1.Pattern).Return(page1, nil)
 
 		selector := NewPageSelector(mockManager)
 
-		req := createTestRequest("GET", page1.AbsURL("{slug}", "boo"), nil)
+		req := CreateTestRequest("GET", page1.AbsURL("{slug}", "boo"), nil)
 		req.Pattern = "GET " + page1.Pattern
 
 		page, err := selector.Retrieve(req, page1.Site)
@@ -124,14 +124,14 @@ func TestDefaultPageSelector_Retrieve(t *testing.T) {
 	t.Run("retrieve hybrid page", func(t *testing.T) {
 		mockManager := &MockPageManager{}
 
-		page1 := newTestPage("/foo/boo")
+		page1 := NewTestPage("/foo/boo")
 		page1.SiteID = page1.Site.ID
 
 		mockManager.On("GetByPattern", mock.Anything, page1.Site, page1.Pattern).Return(page1, nil)
 
 		selector := NewPageSelector(mockManager)
 
-		req := createTestRequest("GET", page1.AbsURL(), nil)
+		req := CreateTestRequest("GET", page1.AbsURL(), nil)
 		req.Pattern = page1.Pattern
 
 		page, err := selector.Retrieve(req, page1.Site)
