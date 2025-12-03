@@ -71,6 +71,12 @@ func (s *DefaultSiteSelector) Retrieve(r *http.Request) (*Site, string, error) {
 		}
 	}
 
+	if r.URL.Path == "" {
+		r.URL.Path = "/"
+	}
+
+	r.URL.RawPath = r.URL.Path
+
 	var (
 		defaultSite *Site
 		countrySite *Site
@@ -89,18 +95,18 @@ func (s *DefaultSiteSelector) Retrieve(r *http.Request) (*Site, string, error) {
 			continue
 		}
 
-		if defaultSite == nil && site.IsDefault {
-			defaultSite = site
+		if site.Host != host && !site.IsLocalhost() {
+			continue
 		}
 
-		if site.Host != host {
-			continue
+		if site.IsDefault && (defaultSite == nil || defaultSite.IsLocalhost()) {
+			defaultSite = site
 		}
 
 		var pi string
 
 		if r.URL.RawPath == "/" {
-			if country != "" && !slices.Contains(site.Countries, country) {
+			if country != "" && len(site.Countries) > 0 && !slices.Contains(site.Countries, country) {
 				continue
 			}
 		} else {
@@ -116,8 +122,11 @@ func (s *DefaultSiteSelector) Retrieve(r *http.Request) (*Site, string, error) {
 
 		tag := site.Tag()
 		matcherTags = append(matcherTags, tag)
-		sites[tag] = site
-		paths[tag] = pi
+
+		if currentSite, ok := sites[tag]; !ok || (country != "" && !slices.Contains(currentSite.Countries, country)) {
+			sites[tag] = site
+			paths[tag] = pi
+		}
 	}
 
 	selectedSite, pathInfo := s.selectedSite(r, sites, paths, matcherTags)
