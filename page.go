@@ -1,7 +1,9 @@
 package pages
 
 import (
+	"maps"
 	"net/url"
+	"slices"
 	"strings"
 	"time"
 
@@ -53,9 +55,11 @@ type Page struct {
 }
 
 func NewPage() *Page {
+	t := time.Now().UTC()
+
 	return &Page{
-		Created:  time.Now().UTC(),
-		Updated:  time.Now().UTC(),
+		Created:  t,
+		Updated:  t,
 		MetaTags: NewMetaTags(DefaultCharset),
 		Metadata: make(map[string]any),
 		Header:   make(map[string][]string),
@@ -182,4 +186,42 @@ func (p *Page) FixURL() {
 		child.Parent = p
 		child.FixURL()
 	}
+}
+
+func (p *Page) Copy() *Page {
+	page := *p
+	page.Metadata = maps.Clone(p.Metadata)
+
+	if p.ParentID != nil {
+		parentID := *p.ParentID
+		page.ParentID = &parentID
+	}
+
+	if p.Parent != nil {
+		page.Parent = p.Parent.Copy()
+	}
+
+	if p.Site != nil {
+		page.Site = p.Site.Copy()
+	}
+
+	if p.MetaTags != nil {
+		page.MetaTags = NewMetaTags(p.MetaTags.Charset, p.MetaTags)
+	}
+
+	if p.Header != nil {
+		page.Header = make(map[string][]string, len(p.Header))
+		for k, v := range p.Header {
+			page.Header[k] = slices.Clone(v)
+		}
+	}
+
+	if len(p.Children) > 0 {
+		page.Children = make([]*Page, len(p.Children))
+		for i, child := range p.Children {
+			page.Children[i] = child.Copy()
+		}
+	}
+
+	return &page
 }

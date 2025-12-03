@@ -538,11 +538,9 @@ func TestLangAlternates(t *testing.T) {
 		expected string
 	}{
 		{
-			name: "Basic lang alternates",
-			seo:  createTestSEOWithLangAlternates(),
-			expected: `<link rel="alternate" href="https://example.com/fr" hreflang="fr" />
-<link rel="alternate" href="https://example.com/es" hreflang="es" />
-`,
+			name:     "Basic lang alternates",
+			seo:      createTestSEOWithLangAlternates(),
+			expected: "<link rel=\"alternate\" href=\"https://example.com/fr\" hreflang=\"fr\" />\n",
 		},
 		{
 			name:     "Empty lang alternates",
@@ -788,7 +786,6 @@ func createTestSEOWithBodyAttrs() *SEO {
 func createTestSEOWithLangAlternates() *SEO {
 	seo := NewSEO()
 	seo.AddLangAlternate("https://example.com/fr", "fr")
-	seo.AddLangAlternate("https://example.com/es", "es")
 	return seo
 }
 

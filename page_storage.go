@@ -40,8 +40,7 @@ func (s *MemoryPageStorage) FindByID(_ context.Context, id ID) (*Page, error) {
 	defer s.mu.RUnlock()
 
 	if index, ok := s.ids[id]; ok {
-		page := *s.data[index]
-		return &page, nil
+		return s.data[index].Copy(), nil
 	}
 
 	return nil, fmt.Errorf("page storage: page not found by id %s: %w", id, ErrPageNotFound)
@@ -61,8 +60,7 @@ func (s *MemoryPageStorage) FindByAlias(_ context.Context, siteID ID, alias stri
 
 	alias = fmt.Sprintf("%s-%s", siteID, alias)
 	if index, ok := s.aliases[alias]; ok {
-		page := *s.data[index]
-		return &page, nil
+		return s.data[index].Copy(), nil
 	}
 
 	return nil, fmt.Errorf("page storage: page not found by alias %s: %w", alias, ErrPageNotFound)
@@ -166,8 +164,7 @@ func (s *MemoryPageStorage) findByPath(siteID ID, url string) (*Page, error) {
 
 	path := fmt.Sprintf("%s-%s", siteID, url)
 	if index, ok := s.paths[path]; ok {
-		page := *s.data[index]
-		return &page, nil
+		return s.data[index].Copy(), nil
 	}
 
 	return nil, fmt.Errorf("page storage: page not found by path %s: %w", path, ErrPageNotFound)

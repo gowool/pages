@@ -1,6 +1,8 @@
 package pages
 
 import (
+	"maps"
+	"slices"
 	"time"
 
 	"golang.org/x/text/language"
@@ -34,9 +36,11 @@ type Site struct {
 }
 
 func NewSite() *Site {
+	t := time.Now().UTC()
+
 	return &Site{
-		Created:   time.Now().UTC(),
-		Updated:   time.Now().UTC(),
+		Created:   t,
+		Updated:   t,
 		Name:      "Localhost",
 		Host:      "localhost",
 		Scheme:    "https",
@@ -102,4 +106,18 @@ func (s *Site) Tag() language.Tag {
 		s.tag = &tag
 	}
 	return *s.tag
+}
+
+func (s *Site) Copy() *Site {
+	site := *s
+	site.Metadata = maps.Clone(s.Metadata)
+	site.Countries = slices.Clone(s.Countries)
+	site.location = nil
+	site.tag = nil
+
+	if s.MetaTags != nil {
+		site.MetaTags = NewMetaTags(s.MetaTags.Charset, s.MetaTags)
+	}
+
+	return &site
 }
