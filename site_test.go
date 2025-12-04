@@ -416,4 +416,359 @@ func TestSite_EdgeCases(t *testing.T) {
 		site := &Site{Scheme: "https", Host: "example.com", RelativePath: "/api/v1/users"}
 		assert.Equal(t, "https://example.com/api/v1/users", site.URL(), "URL() with complex path should return the expected value")
 	})
+
+	t.Run("URL with trailing slash in relative path", func(t *testing.T) {
+		site := &Site{Scheme: "https", Host: "example.com", RelativePath: "/blog/"}
+		assert.Equal(t, "https://example.com/blog/", site.URL(), "URL() should preserve trailing slash in relative path")
+	})
+
+	t.Run("URL with query-like relative path", func(t *testing.T) {
+		site := &Site{Scheme: "https", Host: "example.com", RelativePath: "search?q=test"}
+		assert.Equal(t, "https://example.com/search?q=test", site.URL(), "URL() should handle query-like relative paths")
+	})
+
+	t.Run("URL with hash-like relative path", func(t *testing.T) {
+		site := &Site{Scheme: "https", Host: "example.com", RelativePath: "section#anchor"}
+		assert.Equal(t, "https://example.com/section#anchor", site.URL(), "URL() should handle hash-like relative paths")
+	})
+}
+
+func TestSite_Copy(t *testing.T) {
+	originalTime := time.Date(2023, 1, 1, 0, 0, 0, 0, time.UTC)
+
+	t.Run("Copy basic site", func(t *testing.T) {
+		original := &Site{
+			ID:           "test-id",
+			Created:      originalTime,
+			Updated:      originalTime,
+			Name:         "Test Site",
+			Title:        "Test Title",
+			Separator:    " - ",
+			Locale:       "en-US",
+			Timezone:     "America/New_York",
+			Countries:    []string{"US", "CA"},
+			Scheme:       "https",
+			Host:         "example.com",
+			RelativePath: "/blog",
+			IsDefault:    true,
+			Enabled:      true,
+			Metadata:     map[string]any{"theme": "dark", "version": 1},
+			MetaTags:     NewMetaTags("UTF-8"),
+			isRoot:       false,
+		}
+
+		// Add some meta tags
+		original.MetaTags.SetName("description", "Test description")
+		original.MetaTags.SetProperty("og:title", "Test OG Title")
+
+		copy := original.Copy()
+
+		// Verify all fields are copied but not the same reference
+		assert.NotSame(t, original, copy, "Copy should return a different instance")
+		assert.Equal(t, original.ID, copy.ID, "ID should be copied")
+		assert.Equal(t, original.Created, copy.Created, "Created should be copied")
+		assert.Equal(t, original.Updated, copy.Updated, "Updated should be copied")
+		assert.Equal(t, original.Name, copy.Name, "Name should be copied")
+		assert.Equal(t, original.Title, copy.Title, "Title should be copied")
+		assert.Equal(t, original.Separator, copy.Separator, "Separator should be copied")
+		assert.Equal(t, original.Locale, copy.Locale, "Locale should be copied")
+		assert.Equal(t, original.Timezone, copy.Timezone, "Timezone should be copied")
+		assert.Equal(t, original.Scheme, copy.Scheme, "Scheme should be copied")
+		assert.Equal(t, original.Host, copy.Host, "Host should be copied")
+		assert.Equal(t, original.RelativePath, copy.RelativePath, "RelativePath should be copied")
+		assert.Equal(t, original.IsDefault, copy.IsDefault, "IsDefault should be copied")
+		assert.Equal(t, original.Enabled, copy.Enabled, "Enabled should be copied")
+
+		// Verify slices are cloned
+		assert.Equal(t, original.Countries, copy.Countries, "Countries should be copied")
+		// Test independence by modifying copy
+		copy.Countries = append(copy.Countries, "FR")
+		assert.Len(t, original.Countries, 2, "Original countries should not be modified")
+		// Restore for later tests
+		copy.Countries = copy.Countries[:len(copy.Countries)-1]
+
+		// Verify maps are cloned
+		assert.Equal(t, original.Metadata, copy.Metadata, "Metadata should be copied")
+		// Test independence by modifying copy
+		copy.Metadata["test"] = "value"
+		assert.NotContains(t, original.Metadata, "test", "Original metadata should be independent")
+		// Remove test key
+		delete(copy.Metadata, "test")
+
+		// Verify MetaTags is copied correctly
+		assert.NotNil(t, copy.MetaTags, "MetaTags should be copied")
+		assert.Equal(t, original.MetaTags.Charset, copy.MetaTags.Charset, "MetaTags charset should be copied")
+		assert.Equal(t, original.MetaTags.Name, copy.MetaTags.Name, "MetaTags name should be copied")
+		assert.NotSame(t, original.MetaTags, copy.MetaTags, "MetaTags should be a new instance")
+
+		// Verify cached fields are reset
+		assert.Nil(t, copy.location, "Location cache should be reset")
+		assert.Nil(t, copy.tag, "Tag cache should be reset")
+		assert.False(t, copy.isRoot, "isRoot should be reset to false")
+	})
+
+	t.Run("Copy site with nil MetaTags", func(t *testing.T) {
+		original := &Site{
+			Name: "Test Site",
+			Host: "example.com",
+		}
+		original.MetaTags = nil
+
+		copy := original.Copy()
+
+		assert.Nil(t, copy.MetaTags, "MetaTags should remain nil when original has nil MetaTags")
+	})
+
+	t.Run("Copy site with empty slices and maps", func(t *testing.T) {
+		original := &Site{
+			Name:      "Test Site",
+			Countries: []string{},
+			Metadata:  make(map[string]any),
+			MetaTags:  NewMetaTags("UTF-8"),
+		}
+
+		copy := original.Copy()
+
+		assert.Empty(t, copy.Countries, "Countries slice should be empty")
+		// For empty slices, they're both empty but should be different instances
+		copy.Countries = append(copy.Countries, "test")
+		assert.Empty(t, original.Countries, "Original countries slice should remain empty")
+
+		assert.Empty(t, copy.Metadata, "Metadata map should be empty")
+		// For empty maps, they're both empty but should be different instances
+		copy.Metadata["test"] = "value"
+		assert.Empty(t, original.Metadata, "Original metadata map should remain empty")
+	})
+
+	t.Run("Modify copy doesn't affect original", func(t *testing.T) {
+		original := &Site{
+			Name:      "Original Site",
+			Countries: []string{"US"},
+			Metadata:  map[string]any{"key": "original"},
+			MetaTags:  NewMetaTags("UTF-8"),
+		}
+
+		copy := original.Copy()
+
+		// Modify the copy
+		copy.Name = "Modified Site"
+		copy.Countries = append(copy.Countries, "CA")
+		copy.Metadata["key"] = "modified"
+		copy.Metadata["newKey"] = "new value"
+		copy.MetaTags.Charset = "ISO-8859-1"
+
+		// Verify original is unchanged
+		assert.Equal(t, "Original Site", original.Name, "Original name should be unchanged")
+		assert.Equal(t, []string{"US"}, original.Countries, "Original countries should be unchanged")
+		assert.Equal(t, "original", original.Metadata["key"], "Original metadata should be unchanged")
+		assert.NotContains(t, original.Metadata, "newKey", "Original should not have new metadata key")
+		assert.Equal(t, "UTF-8", original.MetaTags.Charset, "Original MetaTags charset should be unchanged")
+	})
+}
+
+func TestSite_InvalidTimezoneHandling(t *testing.T) {
+	t.Run("Multiple calls to Location with invalid timezone", func(t *testing.T) {
+		site := &Site{Timezone: "Invalid/Timezone"}
+
+		loc1 := site.Location()
+		loc2 := site.Location()
+
+		assert.Same(t, loc1, loc2, "Location() should return cached location even for invalid timezone")
+		assert.Equal(t, "UTC", loc1.String(), "Invalid timezone should fallback to UTC")
+	})
+
+	t.Run("Valid timezone after invalid one", func(t *testing.T) {
+		site := &Site{Timezone: "Invalid/Timezone"}
+
+		// First call with invalid timezone
+		loc1 := site.Location()
+		assert.Equal(t, "UTC", loc1.String(), "First call with invalid timezone should return UTC")
+
+		// Change to valid timezone
+		site.Timezone = "America/New_York"
+		site.location = nil // Reset cache
+
+		loc2 := site.Location()
+		assert.Equal(t, "America/New_York", loc2.String(), "Second call with valid timezone should return correct location")
+	})
+}
+
+func TestSite_InvalidLocaleHandling(t *testing.T) {
+	t.Run("Multiple calls to Tag with invalid locale", func(t *testing.T) {
+		site := &Site{Locale: "invalid-locale"}
+
+		tag1 := site.Tag()
+		tag2 := site.Tag()
+
+		assert.Equal(t, tag1, tag2, "Tag() should return cached tag on subsequent calls")
+		assert.Equal(t, "en", tag1.String(), "Invalid locale should fallback to English")
+	})
+
+	t.Run("Valid locale after invalid one", func(t *testing.T) {
+		site := &Site{Locale: "invalid-locale"}
+
+		// First call with invalid locale
+		tag1 := site.Tag()
+		assert.Equal(t, "en", tag1.String(), "First call with invalid locale should return English")
+
+		// Change to valid locale
+		site.Locale = "fr-FR"
+		site.tag = nil // Reset cache
+
+		tag2 := site.Tag()
+		assert.Equal(t, "fr-FR", tag2.String(), "Second call with valid locale should return correct tag")
+	})
+}
+
+func TestSite_MetaTagsIntegration(t *testing.T) {
+	t.Run("NewSite creates MetaTags with default charset", func(t *testing.T) {
+		site := NewSite()
+
+		assert.NotNil(t, site.MetaTags, "NewSite should create MetaTags")
+		assert.Equal(t, "UTF-8", site.MetaTags.Charset, "MetaTags should have default charset")
+		assert.NotNil(t, site.MetaTags.Name, "MetaTags.Name map should be initialized")
+		assert.NotNil(t, site.MetaTags.Property, "MetaTags.Property map should be initialized")
+		assert.NotNil(t, site.MetaTags.HTTPEquiv, "MetaTags.HTTPEquiv map should be initialized")
+	})
+
+	t.Run("Copy site with complex MetaTags", func(t *testing.T) {
+		original := NewSite()
+
+		// Add complex meta tags
+		original.MetaTags.SetName("description", "Test site description")
+		original.MetaTags.SetName("keywords", "test", "site", "example")
+		original.MetaTags.SetProperty("og:title", "Test OG Title")
+		original.MetaTags.SetProperty("og:description", "Test OG Description")
+		original.MetaTags.SetHTTPEquiv("refresh", "30")
+		original.MetaTags.Charset = "ISO-8859-1"
+
+		copy := original.Copy()
+
+		// Verify MetaTags are copied correctly
+		assert.NotNil(t, copy.MetaTags, "Copy should have MetaTags")
+		assert.Equal(t, "ISO-8859-1", copy.MetaTags.Charset, "Charset should be copied")
+		assert.Equal(t, original.MetaTags.Name, copy.MetaTags.Name, "Name meta tags should be copied")
+		assert.Equal(t, original.MetaTags.Property, copy.MetaTags.Property, "Property meta tags should be copied")
+		assert.Equal(t, original.MetaTags.HTTPEquiv, copy.MetaTags.HTTPEquiv, "HTTP-Equiv meta tags should be copied")
+		assert.NotSame(t, original.MetaTags, copy.MetaTags, "MetaTags should be a new instance")
+
+		// Verify modifying copy doesn't affect original
+		copy.MetaTags.SetName("new-name", "new value")
+		assert.NotContains(t, original.MetaTags.Name, "new-name", "Original MetaTags should not be modified")
+	})
+}
+
+func BenchmarkSite_String(b *testing.B) {
+	site := &Site{Name: "Test Site"}
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_ = site.String()
+	}
+}
+
+func BenchmarkSite_IsLocalhost(b *testing.B) {
+	sites := []*Site{
+		{Host: "localhost"},
+		{Host: "127.0.0.1"},
+		{Host: "example.com"},
+		{Host: ""},
+	}
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		site := sites[i%len(sites)]
+		_ = site.IsLocalhost()
+	}
+}
+
+func BenchmarkSite_Origin(b *testing.B) {
+	site := &Site{Scheme: "https", Host: "example.com"}
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_ = site.Origin()
+	}
+}
+
+func BenchmarkSite_URL(b *testing.B) {
+	site := &Site{Scheme: "https", Host: "example.com", RelativePath: "/api/v1/users"}
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_ = site.URL()
+	}
+}
+
+func BenchmarkSite_Home(b *testing.B) {
+	site := &Site{
+		Scheme:       "https",
+		Host:         "example.com",
+		RelativePath: "/blog",
+		isRoot:       false,
+	}
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_ = site.Home()
+	}
+}
+
+func BenchmarkSite_Location_Cached(b *testing.B) {
+	site := &Site{Timezone: "UTC"}
+	site.Location() // Pre-cache the location
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_ = site.Location()
+	}
+}
+
+func BenchmarkSite_Location_Uncached(b *testing.B) {
+	sites := []*Site{
+		{Timezone: "UTC"},
+		{Timezone: "America/New_York"},
+		{Timezone: "Europe/London"},
+		{Timezone: "Asia/Tokyo"},
+	}
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		site := sites[i%len(sites)]
+		site.location = nil // Reset cache each time
+		_ = site.Location()
+	}
+}
+
+func BenchmarkSite_Tag_Cached(b *testing.B) {
+	site := &Site{Locale: "en-US"}
+	site.Tag() // Pre-cache the tag
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_ = site.Tag()
+	}
+}
+
+func BenchmarkSite_Tag_Uncached(b *testing.B) {
+	locales := []string{"en-US", "fr-FR", "de-DE", "es-ES", "ja-JP"}
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		site := &Site{Locale: locales[i%len(locales)]}
+		_ = site.Tag()
+	}
+}
+
+func BenchmarkSite_Copy(b *testing.B) {
+	original := &Site{
+		ID:        "test-id",
+		Created:   time.Now(),
+		Updated:   time.Now(),
+		Name:      "Test Site",
+		Countries: []string{"US", "CA", "MX", "GB", "FR"},
+		Metadata:  map[string]any{"theme": "dark", "version": 1, "features": []string{"search", "api"}},
+		MetaTags:  NewMetaTags("UTF-8"),
+	}
+	original.MetaTags.SetName("description", "Test description")
+	original.MetaTags.SetProperty("og:title", "Test OG Title")
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_ = original.Copy()
+	}
 }
