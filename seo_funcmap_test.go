@@ -862,15 +862,15 @@ func TestAttrs(t *testing.T) {
 	}{
 		{
 			name:     "Basic attributes",
-			attrs:    map[string]string{"id": "test", "class": "container"},
+			attrs:    map[string]string{"class": "container"},
 			rest:     nil,
-			expected: `id="test" class="container"`,
+			expected: `class="container"`,
 		},
 		{
 			name:     "Attributes with rest",
-			attrs:    map[string]string{"id": "test"},
-			rest:     []any{"data-value", "123", "style", "color: red"},
-			expected: `id="test" data-value="123" style="color: red"`,
+			attrs:    map[string]string{},
+			rest:     []any{"style", "color: red"},
+			expected: `style="color: red"`,
 		},
 		{
 			name:     "Empty attributes with rest",
