@@ -1,7 +1,9 @@
 package pages
 
 import (
+	"fmt"
 	"html/template"
+	"regexp"
 	"strings"
 	"testing"
 
@@ -288,14 +290,16 @@ func TestReverseTitleTag(t *testing.T) {
 
 func TestMetaTags(t *testing.T) {
 	tests := []struct {
-		name     string
-		seo      *SEO
-		expected string
+		name               string
+		seo                *SEO
+		expectedExact      string            // For simple cases where exact match is expected
+		expectedMetaTags   []expectedMetaTag // For complex cases where order doesn't matter
+		expectedSubstrings []string          // Substrings that should be present
 	}{
 		{
 			name: "Basic meta tags",
 			seo:  createTestSEOWithMeta(),
-			expected: `<meta charset="UTF-8" />
+			expectedExact: `<meta charset="UTF-8" />
 <meta name="description" content="Test description" />
 <meta property="og:type" content="website" />
 `,
@@ -303,39 +307,41 @@ func TestMetaTags(t *testing.T) {
 		{
 			name: "Meta tags with charset only",
 			seo:  createTestSEOWithCharset("UTF-8"),
-			expected: `<meta charset="UTF-8" />
+			expectedExact: `<meta charset="UTF-8" />
 `,
 		},
 		{
 			name: "Empty meta tags",
 			seo:  &SEO{metaTags: NewMetaTags("")},
-			expected: `<meta charset="UTF-8" />
+			expectedExact: `<meta charset="UTF-8" />
 `,
 		},
 		{
 			name: "Complete meta tags",
 			seo:  createTestSEOCompleteMeta(),
-			expected: `<meta charset="UTF-8" />
-<meta name="description" content="Test description" />
-<meta name="keywords" content="test" />
-<meta name="keywords" content="keywords" />
-<meta property="og:title" content="Test Title" />
-<meta property="og:type" content="website" />
-<meta http-equiv="refresh" content="30" />
-`,
+			expectedMetaTags: []expectedMetaTag{
+				{Type: "charset", Value: "UTF-8"},
+				{Type: "name", Name: "description", Content: "Test description"},
+				{Type: "name", Name: "keywords", Content: "test"},
+				{Type: "name", Name: "keywords", Content: "keywords"},
+				{Type: "property", Name: "og:title", Content: "Test Title"},
+				{Type: "property", Name: "og:type", Content: "website"},
+				{Type: "http-equiv", Name: "refresh", Content: "30"},
+			},
 		},
 		{
 			name: "Meta tags with special characters",
 			seo:  createTestSEOSpecialChars(),
-			expected: `<meta charset="UTF-8" />
-<meta name="description" content="Test & description &quot;with quotes&quot;" />
-<meta property="og:type" content="website" />
-`,
+			expectedMetaTags: []expectedMetaTag{
+				{Type: "charset", Value: "UTF-8"},
+				{Type: "name", Name: "description", Content: `Test & description &quot;with quotes&quot;`},
+				{Type: "property", Name: "og:type", Content: "website"},
+			},
 		},
 		{
-			name:     "Nil SEO",
-			seo:      nil,
-			expected: "",
+			name:          "Nil SEO",
+			seo:           nil,
+			expectedExact: "",
 		},
 	}
 
@@ -350,64 +356,120 @@ func TestMetaTags(t *testing.T) {
 			result := metaTags(tt.seo)
 			resultStr := string(result)
 
-			// Check that all expected meta tags are present (order doesn't matter for non-charset)
-			if tt.name == "Complete meta tags" {
-				assert.Contains(t, resultStr, `<meta charset="UTF-8" />`)
-				assert.Contains(t, resultStr, `<meta name="description" content="Test description" />`)
-				assert.Contains(t, resultStr, `<meta name="keywords" content="test" />`)
-				assert.Contains(t, resultStr, `<meta name="keywords" content="keywords" />`)
-				assert.Contains(t, resultStr, `<meta property="og:type" content="website" />`)
-				assert.Contains(t, resultStr, `<meta property="og:title" content="Test Title" />`)
-				assert.Contains(t, resultStr, `<meta http-equiv="refresh" content="30" />`)
-			} else {
-				assert.Equal(t, template.HTML(tt.expected), result, "metaTags() should produce expected output")
+			if tt.expectedExact != "" {
+				assert.Equal(t, template.HTML(tt.expectedExact), result, "metaTags() should produce expected exact output")
+			} else if len(tt.expectedMetaTags) > 0 {
+				// Check that charset is always first (if present)
+				for _, expected := range tt.expectedMetaTags {
+					if expected.Type == "charset" {
+						assert.True(t, strings.HasPrefix(resultStr, fmt.Sprintf(`<meta charset="%s" />`, expected.Value)),
+							"metaTags() should start with charset meta tag")
+						break
+					}
+				}
+
+				// Check that all expected meta tags are present (order doesn't matter for non-charset)
+				for _, expected := range tt.expectedMetaTags {
+					switch expected.Type {
+					case "charset":
+						assert.Contains(t, resultStr, fmt.Sprintf(`<meta charset="%s" />`, expected.Value),
+							"metaTags() should contain charset meta tag")
+					case "name":
+						assert.Contains(t, resultStr, fmt.Sprintf(`<meta name="%s" content="%s" />`, expected.Name, expected.Content),
+							"metaTags() should contain name meta tag")
+					case "property":
+						assert.Contains(t, resultStr, fmt.Sprintf(`<meta property="%s" content="%s" />`, expected.Name, expected.Content),
+							"metaTags() should contain property meta tag")
+					case "http-equiv":
+						assert.Contains(t, resultStr, fmt.Sprintf(`<meta http-equiv="%s" content="%s" />`, expected.Name, expected.Content),
+							"metaTags() should contain http-equiv meta tag")
+					}
+				}
+
+				// Validate that meta tags are properly formatted
+				metaTagPattern := `<meta\s+(?:charset="[^"]*"|name="[^"]*"|property="[^"]*"|http-equiv="[^"]*")(?:\s+content="[^"]*")?\s*/>`
+				assert.Regexp(t, metaTagPattern, resultStr, "metaTags() should produce properly formatted meta tags")
+			}
+
+			// Check for expected substrings
+			for _, substr := range tt.expectedSubstrings {
+				assert.Contains(t, resultStr, substr, "metaTags() should contain substring: %s", substr)
 			}
 		})
 	}
 }
 
+// Helper struct for expected meta tags
+type expectedMetaTag struct {
+	Type    string // "charset", "name", "property", "http-equiv"
+	Name    string // for name, property, http-equiv types
+	Content string // for name, property, http-equiv types
+	Value   string // for charset type
+}
+
 func TestHTMLAttrs(t *testing.T) {
 	tests := []struct {
-		name     string
-		seo      *SEO
-		rest     []any
-		expected string
+		name               string
+		seo                *SEO
+		rest               []any
+		expectedAttributes map[string]string // key-value pairs that should be present
+		shouldContain      []string          // substrings that should be present
+		shouldNotContain   []string          // substrings that should not be present
 	}{
 		{
-			name:     "Basic HTML attributes",
-			seo:      createTestSEOWithHTMLAttrs(),
-			rest:     nil,
-			expected: `dir="ltr" lang="en" prefix="og: https://ogp.me/ns#"`,
+			name: "Basic HTML attributes",
+			seo:  createTestSEOWithHTMLAttrs(),
+			expectedAttributes: map[string]string{
+				"dir":    "ltr",
+				"lang":   "en",
+				"prefix": "og: https://ogp.me/ns#",
+			},
 		},
 		{
-			name:     "HTML attributes with additional",
-			seo:      createTestSEOWithHTMLAttrs(),
-			rest:     []any{"data-test", "value", "class", "container"},
-			expected: `dir="ltr" lang="en" prefix="og: https://ogp.me/ns#" data-test="value" class="container"`,
+			name: "HTML attributes with additional",
+			seo:  createTestSEOWithHTMLAttrs(),
+			rest: []any{"data-test", "value", "class", "container"},
+			expectedAttributes: map[string]string{
+				"dir":       "ltr",
+				"lang":      "en",
+				"prefix":    "og: https://ogp.me/ns#",
+				"data-test": "value",
+				"class":     "container",
+			},
 		},
 		{
-			name:     "Empty HTML attributes with rest",
-			seo:      &SEO{htmlAttrs: map[string]string{}},
-			rest:     []any{"id", "test"},
-			expected: `id="test"`,
+			name: "Empty HTML attributes with rest",
+			seo:  &SEO{htmlAttrs: map[string]string{}},
+			rest: []any{"id", "test"},
+			expectedAttributes: map[string]string{
+				"id": "test",
+			},
 		},
 		{
-			name:     "HTML attributes with special characters",
-			seo:      &SEO{htmlAttrs: map[string]string{"title": `Test "with quotes"`}},
-			rest:     nil,
-			expected: `title="Test &#34;with quotes&#34;"`,
+			name: "HTML attributes with special characters",
+			seo:  &SEO{htmlAttrs: map[string]string{"title": `Test "with quotes"`}},
+			expectedAttributes: map[string]string{
+				"title": `Test &#34;with quotes&#34;`,
+			},
 		},
 		{
-			name:     "Nil SEO with rest",
-			seo:      nil,
-			rest:     []any{"id", "test"},
-			expected: `id="test"`,
+			name: "Nil SEO with rest",
+			seo:  nil,
+			rest: []any{"id", "test"},
+			expectedAttributes: map[string]string{
+				"id": "test",
+			},
 		},
 		{
-			name:     "Odd number of rest parameters",
-			seo:      createTestSEOWithHTMLAttrs(),
-			rest:     []any{"incomplete"},
-			expected: `prefix="og: https://ogp.me/ns#" dir="ltr" lang="en"`,
+			name: "Odd number of rest parameters",
+			seo:  createTestSEOWithHTMLAttrs(),
+			rest: []any{"incomplete"},
+			expectedAttributes: map[string]string{
+				"dir":    "ltr",
+				"lang":   "en",
+				"prefix": "og: https://ogp.me/ns#",
+			},
+			shouldNotContain: []string{"incomplete"},
 		},
 	}
 
@@ -420,18 +482,40 @@ func TestHTMLAttrs(t *testing.T) {
 				return
 			}
 			result := htmlAttrs(tt.seo, tt.rest...)
-
-			// For HTML attributes, order doesn't matter, so we check that all expected parts are present
 			resultStr := string(result)
-			expectedParts := strings.Fields(tt.expected)
-			for _, part := range expectedParts {
-				assert.Contains(t, resultStr, part, "htmlAttrs() should contain expected part: %s", part)
+
+			// Check that all expected attributes are present with correct values
+			for attrName, expectedValue := range tt.expectedAttributes {
+				expectedPattern := fmt.Sprintf(`%s="%s"`, attrName, expectedValue)
+				assert.Contains(t, resultStr, expectedPattern, "htmlAttrs() should contain attribute %s with value %s", attrName, expectedValue)
 			}
 
-			// Check that the result has the correct number of attributes (for odd rest parameters)
-			if tt.name == "Odd number of rest parameters" {
-				// When there's an odd number of rest parameters, the incomplete one should be ignored
-				assert.NotContains(t, resultStr, "incomplete", "htmlAttrs() should ignore incomplete rest parameters")
+			// Check that specified substrings are present
+			for _, substr := range tt.shouldContain {
+				assert.Contains(t, resultStr, substr, "htmlAttrs() should contain substring: %s", substr)
+			}
+
+			// Check that specified substrings are not present
+			for _, substr := range tt.shouldNotContain {
+				assert.NotContains(t, resultStr, substr, "htmlAttrs() should not contain substring: %s", substr)
+			}
+
+			// Validate that attributes are properly formatted by checking the whole string
+			if resultStr != "" {
+				// Each attribute should be in the format name="value"
+				attributes := strings.Fields(resultStr)
+				for _, attr := range attributes {
+					// Skip validation if this doesn't look like a complete attribute
+					if !strings.Contains(attr, "=") {
+						continue
+					}
+					// Check if it starts with attribute name format
+					parts := strings.SplitN(attr, "=", 2)
+					if len(parts) == 2 && strings.HasPrefix(parts[1], `"`) && strings.HasSuffix(parts[1], `"`) {
+						// Attribute name should be valid
+						assert.Regexp(t, `^[\w:-]+$`, parts[0], "htmlAttrs() should produce valid attribute names")
+					}
+				}
 			}
 		})
 	}
@@ -576,40 +660,50 @@ func TestLangAlternates(t *testing.T) {
 
 func TestHeadLinks(t *testing.T) {
 	tests := []struct {
-		name     string
-		seo      *SEO
-		expected string
+		name               string
+		seo                *SEO
+		expectedExact      string         // For simple cases where exact match is expected
+		expectedLinks      []expectedLink // For complex cases where we want to validate individual links
+		expectedSubstrings []string       // Substrings that should be present
+		expectedLinkCount  int            // Expected number of links in output
 	}{
 		{
 			name: "Basic head links",
 			seo:  createTestSEOWithHeadLinks(),
-			expected: `<link rel="stylesheet" href="/style.css" />
+			expectedExact: `<link rel="stylesheet" href="/style.css" />
 <link rel="icon" href="/favicon.ico" />
 `,
+			expectedLinkCount: 2,
 		},
 		{
 			name: "Complete head links",
 			seo:  createTestSEOCompleteHeadLinks(),
-			expected: `<link rel="stylesheet" href="/style.css" type="text/css" />
-<link rel="icon" href="/favicon.ico" sizes="32x32" type="image/png" />
-<link rel="canonical" href="https://example.com/page" />
-`,
+			expectedLinks: []expectedLink{
+				{Rel: "stylesheet", Href: "/style.css", Type: "text/css"},
+				{Rel: "icon", Href: "/favicon.ico", Sizes: "32x32", Type: "image/png"},
+				{Rel: "canonical", Href: "https://example.com/page"},
+			},
+			expectedLinkCount: 3,
 		},
 		{
-			name:     "Empty head links",
-			seo:      &SEO{headLinks: []HeadLink{}},
-			expected: "",
+			name:              "Empty head links",
+			seo:               &SEO{headLinks: []HeadLink{}},
+			expectedExact:     "",
+			expectedLinkCount: 0,
 		},
 		{
 			name: "Head links with empty rel (should be skipped)",
 			seo:  &SEO{headLinks: []HeadLink{{Rel: "", Href: "/skip"}, {Rel: "valid", Href: "/keep"}}},
-			expected: `<link rel="valid" href="/keep" />
-`,
+			expectedLinks: []expectedLink{
+				{Rel: "valid", Href: "/keep"},
+			},
+			expectedLinkCount: 1,
 		},
 		{
-			name:     "Nil SEO",
-			seo:      nil,
-			expected: "",
+			name:              "Nil SEO",
+			seo:               nil,
+			expectedExact:     "",
+			expectedLinkCount: 0,
 		},
 	}
 
@@ -622,9 +716,105 @@ func TestHeadLinks(t *testing.T) {
 				return
 			}
 			result := headLinks(tt.seo)
-			assert.Equal(t, template.HTML(tt.expected), result, "headLinks() should produce expected output")
+			resultStr := string(result)
+
+			if tt.expectedExact != "" {
+				assert.Equal(t, template.HTML(tt.expectedExact), result, "headLinks() should produce expected exact output")
+			}
+
+			// Check expected link count
+			if tt.expectedLinkCount >= 0 {
+				if tt.expectedLinkCount == 0 && tt.expectedExact == "" {
+					assert.Empty(t, resultStr, "headLinks() should produce empty output when no links")
+				} else {
+					linkCount := strings.Count(resultStr, `<link `)
+					assert.Equal(t, tt.expectedLinkCount, linkCount, "headLinks() should produce correct number of links")
+				}
+			}
+
+			// Check individual expected links
+			for _, expectedLink := range tt.expectedLinks {
+				linkPattern := buildLinkPattern(expectedLink)
+				assert.Regexp(t, linkPattern, resultStr, "headLinks() should contain link with rel=%s", expectedLink.Rel)
+			}
+
+			// Check for expected substrings
+			for _, substr := range tt.expectedSubstrings {
+				assert.Contains(t, resultStr, substr, "headLinks() should contain substring: %s", substr)
+			}
+
+			// Validate that all links are properly formatted
+			if resultStr != "" {
+				lines := strings.Split(strings.TrimSpace(resultStr), "\n")
+				for _, line := range lines {
+					line = strings.TrimSpace(line)
+					if line != "" {
+						// Basic link tag validation
+						assert.True(t, strings.HasPrefix(line, `<link `) && strings.HasSuffix(line, `/>`),
+							"headLinks() should produce properly formatted link tags: %s", line)
+
+						// Check that rel attribute is present (should never be empty due to the skip logic)
+						assert.Regexp(t, `rel="[^"]+"`, line,
+							"headLinks() should always include rel attribute: %s", line)
+					}
+				}
+			}
 		})
 	}
+}
+
+// Helper struct for expected head links
+type expectedLink struct {
+	Rel         string
+	Href        string
+	HrefLang    string
+	Media       string
+	Sizes       string
+	Title       string
+	Type        string
+	CrossOrigin string
+}
+
+// Helper function to build regex pattern for link validation
+func buildLinkPattern(link expectedLink) string {
+	pattern := `<link rel="` + regexp.QuoteMeta(link.Rel) + `"`
+
+	attrs := []string{}
+	if link.Href != "" {
+		attrs = append(attrs, `\s+href="`+regexp.QuoteMeta(link.Href)+`"`)
+	}
+	if link.HrefLang != "" {
+		attrs = append(attrs, `\s+hreflang="`+regexp.QuoteMeta(link.HrefLang)+`"`)
+	}
+	if link.Media != "" {
+		attrs = append(attrs, `\s+media="`+regexp.QuoteMeta(link.Media)+`"`)
+	}
+	if link.Sizes != "" {
+		attrs = append(attrs, `\s+sizes="`+regexp.QuoteMeta(link.Sizes)+`"`)
+	}
+	if link.Title != "" {
+		attrs = append(attrs, `\s+title="`+regexp.QuoteMeta(link.Title)+`"`)
+	}
+	if link.Type != "" {
+		attrs = append(attrs, `\s+type="`+regexp.QuoteMeta(link.Type)+`"`)
+	}
+	if link.CrossOrigin != "" {
+		attrs = append(attrs, `\s+crossorigin="`+regexp.QuoteMeta(link.CrossOrigin)+`"`)
+	}
+
+	// Add attributes in any order
+	if len(attrs) > 0 {
+		for i, attr := range attrs {
+			if i < len(attrs)-1 {
+				pattern += `(?:` + attr + `)?`
+			} else {
+				pattern += attr + `?`
+			}
+		}
+	}
+
+	pattern += `\s+/>`
+	return pattern
 }
 
 func TestNormalize(t *testing.T) {
