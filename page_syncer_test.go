@@ -172,7 +172,9 @@ func TestDefaultPageSyncer_Sync(t *testing.T) {
 			Pattern: "/about",
 		}
 
-		mockStorage.On("FindByPatterns", ctx, site.ID, []string{"/blog/{slug}", "/about", "/contact", PageInternalCreate, PageError4xx, PageError5xx}).Return(iter.Seq2[*Page, error](func(yield func(*Page, error) bool) {
+		mockStorage.On("FindByPatterns", ctx, site.ID, mock.MatchedBy(func(ps []string) bool {
+			return assert.ElementsMatch(t, ps, []string{"/blog/{slug}", "/about", "/contact", PageInternalCreate, PageError4xx, PageError5xx})
+		})).Return(iter.Seq2[*Page, error](func(yield func(*Page, error) bool) {
 			// Return existing /about page
 			yield(existingPage, nil)
 		}))
