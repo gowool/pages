@@ -2,6 +2,7 @@ package pages
 
 import (
 	"context"
+	"iter"
 
 	"github.com/stretchr/testify/mock"
 )
@@ -41,6 +42,11 @@ func (m *MockPageStorage) FindByAlias(ctx context.Context, siteID ID, alias stri
 		return nil, args.Error(1)
 	}
 	return args.Get(0).(*Page), args.Error(1)
+}
+
+func (m *MockPageStorage) FindByPatterns(ctx context.Context, siteID ID, patterns ...string) iter.Seq2[*Page, error] {
+	args := m.Called(ctx, siteID, patterns)
+	return args.Get(0).(iter.Seq2[*Page, error])
 }
 
 func (m *MockPageStorage) Save(ctx context.Context, pages ...*Page) error {

@@ -2,6 +2,7 @@ package pages
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"iter"
 	"slices"
@@ -62,8 +63,20 @@ func (s *MemoryPageStorage) FindByPatterns(_ context.Context, siteID ID, pattern
 			return
 		}
 
+		visited := make(map[string]struct{})
 		for _, pattern := range patterns {
-			if !yield(s.findByPath(siteID, pattern)) {
+			if _, ok := visited[pattern]; ok {
+				continue
+			}
+
+			visited[pattern] = struct{}{}
+
+			page, err := s.findByPath(siteID, pattern)
+			if errors.Is(err, ErrPageNotFound) {
+				continue
+			}
+
+			if !yield(page, err) {
 				return
 			}
 		}
