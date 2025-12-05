@@ -133,14 +133,18 @@ func (s *MemoryPageStorage) Save(_ context.Context, pages ...*Page) error {
 			return fmt.Errorf("page storage: page path is not unique %s: %w", path, ErrUniqueViolation)
 		}
 
-		if _, ok = s.aliases[alias]; ok {
-			s.mu.Unlock()
+		// Only check alias uniqueness if alias is not empty
+		if page.Alias != "" {
+			if _, ok = s.aliases[alias]; ok {
+				s.mu.Unlock()
 
-			return fmt.Errorf("page storage: page alias is not unique %s: %w", alias, ErrUniqueViolation)
+				return fmt.Errorf("page storage: page alias is not unique %s: %w", alias, ErrUniqueViolation)
+			}
+
+			s.aliases[alias] = index
 		}
 
 		s.paths[path] = index
-		s.aliases[alias] = index
 
 		s.mu.Unlock()
 	}
