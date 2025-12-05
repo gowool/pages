@@ -21,6 +21,9 @@ const (
 	PageErrorPrefix    = PageInternalPrefix + "error_"
 	PageError4xx       = PageErrorPrefix + "4xx"
 	PageError5xx       = PageErrorPrefix + "5xx"
+
+	PageCMSPattern    = "/{_page_cms...}"
+	HomeHybridPattern = "/{$}"
 )
 
 type Page struct {
@@ -63,6 +66,7 @@ func NewPage() *Page {
 		MetaTags: NewMetaTags(DefaultCharset),
 		Metadata: make(map[string]any),
 		Header:   make(map[string][]string),
+		Status:   DraftStatus,
 	}
 }
 

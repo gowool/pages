@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/gowool/wo"
+	"github.com/gowool/wo/middleware"
 )
 
 var _ Resolver = (*Event)(nil)
@@ -198,11 +199,10 @@ func (e *Event) IsDecorable() bool {
 }
 
 func getPattern(r *http.Request) string {
-	pattern := r.Pattern
-	if index := strings.IndexRune(pattern, ' '); index > -1 {
-		pattern = pattern[index+1:]
+	if pattern, ok := middleware.CheckMethod(http.MethodGet, r.Pattern); ok {
+		return pattern
 	}
-	return pattern
+	return r.Pattern
 }
 
 func patternArgs(paramFunc func(string) string, pattern string) (args []any) {

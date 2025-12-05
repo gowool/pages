@@ -3,6 +3,7 @@ package pages
 import (
 	"context"
 	"fmt"
+	"iter"
 	"slices"
 	"sync"
 
@@ -15,6 +16,7 @@ type PageStorage interface {
 	FindByID(ctx context.Context, id ID) (*Page, error)
 	FindByURL(ctx context.Context, siteID ID, url string) (*Page, error)
 	FindByPattern(ctx context.Context, siteID ID, pattern string) (*Page, error)
+	FindByPatterns(ctx context.Context, siteID ID, patterns ...string) iter.Seq2[*Page, error]
 	FindByAlias(ctx context.Context, siteID ID, alias string) (*Page, error)
 	Save(ctx context.Context, pages ...*Page) error
 }
@@ -52,6 +54,20 @@ func (s *MemoryPageStorage) FindByURL(_ context.Context, siteID ID, url string) 
 
 func (s *MemoryPageStorage) FindByPattern(_ context.Context, siteID ID, pattern string) (*Page, error) {
 	return s.findByPath(siteID, pattern)
+}
+
+func (s *MemoryPageStorage) FindByPatterns(_ context.Context, siteID ID, patterns ...string) iter.Seq2[*Page, error] {
+	return func(yield func(*Page, error) bool) {
+		if len(patterns) == 0 {
+			return
+		}
+
+		for _, pattern := range patterns {
+			if !yield(s.findByPath(siteID, pattern)) {
+				return
+			}
+		}
+	}
 }
 
 func (s *MemoryPageStorage) FindByAlias(_ context.Context, siteID ID, alias string) (*Page, error) {

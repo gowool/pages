@@ -6,11 +6,6 @@ import (
 	"github.com/gowool/wo"
 )
 
-const (
-	PageCMSPattern    = "/{_page_cms...}"
-	HomeHybridPattern = "/{$}"
-)
-
 func PageHandler[T Resolver]() func(T) error {
 	return func(e T) error {
 		if !e.HasSite() {
