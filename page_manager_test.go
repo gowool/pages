@@ -177,7 +177,7 @@ func TestDefaultPageManager_GetByURL(t *testing.T) {
 				manager := &DefaultPageManager{storage: mockStorage}
 
 				assert.Panics(t, func() {
-					manager.GetByURL(ctx, tt.site, tt.url)
+					_, _ = manager.GetByURL(ctx, tt.site, tt.url)
 				}, "GetByURL() should panic with nil site")
 			} else {
 				mockStorage := &MockPageStorage{}
@@ -271,7 +271,7 @@ func TestDefaultPageManager_GetByPattern(t *testing.T) {
 				manager := &DefaultPageManager{storage: mockStorage}
 
 				assert.Panics(t, func() {
-					manager.GetByPattern(ctx, tt.site, tt.pattern)
+					_, _ = manager.GetByPattern(ctx, tt.site, tt.pattern)
 				}, "GetByPattern() should panic with nil site")
 			} else {
 				mockStorage := &MockPageStorage{}
@@ -377,7 +377,7 @@ func TestDefaultPageManager_GetByAlias(t *testing.T) {
 				manager := &DefaultPageManager{storage: mockStorage}
 
 				assert.Panics(t, func() {
-					manager.GetByAlias(ctx, tt.site, tt.alias)
+					_, _ = manager.GetByAlias(ctx, tt.site, tt.alias)
 				}, "GetByAlias() should panic with nil site")
 			} else {
 				mockStorage := &MockPageStorage{}
@@ -427,28 +427,28 @@ func TestDefaultPageManager_ContextPropagation(t *testing.T) {
 			name: "GetByID propagates context",
 			testFunc: func(m *MockPageStorage, pm *DefaultPageManager) {
 				m.On("FindByID", ctx, pageID).Return(&Page{}, nil)
-				pm.GetByID(ctx, pageID)
+				_, _ = pm.GetByID(ctx, pageID)
 			},
 		},
 		{
 			name: "GetByURL propagates context",
 			testFunc: func(m *MockPageStorage, pm *DefaultPageManager) {
 				m.On("FindByURL", ctx, siteID, "/test").Return(&Page{}, nil)
-				pm.GetByURL(ctx, site, "/test")
+				_, _ = pm.GetByURL(ctx, site, "/test")
 			},
 		},
 		{
 			name: "GetByPattern propagates context",
 			testFunc: func(m *MockPageStorage, pm *DefaultPageManager) {
 				m.On("FindByPattern", ctx, siteID, "/test/{slug}").Return(&Page{}, nil)
-				pm.GetByPattern(ctx, site, "/test/{slug}")
+				_, _ = pm.GetByPattern(ctx, site, "/test/{slug}")
 			},
 		},
 		{
 			name: "GetByAlias propagates context",
 			testFunc: func(m *MockPageStorage, pm *DefaultPageManager) {
 				m.On("FindByAlias", ctx, siteID, PageAliasPrefix+"test").Return(&Page{}, nil)
-				pm.GetByAlias(ctx, site, "test")
+				_, _ = pm.GetByAlias(ctx, site, "test")
 			},
 		},
 	}

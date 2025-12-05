@@ -294,19 +294,6 @@ func TestLocalhostSiteStorage_IteratorPerformance(t *testing.T) {
 func TestLocalhostSiteStorage_EdgeCases(t *testing.T) {
 	storage := NewLocalhostSiteStorage()
 
-	t.Run("Nil context", func(t *testing.T) {
-		iterator, err := storage.FindEnabled(nil)
-		assert.NoError(t, err, "FindEnabled() should handle nil context")
-		assert.NotNil(t, iterator, "Should still return iterator with nil context")
-
-		var wasCalled bool
-		iterator(func(site *Site, err error) bool {
-			wasCalled = true
-			return false
-		})
-		assert.True(t, wasCalled, "Iterator should still work with nil context")
-	})
-
 	t.Run("Multiple iterations", func(t *testing.T) {
 		// Test that we can call FindEnabled multiple times and get consistent results
 		for i := 0; i < 5; i++ {

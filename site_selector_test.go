@@ -93,7 +93,7 @@ func TestDefaultSiteSelector_Retrieve(t *testing.T) {
 		selector := NewSiteSelector(storage, nil, nil)
 
 		assert.Panics(t, func() {
-			selector.Retrieve(nil)
+			_, _, _ = selector.Retrieve(nil)
 		})
 	})
 

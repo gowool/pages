@@ -57,7 +57,7 @@ func TestDefaultPageSelector_Retrieve(t *testing.T) {
 		site := NewSite()
 
 		assert.Panics(t, func() {
-			selector.Retrieve(nil, site)
+			_, _ = selector.Retrieve(nil, site)
 		}, "Retrieve should panic with nil request")
 	})
 
@@ -72,7 +72,7 @@ func TestDefaultPageSelector_Retrieve(t *testing.T) {
 		}
 
 		assert.Panics(t, func() {
-			selector.Retrieve(req, nil)
+			_, _ = selector.Retrieve(req, nil)
 		}, "Retrieve should panic with nil site")
 	})
 

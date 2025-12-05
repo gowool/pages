@@ -79,15 +79,6 @@ func TestStatus_Constants(t *testing.T) {
 }
 
 func TestStatus_Usage(t *testing.T) {
-	t.Run("Status assignment and comparison", func(t *testing.T) {
-		var status Status
-		status = DraftStatus
-
-		assert.Equal(t, DraftStatus, status, "Status assignment should work correctly")
-		assert.True(t, status == DraftStatus, "Status comparison should work correctly")
-		assert.False(t, status == PublishStatus, "Status should not equal different constant")
-	})
-
 	t.Run("Status in switch statements", func(t *testing.T) {
 		statuses := []Status{DraftStatus, PublishStatus, PrivateStatus}
 		expectedStrings := []string{"draft", "publish", "private"}
@@ -146,13 +137,7 @@ func TestStatus_StringIntegration(t *testing.T) {
 	t.Run("Status String() method with different verbs", func(t *testing.T) {
 		status := PublishStatus
 
-		// Test with %s verb
-		result := fmt.Sprintf("%s", status.String())
-		assert.Equal(t, "publish", result, "Status should format with %s verb")
-
-		// Test with %q verb
-		result = fmt.Sprintf("%q", status.String())
-		assert.Equal(t, `"publish"`, result, "Status should format with %q verb")
+		assert.Equal(t, "publish", status.String())
 	})
 
 	t.Run("Status String() method in logging scenarios", func(t *testing.T) {

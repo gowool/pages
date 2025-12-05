@@ -142,8 +142,8 @@ func TestPageAuthorizer_Interface(t *testing.T) {
 		t.Logf("DenyPageAuthorizer is a concrete implementation")
 
 		// Verify the types exist and can be referenced
-		var action PageAction = ViewDraftPage
-		var decision Decision = Deny
+		action := ViewDraftPage
+		decision := Deny
 		assert.Equal(t, "VIEW_DRAFT_PAGE", action.String())
 		assert.Equal(t, "deny", decision.String())
 	})

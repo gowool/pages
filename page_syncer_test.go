@@ -104,7 +104,6 @@ func TestDefaultPageSyncer_Sync(t *testing.T) {
 		// Mock FindByPatterns for internal pages
 		mockStorage.On("FindByPatterns", ctx, site.ID, []string{PageInternalCreate, PageError4xx, PageError5xx}).Return(iter.Seq2[*Page, error](func(yield func(*Page, error) bool) {
 			// No internal pages found
-			return
 		}))
 
 		// Mock save for internal pages
@@ -130,7 +129,6 @@ func TestDefaultPageSyncer_Sync(t *testing.T) {
 		// Mock FindByPatterns for internal pages
 		mockStorage.On("FindByPatterns", ctx, site.ID, []string{HomeHybridPattern, PageInternalCreate, PageError4xx, PageError5xx}).Return(iter.Seq2[*Page, error](func(yield func(*Page, error) bool) {
 			// No pages found
-			return
 		}))
 
 		// Mock save calls - root page is saved separately via createRootPage, then internal pages
@@ -177,7 +175,6 @@ func TestDefaultPageSyncer_Sync(t *testing.T) {
 		mockStorage.On("FindByPatterns", ctx, site.ID, []string{"/blog/{slug}", "/about", "/contact", PageInternalCreate, PageError4xx, PageError5xx}).Return(iter.Seq2[*Page, error](func(yield func(*Page, error) bool) {
 			// Return existing /about page
 			yield(existingPage, nil)
-			return
 		}))
 
 		// Mock save for new pages (blog/{slug}, contact, and internal pages)
@@ -204,9 +201,7 @@ func TestDefaultPageSyncer_Sync(t *testing.T) {
 		mockStorage.On("FindByURL", ctx, site.ID, "/").Return(nil, ErrPageNotFound)
 
 		// Mock FindByPatterns for internal pages
-		mockStorage.On("FindByPatterns", ctx, site.ID, []string{"/test", PageInternalCreate, PageError4xx, PageError5xx}).Return(iter.Seq2[*Page, error](func(yield func(*Page, error) bool) {
-			return
-		}))
+		mockStorage.On("FindByPatterns", ctx, site.ID, []string{"/test", PageInternalCreate, PageError4xx, PageError5xx}).Return(iter.Seq2[*Page, error](func(yield func(*Page, error) bool) {}))
 
 		err := syncer.Sync(ctx, site)
 		assert.Error(t, err, "Sync should return error when generator fails")
@@ -229,7 +224,6 @@ func TestDefaultPageSyncer_Sync(t *testing.T) {
 		// Mock FindByPatterns returning an error
 		mockStorage.On("FindByPatterns", ctx, site.ID, []string{"/test", PageInternalCreate, PageError4xx, PageError5xx}).Return(iter.Seq2[*Page, error](func(yield func(*Page, error) bool) {
 			yield(nil, errors.New("storage error"))
-			return
 		}))
 
 		err := syncer.Sync(ctx, site)
@@ -251,9 +245,7 @@ func TestDefaultPageSyncer_Sync(t *testing.T) {
 		mockStorage.On("FindByURL", ctx, site.ID, "/").Return(nil, ErrPageNotFound)
 
 		// Mock FindByPatterns for internal pages
-		mockStorage.On("FindByPatterns", ctx, site.ID, []string{"/test", PageInternalCreate, PageError4xx, PageError5xx}).Return(iter.Seq2[*Page, error](func(yield func(*Page, error) bool) {
-			return
-		}))
+		mockStorage.On("FindByPatterns", ctx, site.ID, []string{"/test", PageInternalCreate, PageError4xx, PageError5xx}).Return(iter.Seq2[*Page, error](func(yield func(*Page, error) bool) {}))
 
 		// Mock save error
 		mockStorage.On("Save", ctx, mock.AnythingOfType("[]*pages.Page")).Return(errors.New("save error"))

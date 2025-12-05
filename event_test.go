@@ -739,7 +739,7 @@ func TestEvent_View_Render(t *testing.T) {
 			} else {
 				mockTheme.On("Write", mock.Anything, mock.Anything, tt.templateName, mock.Anything).Return(nil).Run(func(args mock.Arguments) {
 					writer := args.Get(1).(io.Writer)
-					writer.Write([]byte(tt.expectedOutput))
+					_, _ = writer.Write([]byte(tt.expectedOutput))
 				})
 			}
 
@@ -778,7 +778,7 @@ func TestEvent_Render_RenderHTML(t *testing.T) {
 			setupMock: func(m *MockTheme) {
 				m.On("Write", mock.Anything, mock.Anything, "index.html", mock.Anything).Return(nil).Run(func(args mock.Arguments) {
 					writer := args.Get(1).(io.Writer)
-					writer.Write([]byte("<html><body>Test</body></html>"))
+					_, _ = writer.Write([]byte("<html><body>Test</body></html>"))
 				})
 			},
 		},
