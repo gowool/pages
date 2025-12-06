@@ -1,4 +1,4 @@
-name: Audit
+name: Tests
 
 on:
   push:
@@ -7,7 +7,7 @@ on:
     branches: [main]
 
 jobs:
-  audit:
+  test:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -20,10 +20,11 @@ jobs:
           cache-dependency-path: go.sum
 
       - name: Run tests
-        run: go test -race -v ./...
+        run: go test -race -v -coverprofile=coverage.txt --covermode=atomic ./...
 
-      - name: Run Golangci-lint
-        uses: golangci/golangci-lint-action@v9
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v5
         with:
-          version: v2.7.1
-          args: -v --timeout=5m --build-tags=race
+          fail_ci_if_error: true
+          token: ${{ secrets.CODECOV_TOKEN }}
+          verbose: true
