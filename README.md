@@ -3,7 +3,7 @@
 [![Go Reference](https://pkg.go.dev/badge/github.com/gowool/pages.svg)](https://pkg.go.dev/github.com/gowool/pages)
 [![Go Report Card](https://goreportcard.com/badge/github.com/gowool/pages)](https://goreportcard.com/report/github.com/gowool/pages)
 [![codecov](https://codecov.io/github/gowool/pages/graph/badge.svg?token=PUMBNMZ0QG)](https://codecov.io/github/gowool/pages)
-[![License](https://img.shields.io/dub/l/vibe-d.svg)](https://github.com/gowool/pages/blob/main/LICENSE)
+[![License](https://img.shields.io/badge/License-MIT-green.svg)](https://github.com/gowool/pages/blob/main/LICENSE)
 
 A comprehensive Go package for content management that provides multi-site support, and flexible page routing.
 
