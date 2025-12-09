@@ -14,16 +14,16 @@ import (
 var _ PageSyncer = (*DefaultPageSyncer)(nil)
 
 var defaultPages = map[string]*Page{
-	PageInternalCreate: newPage("Create Page", PageInternalCreate, "@internal/create.gohtml"),
-	PageError4xx:       newPage("Error 4xx", PageError4xx, "@internal/error/4xx.gohtml"),
-	PageError5xx:       newPage("Error 5xx", PageError5xx, "@internal/error/5xx.gohtml"),
-	HomeHybridPattern:  newPage("Home Hybrid", HomeHybridPattern, "@page/home_hybrid.gohtml"),
+	PageInternalCreate: newPage("Create Page", PageInternalCreate, "internal/create.gohtml"),
+	PageError4xx:       newPage("Error 4xx", PageError4xx, "internal/error/4xx.gohtml"),
+	PageError5xx:       newPage("Error 5xx", PageError5xx, "internal/error/5xx.gohtml"),
+	HomeHybridPattern:  newPage("Home Hybrid", HomeHybridPattern, "page/home_hybrid.gohtml"),
 }
 
 const (
-	homeTemplate       = "@page/home.gohtml"
-	homeHybridTemplate = "@page/home_hybrid.gohtml"
-	hybridTemplate     = "@page/hybrid.gohtml"
+	homeTemplate       = "page/home.gohtml"
+	homeHybridTemplate = "page/home_hybrid.gohtml"
+	hybridTemplate     = "page/hybrid.gohtml"
 )
 
 type PageSyncer interface {

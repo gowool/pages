@@ -576,25 +576,25 @@ func TestDefaultPages(t *testing.T) {
 		require.True(t, ok, "Create page should exist in defaultPages")
 		assert.Equal(t, "Create Page", createPage.Name, "Create page name should be correct")
 		assert.Equal(t, PageInternalCreate, createPage.Pattern, "Create page pattern should be correct")
-		assert.Equal(t, "@internal/create.gohtml", createPage.Template, "Create page template should be correct")
+		assert.Equal(t, "internal/create.gohtml", createPage.Template, "Create page template should be correct")
 
 		error4xxPage, ok := defaultPages[PageError4xx]
 		require.True(t, ok, "4xx error page should exist in defaultPages")
 		assert.Equal(t, "Error 4xx", error4xxPage.Name, "4xx error page name should be correct")
 		assert.Equal(t, PageError4xx, error4xxPage.Pattern, "4xx error page pattern should be correct")
-		assert.Equal(t, "@internal/error/4xx.gohtml", error4xxPage.Template, "4xx error page template should be correct")
+		assert.Equal(t, "internal/error/4xx.gohtml", error4xxPage.Template, "4xx error page template should be correct")
 
 		error5xxPage, ok := defaultPages[PageError5xx]
 		require.True(t, ok, "5xx error page should exist in defaultPages")
 		assert.Equal(t, "Error 5xx", error5xxPage.Name, "5xx error page name should be correct")
 		assert.Equal(t, PageError5xx, error5xxPage.Pattern, "5xx error page pattern should be correct")
-		assert.Equal(t, "@internal/error/5xx.gohtml", error5xxPage.Template, "5xx error page template should be correct")
+		assert.Equal(t, "internal/error/5xx.gohtml", error5xxPage.Template, "5xx error page template should be correct")
 
 		homeHybridPage, ok := defaultPages[HomeHybridPattern]
 		require.True(t, ok, "Home hybrid page should exist in defaultPages")
 		assert.Equal(t, "Home Hybrid", homeHybridPage.Name, "Home hybrid page name should be correct")
 		assert.Equal(t, HomeHybridPattern, homeHybridPage.Pattern, "Home hybrid page pattern should be correct")
-		assert.Equal(t, "@page/home_hybrid.gohtml", homeHybridPage.Template, "Home hybrid page template should be correct")
+		assert.Equal(t, "page/home_hybrid.gohtml", homeHybridPage.Template, "Home hybrid page template should be correct")
 	})
 
 	t.Run("verify default pages can be copied safely", func(t *testing.T) {
