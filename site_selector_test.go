@@ -35,62 +35,62 @@ func CreateTestRequest(method, url string, headers map[string]string) *http.Requ
 
 func TestNewSiteSelector(t *testing.T) {
 	t.Run("Valid parameters", func(t *testing.T) {
-		storage := &MockSiteStorage{}
+		store := &MockSiteStore{}
 		countryFunc := func(r *http.Request) (string, error) { return "US", nil }
 		errorFunc := func(r *http.Request, err error) (*Site, error) { return nil, err }
 
-		selector := NewSiteSelector(storage, countryFunc, errorFunc)
+		selector := NewSiteSelector(store, countryFunc, errorFunc)
 
 		assert.NotNil(t, selector)
 		// Test that it implements the interface
 		assert.Implements(t, (*SiteSelector)(nil), selector)
 	})
 
-	t.Run("Nil storage should panic", func(t *testing.T) {
+	t.Run("Nil store should panic", func(t *testing.T) {
 		assert.Panics(t, func() {
 			NewSiteSelector(nil, nil, nil)
 		})
 	})
 
 	t.Run("Nil countryFunc should use default", func(t *testing.T) {
-		storage := &MockSiteStorage{}
-		selector := NewSiteSelector(storage, nil, nil)
+		store := &MockSiteStore{}
+		selector := NewSiteSelector(store, nil, nil)
 
 		req := CreateTestRequest("GET", "http://example.com", map[string]string{
 			wo.HeaderCFIPCountry: "US",
 		})
 
 		// Test that the selector works with default country function
-		storage.On("FindEnabled", mock.Anything).Return([]*Site{CreateTestSite("Test", "example.com", "en", true)}, nil)
+		store.On("FindEnabled", mock.Anything).Return([]*Site{CreateTestSite("Test", "example.com", "en", true)}, nil)
 		site, _, err := selector.Retrieve(req)
 
 		assert.NoError(t, err)
 		assert.NotNil(t, site)
-		storage.AssertExpectations(t)
+		store.AssertExpectations(t)
 	})
 
 	t.Run("Nil errorFunc should use default", func(t *testing.T) {
-		storage := &MockSiteStorage{}
-		selector := NewSiteSelector(storage, nil, nil)
+		store := &MockSiteStore{}
+		selector := NewSiteSelector(store, nil, nil)
 
 		req := CreateTestRequest("GET", "http://example.com", nil)
 		testErr := errors.New("test error")
 
 		// Test that the selector returns error directly when no custom error func is provided
-		storage.On("FindEnabled", mock.Anything).Return([]*Site{}, testErr)
+		store.On("FindEnabled", mock.Anything).Return([]*Site{}, testErr)
 		site, _, err := selector.Retrieve(req)
 
 		assert.Error(t, err)
 		assert.Equal(t, testErr, err)
 		assert.Nil(t, site)
-		storage.AssertExpectations(t)
+		store.AssertExpectations(t)
 	})
 }
 
 func TestDefaultSiteSelector_Retrieve(t *testing.T) {
 	t.Run("Nil request should panic", func(t *testing.T) {
-		storage := &MockSiteStorage{}
-		selector := NewSiteSelector(storage, nil, nil)
+		store := &MockSiteStore{}
+		selector := NewSiteSelector(store, nil, nil)
 
 		assert.Panics(t, func() {
 			_, _, _ = selector.Retrieve(nil)
@@ -98,14 +98,14 @@ func TestDefaultSiteSelector_Retrieve(t *testing.T) {
 	})
 
 	t.Run("Country function error", func(t *testing.T) {
-		storage := &MockSiteStorage{}
+		store := &MockSiteStore{}
 		testErr := errors.New("country error")
 		countryFunc := func(r *http.Request) (string, error) { return "", testErr }
 		errorFunc := func(r *http.Request, err error) (*Site, error) {
 			return CreateTestSite("Error Site", "example.com", "en", false), nil
 		}
 
-		selector := NewSiteSelector(storage, countryFunc, errorFunc)
+		selector := NewSiteSelector(store, countryFunc, errorFunc)
 		req := CreateTestRequest("GET", "http://example.com", nil)
 
 		site, _, err := selector.Retrieve(req)
@@ -115,17 +115,17 @@ func TestDefaultSiteSelector_Retrieve(t *testing.T) {
 		assert.Equal(t, "Error Site", site.Name)
 	})
 
-	t.Run("Storage error", func(t *testing.T) {
-		storage := &MockSiteStorage{}
-		testErr := errors.New("storage error")
+	t.Run("Store error", func(t *testing.T) {
+		store := &MockSiteStore{}
+		testErr := errors.New("store error")
 		countryFunc := func(r *http.Request) (string, error) { return "US", nil }
 		errorFunc := func(r *http.Request, err error) (*Site, error) {
 			return CreateTestSite("Error Site", "example.com", "en", false), nil
 		}
 
-		storage.On("FindEnabled", mock.Anything).Return([]*Site{}, testErr)
+		store.On("FindEnabled", mock.Anything).Return([]*Site{}, testErr)
 
-		selector := NewSiteSelector(storage, countryFunc, errorFunc)
+		selector := NewSiteSelector(store, countryFunc, errorFunc)
 		req := CreateTestRequest("GET", "http://example.com", nil)
 
 		site, _, err := selector.Retrieve(req)
@@ -134,20 +134,20 @@ func TestDefaultSiteSelector_Retrieve(t *testing.T) {
 		assert.NotNil(t, site)
 		assert.Equal(t, "Error Site", site.Name)
 
-		storage.AssertExpectations(t)
+		store.AssertExpectations(t)
 	})
 
 	t.Run("Successful site selection", func(t *testing.T) {
-		storage := &MockSiteStorage{}
+		store := &MockSiteStore{}
 		sites := []*Site{
 			CreateTestSite("Default Site", "example.com", "en", true),
 			CreateTestSite("French Site", "example.com", "fr", false),
 			CreateTestSite("US Site", "example.com", "en-US", false, "US"),
 		}
 
-		storage.On("FindEnabled", mock.Anything).Return(sites, nil)
+		store.On("FindEnabled", mock.Anything).Return(sites, nil)
 
-		selector := NewSiteSelector(storage, nil, nil)
+		selector := NewSiteSelector(store, nil, nil)
 		req := CreateTestRequest("GET", "http://example.com", map[string]string{
 			wo.HeaderAcceptLanguage: "fr-FR,fr;q=0.9,en;q=0.8",
 		})
@@ -158,21 +158,21 @@ func TestDefaultSiteSelector_Retrieve(t *testing.T) {
 		assert.NotNil(t, site)
 		assert.Equal(t, "French Site", site.Name)
 
-		storage.AssertExpectations(t)
+		store.AssertExpectations(t)
 	})
 
 	t.Run("Site selection with country", func(t *testing.T) {
-		storage := &MockSiteStorage{}
+		store := &MockSiteStore{}
 		sites := []*Site{
 			CreateTestSite("Default Site", "example.com", "en", true),
 			CreateTestSite("US Site", "example.com", "en-US", false, "US"),
 			CreateTestSite("French Site", "example.com", "fr", false),
 		}
 
-		storage.On("FindEnabled", mock.Anything).Return(sites, nil)
+		store.On("FindEnabled", mock.Anything).Return(sites, nil)
 
 		countryFunc := func(r *http.Request) (string, error) { return "US", nil }
-		selector := NewSiteSelector(storage, countryFunc, nil)
+		selector := NewSiteSelector(store, countryFunc, nil)
 		req := CreateTestRequest("GET", "http://example.com/test", map[string]string{wo.HeaderAcceptLanguage: "en-US;q=0.9,en;q=0.8"})
 
 		site, _, err := selector.Retrieve(req)
@@ -181,22 +181,22 @@ func TestDefaultSiteSelector_Retrieve(t *testing.T) {
 		assert.NotNil(t, site)
 		assert.Equal(t, "US Site", site.Name)
 
-		storage.AssertExpectations(t)
+		store.AssertExpectations(t)
 	})
 
 	t.Run("No matching sites returns error", func(t *testing.T) {
-		storage := &MockSiteStorage{}
+		store := &MockSiteStore{}
 		sites := []*Site{
 			CreateTestSite("Different Host", "other.com", "en", false),
 		}
 
-		storage.On("FindEnabled", mock.Anything).Return(sites, nil)
+		store.On("FindEnabled", mock.Anything).Return(sites, nil)
 
 		errorFunc := func(r *http.Request, err error) (*Site, error) {
 			return nil, err
 		}
 
-		selector := NewSiteSelector(storage, nil, errorFunc)
+		selector := NewSiteSelector(store, nil, errorFunc)
 		req := CreateTestRequest("GET", "http://example.com", nil)
 
 		site, _, err := selector.Retrieve(req)
@@ -205,19 +205,19 @@ func TestDefaultSiteSelector_Retrieve(t *testing.T) {
 		assert.Equal(t, ErrSiteNotFound, err)
 		assert.Nil(t, site)
 
-		storage.AssertExpectations(t)
+		store.AssertExpectations(t)
 	})
 
 	t.Run("Host matching", func(t *testing.T) {
-		storage := &MockSiteStorage{}
+		store := &MockSiteStore{}
 		sites := []*Site{
 			CreateTestSite("Correct Host", "example.com", "en", true),
 			CreateTestSite("Wrong Host", "other.com", "en", false),
 		}
 
-		storage.On("FindEnabled", mock.Anything).Return(sites, nil)
+		store.On("FindEnabled", mock.Anything).Return(sites, nil)
 
-		selector := NewSiteSelector(storage, nil, nil)
+		selector := NewSiteSelector(store, nil, nil)
 		req := CreateTestRequest("GET", "http://example.com", nil)
 
 		site, _, err := selector.Retrieve(req)
@@ -226,23 +226,23 @@ func TestDefaultSiteSelector_Retrieve(t *testing.T) {
 		assert.NotNil(t, site)
 		assert.Equal(t, "Correct Host", site.Name)
 
-		storage.AssertExpectations(t)
+		store.AssertExpectations(t)
 	})
 }
 
 // Integration tests that indirectly test selectedSite functionality
 func TestDefaultSiteSelector_LanguageMatching(t *testing.T) {
 	t.Run("Language preference matching", func(t *testing.T) {
-		storage := &MockSiteStorage{}
+		store := &MockSiteStore{}
 
 		englishSite := CreateTestSite("English", "example.com", "en", false)
 		frenchSite := CreateTestSite("French", "example.com", "fr", false)
 		spanishSite := CreateTestSite("Spanish", "example.com", "es", false)
 
 		sites := []*Site{englishSite, frenchSite, spanishSite}
-		storage.On("FindEnabled", mock.Anything).Return(sites, nil)
+		store.On("FindEnabled", mock.Anything).Return(sites, nil)
 
-		selector := NewSiteSelector(storage, nil, nil)
+		selector := NewSiteSelector(store, nil, nil)
 
 		// Test French preference
 		req := CreateTestRequest("GET", "http://example.com", map[string]string{
@@ -254,18 +254,18 @@ func TestDefaultSiteSelector_LanguageMatching(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, "French", site.Name)
 
-		storage.AssertExpectations(t)
+		store.AssertExpectations(t)
 	})
 
 	t.Run("Fallback to parent language", func(t *testing.T) {
-		storage := &MockSiteStorage{}
+		store := &MockSiteStore{}
 
 		englishSite := CreateTestSite("English", "example.com", "en", false)
 
 		sites := []*Site{englishSite}
-		storage.On("FindEnabled", mock.Anything).Return(sites, nil)
+		store.On("FindEnabled", mock.Anything).Return(sites, nil)
 
-		selector := NewSiteSelector(storage, nil, nil)
+		selector := NewSiteSelector(store, nil, nil)
 
 		// Test with en-US which should fallback to en
 		req := CreateTestRequest("GET", "http://example.com", map[string]string{
@@ -277,18 +277,18 @@ func TestDefaultSiteSelector_LanguageMatching(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, "English", site.Name)
 
-		storage.AssertExpectations(t)
+		store.AssertExpectations(t)
 	})
 
 	t.Run("Invalid accept language header", func(t *testing.T) {
-		storage := &MockSiteStorage{}
+		store := &MockSiteStore{}
 
 		defaultSite := CreateTestSite("Default", "example.com", "en", true)
 
 		sites := []*Site{defaultSite}
-		storage.On("FindEnabled", mock.Anything).Return(sites, nil)
+		store.On("FindEnabled", mock.Anything).Return(sites, nil)
 
-		selector := NewSiteSelector(storage, nil, nil)
+		selector := NewSiteSelector(store, nil, nil)
 
 		// Test with invalid Accept-Language header
 		req := CreateTestRequest("GET", "http://example.com", map[string]string{
@@ -300,7 +300,7 @@ func TestDefaultSiteSelector_LanguageMatching(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, "Default", site.Name)
 
-		storage.AssertExpectations(t)
+		store.AssertExpectations(t)
 	})
 }
 
@@ -478,12 +478,12 @@ func TestDefaultSiteSelector_Integration(t *testing.T) {
 
 		sites := []*Site{defaultSite, frenchSite, germanSite, usSite}
 
-		storage := &MockSiteStorage{}
-		storage.On("FindEnabled", mock.Anything).Return(sites, nil)
+		store := &MockSiteStore{}
+		store.On("FindEnabled", mock.Anything).Return(sites, nil)
 
 		// Create selector
 		countryFunc := func(r *http.Request) (string, error) { return "US", nil }
-		selector := NewSiteSelector(storage, countryFunc, nil)
+		selector := NewSiteSelector(store, countryFunc, nil)
 
 		t.Run("French language preference", func(t *testing.T) {
 			req := CreateTestRequest("GET", "http://example.com", map[string]string{
@@ -522,7 +522,7 @@ func TestDefaultSiteSelector_Integration(t *testing.T) {
 			assert.Equal(t, "Default", site.Name)
 		})
 
-		storage.AssertExpectations(t)
+		store.AssertExpectations(t)
 	})
 
 	t.Run("Multi-host environment", func(t *testing.T) {
@@ -531,10 +531,10 @@ func TestDefaultSiteSelector_Integration(t *testing.T) {
 
 		sites := []*Site{site1, site2}
 
-		storage := &MockSiteStorage{}
-		storage.On("FindEnabled", mock.Anything).Return(sites, nil)
+		store := &MockSiteStore{}
+		store.On("FindEnabled", mock.Anything).Return(sites, nil)
 
-		selector := NewSiteSelector(storage, nil, nil)
+		selector := NewSiteSelector(store, nil, nil)
 
 		// Test site1.com
 		req1 := CreateTestRequest("GET", "http://site1.com", nil)
@@ -548,7 +548,7 @@ func TestDefaultSiteSelector_Integration(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, "Site2", site.Name)
 
-		storage.AssertExpectations(t)
+		store.AssertExpectations(t)
 	})
 }
 
@@ -560,12 +560,12 @@ func TestDefaultSiteSelector_CountryBasedSelection(t *testing.T) {
 
 		sites := []*Site{usSite, euSite, globalSite}
 
-		storage := &MockSiteStorage{}
-		storage.On("FindEnabled", mock.Anything).Return(sites, nil)
+		store := &MockSiteStore{}
+		store.On("FindEnabled", mock.Anything).Return(sites, nil)
 
 		// Test US visitor
 		countryFunc := func(r *http.Request) (string, error) { return "US", nil }
-		selector := NewSiteSelector(storage, countryFunc, nil)
+		selector := NewSiteSelector(store, countryFunc, nil)
 
 		req := CreateTestRequest("GET", "http://example.com/", nil)
 		site, _, err := selector.Retrieve(req)
@@ -575,7 +575,7 @@ func TestDefaultSiteSelector_CountryBasedSelection(t *testing.T) {
 		// Should have US site and EU site available (both match countries)
 		assert.Contains(t, []*Site{usSite, euSite}, site)
 
-		storage.AssertExpectations(t)
+		store.AssertExpectations(t)
 	})
 
 	t.Run("Country restriction with no match", func(t *testing.T) {
@@ -584,12 +584,12 @@ func TestDefaultSiteSelector_CountryBasedSelection(t *testing.T) {
 
 		sites := []*Site{euOnlySite, defaultSite}
 
-		storage := &MockSiteStorage{}
-		storage.On("FindEnabled", mock.Anything).Return(sites, nil)
+		store := &MockSiteStore{}
+		store.On("FindEnabled", mock.Anything).Return(sites, nil)
 
 		countryFunc := func(r *http.Request) (string, error) { return "US", nil }
 		errorFunc := func(r *http.Request, err error) (*Site, error) { return nil, err }
-		selector := NewSiteSelector(storage, countryFunc, errorFunc)
+		selector := NewSiteSelector(store, countryFunc, errorFunc)
 
 		req := CreateTestRequest("GET", "http://example.com/", nil)
 		site, _, err := selector.Retrieve(req)
@@ -598,7 +598,7 @@ func TestDefaultSiteSelector_CountryBasedSelection(t *testing.T) {
 		assert.Equal(t, ErrSiteNotFound, err)
 		assert.Nil(t, site)
 
-		storage.AssertExpectations(t)
+		store.AssertExpectations(t)
 	})
 }
 
@@ -614,10 +614,10 @@ func BenchmarkSiteSelector_Retrieve(b *testing.B) {
 		)
 	}
 
-	storage := &MockSiteStorage{}
-	storage.On("FindEnabled", mock.Anything).Return(sites, nil)
+	store := &MockSiteStore{}
+	store.On("FindEnabled", mock.Anything).Return(sites, nil)
 
-	selector := NewSiteSelector(storage, nil, nil)
+	selector := NewSiteSelector(store, nil, nil)
 	req := CreateTestRequest("GET", "http://example.com", map[string]string{
 		wo.HeaderAcceptLanguage: "en-US,en;q=0.9",
 	})

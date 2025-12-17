@@ -124,31 +124,31 @@ func TestPageCreateRequest_Validate(t *testing.T) {
 
 // TestNewPageCreate tests the NewPageCreate constructor
 func TestNewPageCreate(t *testing.T) {
-	mockStorage := &MockPageStorage{}
+	mockStore := &MockPageStore{}
 	beforeSave := func(ctx context.Context, page *Page) error {
 		return nil
 	}
 
-	handler := NewPageCreate[Resolver](mockStorage, beforeSave)
+	handler := NewPageCreate[Resolver](mockStore, beforeSave)
 
 	assert.NotNil(t, handler)
-	assert.Equal(t, mockStorage, handler.storage)
+	assert.Equal(t, mockStore, handler.store)
 	assert.NotNil(t, handler.beforeSave)
 }
 
-// TestNewPageCreateWithNilStorage tests that NewPageCreate works with nil storage
-func TestNewPageCreateWithNilStorage(t *testing.T) {
+// TestNewPageCreateWithNilStore tests that NewPageCreate works with nil store
+func TestNewPageCreateWithNilStore(t *testing.T) {
 	handler := NewPageCreate[Resolver](nil, nil)
 
 	assert.NotNil(t, handler)
-	assert.Nil(t, handler.storage)
+	assert.Nil(t, handler.store)
 	assert.Nil(t, handler.beforeSave)
 }
 
 // TestPageCreate_Handle_BindError tests handling of binding errors
 func TestPageCreate_Handle_BindError(t *testing.T) {
-	mockStorage := &MockPageStorage{}
-	handler := NewPageCreate[Resolver](mockStorage, nil)
+	mockStore := &MockPageStore{}
+	handler := NewPageCreate[Resolver](mockStore, nil)
 
 	// Create event with invalid JSON to trigger bind error
 	req := httptest.NewRequest("POST", "http://example.com", strings.NewReader("invalid json"))
@@ -170,8 +170,8 @@ func TestPageCreate_Handle_BindError(t *testing.T) {
 
 // TestPageCreate_Handle_ValidationError tests handling of validation errors
 func TestPageCreate_Handle_ValidationError(t *testing.T) {
-	mockStorage := &MockPageStorage{}
-	handler := NewPageCreate[Resolver](mockStorage, nil)
+	mockStore := &MockPageStore{}
+	handler := NewPageCreate[Resolver](mockStore, nil)
 
 	// Create event with invalid data to trigger validation error
 	requestBody := `{"url": "", "template": ""}`
@@ -236,7 +236,7 @@ func TestPageCreate_Handle_URLProcessing(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			mockStorage := &MockPageStorage{}
+			mockStore := &MockPageStore{}
 			beforeSaveCalled := false
 			var processedPage *Page
 			beforeSave := func(ctx context.Context, page *Page) error {
@@ -244,7 +244,7 @@ func TestPageCreate_Handle_URLProcessing(t *testing.T) {
 				processedPage = page
 				return nil
 			}
-			handler := NewPageCreate[Resolver](mockStorage, beforeSave)
+			handler := NewPageCreate[Resolver](mockStore, beforeSave)
 
 			// Create request body
 			requestBody := `{"url": "` + tt.inputURL + `", "template": "test.html", "title": "Test Title"}`
@@ -260,10 +260,10 @@ func TestPageCreate_Handle_URLProcessing(t *testing.T) {
 			event.SetSite(site)
 
 			// Mock parent page lookup (should return not found) - allow multiple calls
-			mockStorage.On("FindByURL", mock.Anything, ID("site1"), mock.Anything).Return(nil, errors.New("not found")).Maybe().Maybe()
+			mockStore.On("FindByURL", mock.Anything, ID("site1"), mock.Anything).Return(nil, errors.New("not found")).Maybe().Maybe()
 
-			// Mock storage Save
-			mockStorage.On("Save", mock.Anything, mock.AnythingOfType("[]*pages.Page")).Return(nil).Run(func(args mock.Arguments) {
+			// Mock store Save
+			mockStore.On("Save", mock.Anything, mock.AnythingOfType("[]*pages.Page")).Return(nil).Run(func(args mock.Arguments) {
 				pages := args.Get(1).([]*Page)
 				pages[0].ID = "test-id"
 			})
@@ -275,7 +275,7 @@ func TestPageCreate_Handle_URLProcessing(t *testing.T) {
 			assert.Equal(t, tt.expectedURL, processedPage.CustomURL)
 			assert.Equal(t, tt.expectedName, processedPage.Name)
 
-			mockStorage.AssertExpectations(t)
+			mockStore.AssertExpectations(t)
 
 			// Should return redirect error
 			assert.Error(t, err)
@@ -318,8 +318,8 @@ func TestPageCreate_Handle_ParentPage(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			mockStorage := &MockPageStorage{}
-			handler := NewPageCreate[Resolver](mockStorage, nil)
+			mockStore := &MockPageStore{}
+			handler := NewPageCreate[Resolver](mockStore, nil)
 
 			// Create request body
 			requestBody := `{"url": "` + tt.inputURL + `", "template": "test.html", "title": "Test Title"}`
@@ -337,14 +337,14 @@ func TestPageCreate_Handle_ParentPage(t *testing.T) {
 			// Mock parent page lookup
 			if tt.expectParent {
 				parentPage := &Page{ID: "parent1", URL: tt.parentURL}
-				mockStorage.On("FindByURL", mock.Anything, ID("site1"), tt.parentURL).Return(parentPage, nil)
+				mockStore.On("FindByURL", mock.Anything, ID("site1"), tt.parentURL).Return(parentPage, nil)
 			} else {
-				mockStorage.On("FindByURL", mock.Anything, ID("site1"), mock.Anything).Return(nil, errors.New("not found")).Maybe().Maybe()
+				mockStore.On("FindByURL", mock.Anything, ID("site1"), mock.Anything).Return(nil, errors.New("not found")).Maybe().Maybe()
 			}
 
 			var savedPage *Page
-			// Mock storage Save
-			mockStorage.On("Save", mock.Anything, mock.AnythingOfType("[]*pages.Page")).Return(nil).Run(func(args mock.Arguments) {
+			// Mock store Save
+			mockStore.On("Save", mock.Anything, mock.AnythingOfType("[]*pages.Page")).Return(nil).Run(func(args mock.Arguments) {
 				pages := args.Get(1).([]*Page)
 				savedPage = pages[0]
 				savedPage.ID = "test-id"
@@ -352,7 +352,7 @@ func TestPageCreate_Handle_ParentPage(t *testing.T) {
 
 			err := handler.Handle(event)
 
-			mockStorage.AssertExpectations(t)
+			mockStore.AssertExpectations(t)
 
 			assert.NotNil(t, savedPage)
 			if tt.expectParent {
@@ -371,12 +371,12 @@ func TestPageCreate_Handle_ParentPage(t *testing.T) {
 
 // TestPageCreate_Handle_BeforeSaveError tests beforeSave callback error handling
 func TestPageCreate_Handle_BeforeSaveError(t *testing.T) {
-	mockStorage := &MockPageStorage{}
+	mockStore := &MockPageStore{}
 	beforeSaveErr := errors.New("before save error")
 	beforeSave := func(ctx context.Context, page *Page) error {
 		return beforeSaveErr
 	}
-	handler := NewPageCreate[Resolver](mockStorage, beforeSave)
+	handler := NewPageCreate[Resolver](mockStore, beforeSave)
 
 	// Create request body
 	requestBody := `{"url": "/test", "template": "test.html", "title": "Test Title"}`
@@ -392,20 +392,20 @@ func TestPageCreate_Handle_BeforeSaveError(t *testing.T) {
 	event.SetSite(site)
 
 	// Mock parent page lookup (should return not found)
-	mockStorage.On("FindByURL", mock.Anything, ID("site1"), mock.Anything).Return(nil, errors.New("not found")).Maybe()
+	mockStore.On("FindByURL", mock.Anything, ID("site1"), mock.Anything).Return(nil, errors.New("not found")).Maybe()
 
 	err := handler.Handle(event)
 
 	assert.Error(t, err)
 	assert.Equal(t, beforeSaveErr, err)
-	mockStorage.AssertExpectations(t)
+	mockStore.AssertExpectations(t)
 }
 
-// TestPageCreate_Handle_SaveError tests storage save error handling
+// TestPageCreate_Handle_SaveError tests store save error handling
 func TestPageCreate_Handle_SaveError(t *testing.T) {
-	mockStorage := &MockPageStorage{}
+	mockStore := &MockPageStore{}
 	saveErr := errors.New("save error")
-	handler := NewPageCreate[Resolver](mockStorage, nil)
+	handler := NewPageCreate[Resolver](mockStore, nil)
 
 	// Create request body
 	requestBody := `{"url": "/test", "template": "test.html", "title": "Test Title"}`
@@ -421,22 +421,22 @@ func TestPageCreate_Handle_SaveError(t *testing.T) {
 	event.SetSite(site)
 
 	// Mock parent page lookup (should return not found)
-	mockStorage.On("FindByURL", mock.Anything, ID("site1"), mock.Anything).Return(nil, errors.New("not found")).Maybe()
+	mockStore.On("FindByURL", mock.Anything, ID("site1"), mock.Anything).Return(nil, errors.New("not found")).Maybe()
 
-	// Mock storage Save error
-	mockStorage.On("Save", mock.Anything, mock.AnythingOfType("[]*pages.Page")).Return(saveErr)
+	// Mock store Save error
+	mockStore.On("Save", mock.Anything, mock.AnythingOfType("[]*pages.Page")).Return(saveErr)
 
 	err := handler.Handle(event)
 
 	assert.Error(t, err)
 	assert.Equal(t, saveErr, err)
-	mockStorage.AssertExpectations(t)
+	mockStore.AssertExpectations(t)
 }
 
 // TestPageCreate_Handle_Success tests successful page creation
 func TestPageCreate_Handle_Success(t *testing.T) {
-	mockStorage := &MockPageStorage{}
-	handler := NewPageCreate[Resolver](mockStorage, nil)
+	mockStore := &MockPageStore{}
+	handler := NewPageCreate[Resolver](mockStore, nil)
 
 	// Create request body
 	requestBody := `{"url": "/success-page", "template": "success.html", "title": "Success Page"}`
@@ -452,10 +452,10 @@ func TestPageCreate_Handle_Success(t *testing.T) {
 	event.SetSite(site)
 
 	// Mock parent page lookup (should return not found)
-	mockStorage.On("FindByURL", mock.Anything, ID("site1"), mock.Anything).Return(nil, errors.New("not found")).Maybe()
+	mockStore.On("FindByURL", mock.Anything, ID("site1"), mock.Anything).Return(nil, errors.New("not found")).Maybe()
 
-	// Mock successful storage Save
-	mockStorage.On("Save", mock.Anything, mock.AnythingOfType("[]*pages.Page")).Return(nil).Run(func(args mock.Arguments) {
+	// Mock successful store Save
+	mockStore.On("Save", mock.Anything, mock.AnythingOfType("[]*pages.Page")).Return(nil).Run(func(args mock.Arguments) {
 		pages := args.Get(1).([]*Page)
 		page := pages[0]
 		page.ID = "created-page-id" // Simulate ID assignment
@@ -465,12 +465,12 @@ func TestPageCreate_Handle_Success(t *testing.T) {
 
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "302")
-	mockStorage.AssertExpectations(t)
+	mockStore.AssertExpectations(t)
 }
 
 // TestPageCreate_Handle_Comprehensive tests the complete flow with realistic data
 func TestPageCreate_Handle_Comprehensive(t *testing.T) {
-	mockStorage := &MockPageStorage{}
+	mockStore := &MockPageStore{}
 
 	var savedPage *Page
 	beforeSave := func(ctx context.Context, page *Page) error {
@@ -481,7 +481,7 @@ func TestPageCreate_Handle_Comprehensive(t *testing.T) {
 		savedPage = page
 		return nil
 	}
-	handler := NewPageCreate[Resolver](mockStorage, beforeSave)
+	handler := NewPageCreate[Resolver](mockStore, beforeSave)
 
 	// Create request body
 	requestBody := `{"url": "/comprehensive/test", "template": "comprehensive.html", "title": "Comprehensive Test Page"}`
@@ -505,10 +505,10 @@ func TestPageCreate_Handle_Comprehensive(t *testing.T) {
 		URL:  "/comprehensive",
 		Name: "Comprehensive",
 	}
-	mockStorage.On("FindByURL", mock.Anything, ID("site1"), "/comprehensive").Return(parentPage, nil)
+	mockStore.On("FindByURL", mock.Anything, ID("site1"), "/comprehensive").Return(parentPage, nil)
 
-	// Mock successful storage Save
-	mockStorage.On("Save", mock.Anything, mock.AnythingOfType("[]*pages.Page")).Return(nil).Run(func(args mock.Arguments) {
+	// Mock successful store Save
+	mockStore.On("Save", mock.Anything, mock.AnythingOfType("[]*pages.Page")).Return(nil).Run(func(args mock.Arguments) {
 		pages := args.Get(1).([]*Page)
 		page := pages[0]
 		page.ID = "comprehensive-page-id"
@@ -534,5 +534,5 @@ func TestPageCreate_Handle_Comprehensive(t *testing.T) {
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "302")
 
-	mockStorage.AssertExpectations(t)
+	mockStore.AssertExpectations(t)
 }

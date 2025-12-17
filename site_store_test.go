@@ -10,26 +10,26 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestNewLocalhostSiteStorage(t *testing.T) {
-	storage := NewLocalhostSiteStorage()
+func TestNewLocalhostSiteStore(t *testing.T) {
+	store := NewLocalhostSiteStore()
 
-	require.NotNil(t, storage, "NewLocalhostSiteStorage() should not return nil")
-	assert.IsType(t, &LocalhostSiteStorage{}, storage, "Should return LocalhostSiteStorage instance")
+	require.NotNil(t, store, "NewLocalhostSiteStore() should not return nil")
+	assert.IsType(t, &LocalhostSiteStore{}, store, "Should return LocalhostSiteStore instance")
 }
 
-func TestLocalhostSiteStorage_FindEnabled(t *testing.T) {
-	storage := NewLocalhostSiteStorage()
+func TestLocalhostSiteStore_FindEnabled(t *testing.T) {
+	store := NewLocalhostSiteStore()
 	ctx := context.Background()
 
 	t.Run("FindEnabled returns iterator", func(t *testing.T) {
-		iterator, err := storage.FindEnabled(ctx)
+		iterator, err := store.FindEnabled(ctx)
 
 		assert.NoError(t, err, "FindEnabled() should not return error")
 		assert.NotNil(t, iterator, "FindEnabled() should return iterator")
 	})
 
 	t.Run("Iterator yields one enabled site", func(t *testing.T) {
-		iterator, err := storage.FindEnabled(ctx)
+		iterator, err := store.FindEnabled(ctx)
 		require.NoError(t, err, "FindEnabled() should not return error")
 
 		var sites []*Site
@@ -63,7 +63,7 @@ func TestLocalhostSiteStorage_FindEnabled(t *testing.T) {
 	})
 
 	t.Run("Iterator can be stopped early", func(t *testing.T) {
-		iterator, err := storage.FindEnabled(ctx)
+		iterator, err := store.FindEnabled(ctx)
 		require.NoError(t, err, "FindEnabled() should not return error")
 
 		var iterationCount int
@@ -77,8 +77,8 @@ func TestLocalhostSiteStorage_FindEnabled(t *testing.T) {
 	})
 
 	t.Run("Multiple calls return same data", func(t *testing.T) {
-		iterator1, err1 := storage.FindEnabled(ctx)
-		iterator2, err2 := storage.FindEnabled(ctx)
+		iterator1, err1 := store.FindEnabled(ctx)
+		iterator2, err2 := store.FindEnabled(ctx)
 
 		assert.NoError(t, err1, "First call should not return error")
 		assert.NoError(t, err2, "Second call should not return error")
@@ -108,7 +108,7 @@ func TestLocalhostSiteStorage_FindEnabled(t *testing.T) {
 		ctx, cancel := context.WithCancel(context.Background())
 		cancel() // Cancel immediately
 
-		iterator, err := storage.FindEnabled(ctx)
+		iterator, err := store.FindEnabled(ctx)
 		assert.NoError(t, err, "FindEnabled() should not return error even with cancelled context")
 
 		var wasCalled bool
@@ -121,27 +121,27 @@ func TestLocalhostSiteStorage_FindEnabled(t *testing.T) {
 	})
 }
 
-func TestLocalhostSiteStorage_InterfaceCompliance(t *testing.T) {
-	var _ SiteStorage = (*LocalhostSiteStorage)(nil)
+func TestLocalhostSiteStore_InterfaceCompliance(t *testing.T) {
+	var _ SiteStore = (*LocalhostSiteStore)(nil)
 
-	storage := NewLocalhostSiteStorage()
+	store := NewLocalhostSiteStore()
 	ctx := context.Background()
 
 	// Test that all interface methods are implemented and work
-	iterator, err := storage.FindEnabled(ctx)
+	iterator, err := store.FindEnabled(ctx)
 	assert.NoError(t, err, "FindEnabled method should work")
 	assert.NotNil(t, iterator, "FindEnabled should return iterator")
 }
 
-func TestLocalhostSiteStorage_ConcurrentAccess(t *testing.T) {
-	storage := NewLocalhostSiteStorage()
+func TestLocalhostSiteStore_ConcurrentAccess(t *testing.T) {
+	store := NewLocalhostSiteStore()
 	ctx := context.Background()
 
 	t.Run("Concurrent iterator calls", func(t *testing.T) {
 		// Start multiple goroutines calling FindEnabled
 		for i := 0; i < 10; i++ {
 			go func() {
-				iterator, err := storage.FindEnabled(ctx)
+				iterator, err := store.FindEnabled(ctx)
 				assert.NoError(t, err, "FindEnabled() should not return error")
 
 				var count int
@@ -155,13 +155,13 @@ func TestLocalhostSiteStorage_ConcurrentAccess(t *testing.T) {
 	})
 }
 
-func TestLocalhostSiteStorage_IteratorBehavior(t *testing.T) {
-	storage := NewLocalhostSiteStorage()
+func TestLocalhostSiteStore_IteratorBehavior(t *testing.T) {
+	store := NewLocalhostSiteStore()
 	ctx := context.Background()
 
 	t.Run("Iterator yields different instances", func(t *testing.T) {
-		iterator1, err1 := storage.FindEnabled(ctx)
-		iterator2, err2 := storage.FindEnabled(ctx)
+		iterator1, err1 := store.FindEnabled(ctx)
+		iterator2, err2 := store.FindEnabled(ctx)
 		require.NoError(t, err1)
 		require.NoError(t, err2)
 
@@ -182,7 +182,7 @@ func TestLocalhostSiteStorage_IteratorBehavior(t *testing.T) {
 	})
 
 	t.Run("Iterator yields complete site data", func(t *testing.T) {
-		iterator, err := storage.FindEnabled(ctx)
+		iterator, err := store.FindEnabled(ctx)
 		require.NoError(t, err)
 
 		var site *Site
@@ -208,7 +208,7 @@ func TestLocalhostSiteStorage_IteratorBehavior(t *testing.T) {
 	})
 
 	t.Run("Iterator error handling", func(t *testing.T) {
-		iterator, err := storage.FindEnabled(ctx)
+		iterator, err := store.FindEnabled(ctx)
 		require.NoError(t, err)
 
 		var yieldedError error
@@ -221,11 +221,11 @@ func TestLocalhostSiteStorage_IteratorBehavior(t *testing.T) {
 	})
 }
 
-func TestLocalhostSiteStorage_SiteProperties(t *testing.T) {
-	storage := NewLocalhostSiteStorage()
+func TestLocalhostSiteStore_SiteProperties(t *testing.T) {
+	store := NewLocalhostSiteStore()
 	ctx := context.Background()
 
-	iterator, err := storage.FindEnabled(ctx)
+	iterator, err := store.FindEnabled(ctx)
 	require.NoError(t, err)
 
 	var site *Site
@@ -269,14 +269,14 @@ func TestLocalhostSiteStorage_SiteProperties(t *testing.T) {
 	})
 }
 
-func TestLocalhostSiteStorage_IteratorPerformance(t *testing.T) {
-	storage := NewLocalhostSiteStorage()
+func TestLocalhostSiteStore_IteratorPerformance(t *testing.T) {
+	store := NewLocalhostSiteStore()
 	ctx := context.Background()
 
 	t.Run("Iterator completes quickly", func(t *testing.T) {
 		start := time.Now()
 
-		iterator, err := storage.FindEnabled(ctx)
+		iterator, err := store.FindEnabled(ctx)
 		require.NoError(t, err)
 
 		var count int
@@ -291,13 +291,13 @@ func TestLocalhostSiteStorage_IteratorPerformance(t *testing.T) {
 	})
 }
 
-func TestLocalhostSiteStorage_EdgeCases(t *testing.T) {
-	storage := NewLocalhostSiteStorage()
+func TestLocalhostSiteStore_EdgeCases(t *testing.T) {
+	store := NewLocalhostSiteStore()
 
 	t.Run("Multiple iterations", func(t *testing.T) {
 		// Test that we can call FindEnabled multiple times and get consistent results
 		for i := 0; i < 5; i++ {
-			iterator, err := storage.FindEnabled(context.Background())
+			iterator, err := store.FindEnabled(context.Background())
 			assert.NoError(t, err, "Call %d should succeed", i+1)
 
 			var count int
@@ -327,13 +327,13 @@ func collectSites(iterator iter.Seq2[*Site, error]) ([]*Site, []error) {
 	return sites, errors
 }
 
-func TestLocalhostSiteStorage_Integration(t *testing.T) {
-	storage := NewLocalhostSiteStorage()
+func TestLocalhostSiteStore_Integration(t *testing.T) {
+	store := NewLocalhostSiteStore()
 	ctx := context.Background()
 
 	t.Run("Integration test with realistic usage", func(t *testing.T) {
 		// Simulate realistic usage pattern
-		iterator, err := storage.FindEnabled(ctx)
+		iterator, err := store.FindEnabled(ctx)
 		require.NoError(t, err)
 
 		sites, errors := collectSites(iterator)

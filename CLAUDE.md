@@ -54,8 +54,8 @@ go mod tidy
 1. **Page Management System**
    - `Page` struct: Core page entity with metadata, routing, and content management
    - `PageManager` interface: Abstraction for page operations (get by ID, URL, pattern, alias)
-   - `DefaultPageManager`: Concrete implementation using storage backends
-   - `PageStorage` interface: Data access layer for pages
+   - `DefaultPageManager`: Concrete implementation using store backends
+   - `PageStore` interface: Data access layer for pages
 
 2. **Site Management**
    - `Site` struct: Multi-site support with localization, timezone, and configuration
@@ -110,7 +110,7 @@ Key external dependencies:
 - Comprehensive unit tests with table-driven test patterns using `testify`
 - URL generation and page routing tests
 - Authorization and security tests
-- Mock implementations for storage and external dependencies using `testify`
+- Mock implementations for store and external dependencies using `testify`
 
 ## Common Development Patterns
 
@@ -120,6 +120,6 @@ Key external dependencies:
 4. **Error Pages**: Customize by creating pages with patterns `_page_internal_error_4xx` and `_page_internal_error_5xx`
 5. **Template Functions**: Access page data and helper functions through provided function maps in templates
 
-## Storage Interface
+## Store Interface
 
-Pages require a `PageStorage` implementation. The package includes a memory-based storage for development, but production typically requires database or other persistent storage implementations.
+Pages require a `PageStore` implementation. The package includes a memory-based store for development, but production typically requires database or other persistent store implementations.

@@ -23,13 +23,13 @@ func (r *PageCreateRequest) Validate() error {
 }
 
 type PageCreate[T Resolver] struct {
-	storage    PageStorage
+	store      PageStore
 	beforeSave func(ctx context.Context, page *Page) error
 }
 
-func NewPageCreate[T Resolver](storage PageStorage, beforeSave func(ctx context.Context, page *Page) error) *PageCreate[T] {
+func NewPageCreate[T Resolver](store PageStore, beforeSave func(ctx context.Context, page *Page) error) *PageCreate[T] {
 	return &PageCreate[T]{
-		storage:    storage,
+		store:      store,
 		beforeSave: beforeSave,
 	}
 }
@@ -64,7 +64,7 @@ func (h *PageCreate[T]) Handle(e T) error {
 
 	if dto.URL != "/" {
 		if index := strings.LastIndex(dto.URL, "/"); index > 0 {
-			if p, err := h.storage.FindByURL(ctx, site.ID, dto.URL[:index]); err == nil {
+			if p, err := h.store.FindByURL(ctx, site.ID, dto.URL[:index]); err == nil {
 				page.ParentID = &p.ID
 				page.Parent = p
 			}
@@ -79,7 +79,7 @@ func (h *PageCreate[T]) Handle(e T) error {
 		}
 	}
 
-	if err := h.storage.Save(ctx, page); err != nil {
+	if err := h.store.Save(ctx, page); err != nil {
 		return err
 	}
 

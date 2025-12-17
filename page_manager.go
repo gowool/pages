@@ -15,21 +15,21 @@ type PageManager interface {
 }
 
 type DefaultPageManager struct {
-	storage PageStorage
+	store PageStore
 }
 
-func NewPageManager(storage PageStorage) *DefaultPageManager {
-	if storage == nil {
-		panic("page manager: storage is required")
+func NewPageManager(store PageStore) *DefaultPageManager {
+	if store == nil {
+		panic("page manager: store is required")
 	}
 
 	return &DefaultPageManager{
-		storage: storage,
+		store: store,
 	}
 }
 
 func (m *DefaultPageManager) GetByID(ctx context.Context, id ID) (*Page, error) {
-	return m.storage.FindByID(ctx, id)
+	return m.store.FindByID(ctx, id)
 }
 
 func (m *DefaultPageManager) GetByURL(ctx context.Context, site *Site, url string) (*Page, error) {
@@ -37,7 +37,7 @@ func (m *DefaultPageManager) GetByURL(ctx context.Context, site *Site, url strin
 		panic("page manager: get by url: site is required")
 	}
 
-	return m.storage.FindByURL(ctx, site.ID, url)
+	return m.store.FindByURL(ctx, site.ID, url)
 }
 
 func (m *DefaultPageManager) GetByPattern(ctx context.Context, site *Site, pattern string) (*Page, error) {
@@ -45,7 +45,7 @@ func (m *DefaultPageManager) GetByPattern(ctx context.Context, site *Site, patte
 		panic("page manager: get by pattern: site is required")
 	}
 
-	return m.storage.FindByPattern(ctx, site.ID, pattern)
+	return m.store.FindByPattern(ctx, site.ID, pattern)
 }
 
 func (m *DefaultPageManager) GetByAlias(ctx context.Context, site *Site, alias string) (*Page, error) {
@@ -57,5 +57,5 @@ func (m *DefaultPageManager) GetByAlias(ctx context.Context, site *Site, alias s
 		alias = PageAliasPrefix + alias
 	}
 
-	return m.storage.FindByAlias(ctx, site.ID, alias)
+	return m.store.FindByAlias(ctx, site.ID, alias)
 }

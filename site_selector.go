@@ -19,18 +19,18 @@ type SiteSelector interface {
 }
 
 type DefaultSiteSelector struct {
-	storage     SiteStorage
+	store       SiteStore
 	countryFunc func(*http.Request) (string, error)
 	errorFunc   func(*http.Request, error) (*Site, error)
 }
 
 func NewSiteSelector(
-	storage SiteStorage,
+	store SiteStore,
 	countryFunc func(*http.Request) (string, error),
 	errorFunc func(*http.Request, error) (*Site, error),
 ) *DefaultSiteSelector {
-	if storage == nil {
-		panic("site selector: storage is required")
+	if store == nil {
+		panic("site selector: store is required")
 	}
 
 	if countryFunc == nil {
@@ -46,7 +46,7 @@ func NewSiteSelector(
 	}
 
 	return &DefaultSiteSelector{
-		storage:     storage,
+		store:       store,
 		countryFunc: countryFunc,
 		errorFunc:   errorFunc,
 	}
@@ -64,7 +64,7 @@ func (s *DefaultSiteSelector) Retrieve(r *http.Request) (*Site, string, error) {
 		}
 	}
 
-	siteSeq, err := s.storage.FindEnabled(r.Context())
+	siteSeq, err := s.store.FindEnabled(r.Context())
 	if err != nil {
 		if site, pathInfo, err := s.resolveError(r, err); site != nil || err != nil {
 			return site, pathInfo, err

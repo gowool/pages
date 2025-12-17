@@ -10,19 +10,19 @@ import (
 func TestNewPageManager(t *testing.T) {
 	tests := []struct {
 		name    string
-		storage PageStorage
+		store   PageStore
 		want    *DefaultPageManager
 		wantPan bool
 	}{
 		{
-			name:    "Valid storage",
-			storage: &MockPageStorage{},
-			want:    &DefaultPageManager{storage: &MockPageStorage{}},
+			name:    "Valid store",
+			store:   &MockPageStore{},
+			want:    &DefaultPageManager{store: &MockPageStore{}},
 			wantPan: false,
 		},
 		{
-			name:    "Nil storage should panic",
-			storage: nil,
+			name:    "Nil store should panic",
+			store:   nil,
 			want:    nil,
 			wantPan: true,
 		},
@@ -31,12 +31,12 @@ func TestNewPageManager(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.wantPan {
 				assert.Panics(t, func() {
-					NewPageManager(tt.storage)
-				}, "NewPageManager() should panic with nil storage")
+					NewPageManager(tt.store)
+				}, "NewPageManager() should panic with nil store")
 			} else {
-				got := NewPageManager(tt.storage)
+				got := NewPageManager(tt.store)
 				assert.NotNil(t, got, "NewPageManager() should return non-nil manager")
-				assert.Equal(t, tt.want.storage, got.storage, "NewPageManager() should set storage correctly")
+				assert.Equal(t, tt.want.store, got.store, "NewPageManager() should set store correctly")
 			}
 		})
 	}
@@ -49,7 +49,7 @@ func TestDefaultPageManager_GetByID(t *testing.T) {
 
 	tests := []struct {
 		name      string
-		setupMock func(*MockPageStorage)
+		setupMock func(*MockPageStore)
 		pageID    ID
 		wantPage  *Page
 		wantError bool
@@ -57,7 +57,7 @@ func TestDefaultPageManager_GetByID(t *testing.T) {
 	}{
 		{
 			name: "Successfully find page by ID",
-			setupMock: func(m *MockPageStorage) {
+			setupMock: func(m *MockPageStore) {
 				m.On("FindByID", ctx, pageID).Return(expectedPage, nil)
 			},
 			pageID:    pageID,
@@ -66,7 +66,7 @@ func TestDefaultPageManager_GetByID(t *testing.T) {
 		},
 		{
 			name: "Page not found by ID",
-			setupMock: func(m *MockPageStorage) {
+			setupMock: func(m *MockPageStore) {
 				m.On("FindByID", ctx, pageID).Return(nil, ErrPageNotFound)
 			},
 			pageID:    pageID,
@@ -75,8 +75,8 @@ func TestDefaultPageManager_GetByID(t *testing.T) {
 			errorType: ErrPageNotFound,
 		},
 		{
-			name: "Storage returns unexpected error",
-			setupMock: func(m *MockPageStorage) {
+			name: "Store returns unexpected error",
+			setupMock: func(m *MockPageStore) {
 				m.On("FindByID", ctx, pageID).Return(nil, assert.AnError)
 			},
 			pageID:    pageID,
@@ -87,10 +87,10 @@ func TestDefaultPageManager_GetByID(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			mockStorage := &MockPageStorage{}
-			tt.setupMock(mockStorage)
+			mockStore := &MockPageStore{}
+			tt.setupMock(mockStore)
 
-			manager := &DefaultPageManager{storage: mockStorage}
+			manager := &DefaultPageManager{store: mockStore}
 			got, err := manager.GetByID(ctx, tt.pageID)
 
 			if tt.wantError {
@@ -102,7 +102,7 @@ func TestDefaultPageManager_GetByID(t *testing.T) {
 				assert.Equal(t, tt.wantPage, got, "GetByID() should return the expected page")
 			}
 
-			mockStorage.AssertExpectations(t)
+			mockStore.AssertExpectations(t)
 		})
 	}
 }
@@ -116,7 +116,7 @@ func TestDefaultPageManager_GetByURL(t *testing.T) {
 
 	tests := []struct {
 		name      string
-		setupMock func(*MockPageStorage)
+		setupMock func(*MockPageStore)
 		site      *Site
 		url       string
 		wantPage  *Page
@@ -126,7 +126,7 @@ func TestDefaultPageManager_GetByURL(t *testing.T) {
 	}{
 		{
 			name: "Successfully find page by URL",
-			setupMock: func(m *MockPageStorage) {
+			setupMock: func(m *MockPageStore) {
 				m.On("FindByURL", ctx, siteID, url).Return(expectedPage, nil)
 			},
 			site:      site,
@@ -137,7 +137,7 @@ func TestDefaultPageManager_GetByURL(t *testing.T) {
 		},
 		{
 			name: "Page not found by URL",
-			setupMock: func(m *MockPageStorage) {
+			setupMock: func(m *MockPageStore) {
 				m.On("FindByURL", ctx, siteID, url).Return(nil, ErrPageNotFound)
 			},
 			site:      site,
@@ -149,7 +149,7 @@ func TestDefaultPageManager_GetByURL(t *testing.T) {
 		},
 		{
 			name:      "Nil site should panic",
-			setupMock: func(m *MockPageStorage) {},
+			setupMock: func(m *MockPageStore) {},
 			site:      nil,
 			url:       url,
 			wantPage:  nil,
@@ -157,8 +157,8 @@ func TestDefaultPageManager_GetByURL(t *testing.T) {
 			wantPan:   true,
 		},
 		{
-			name: "Storage returns unexpected error",
-			setupMock: func(m *MockPageStorage) {
+			name: "Store returns unexpected error",
+			setupMock: func(m *MockPageStore) {
 				m.On("FindByURL", ctx, siteID, url).Return(nil, assert.AnError)
 			},
 			site:      site,
@@ -172,17 +172,17 @@ func TestDefaultPageManager_GetByURL(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.wantPan {
-				mockStorage := &MockPageStorage{}
-				tt.setupMock(mockStorage)
-				manager := &DefaultPageManager{storage: mockStorage}
+				mockStore := &MockPageStore{}
+				tt.setupMock(mockStore)
+				manager := &DefaultPageManager{store: mockStore}
 
 				assert.Panics(t, func() {
 					_, _ = manager.GetByURL(ctx, tt.site, tt.url)
 				}, "GetByURL() should panic with nil site")
 			} else {
-				mockStorage := &MockPageStorage{}
-				tt.setupMock(mockStorage)
-				manager := &DefaultPageManager{storage: mockStorage}
+				mockStore := &MockPageStore{}
+				tt.setupMock(mockStore)
+				manager := &DefaultPageManager{store: mockStore}
 
 				got, err := manager.GetByURL(ctx, tt.site, tt.url)
 
@@ -195,7 +195,7 @@ func TestDefaultPageManager_GetByURL(t *testing.T) {
 					assert.Equal(t, tt.wantPage, got, "GetByURL() should return the expected page")
 				}
 
-				mockStorage.AssertExpectations(t)
+				mockStore.AssertExpectations(t)
 			}
 		})
 	}
@@ -210,7 +210,7 @@ func TestDefaultPageManager_GetByPattern(t *testing.T) {
 
 	tests := []struct {
 		name      string
-		setupMock func(*MockPageStorage)
+		setupMock func(*MockPageStore)
 		site      *Site
 		pattern   string
 		wantPage  *Page
@@ -220,7 +220,7 @@ func TestDefaultPageManager_GetByPattern(t *testing.T) {
 	}{
 		{
 			name: "Successfully find page by pattern",
-			setupMock: func(m *MockPageStorage) {
+			setupMock: func(m *MockPageStore) {
 				m.On("FindByPattern", ctx, siteID, pattern).Return(expectedPage, nil)
 			},
 			site:      site,
@@ -231,7 +231,7 @@ func TestDefaultPageManager_GetByPattern(t *testing.T) {
 		},
 		{
 			name: "Page not found by pattern",
-			setupMock: func(m *MockPageStorage) {
+			setupMock: func(m *MockPageStore) {
 				m.On("FindByPattern", ctx, siteID, pattern).Return(nil, ErrPageNotFound)
 			},
 			site:      site,
@@ -243,7 +243,7 @@ func TestDefaultPageManager_GetByPattern(t *testing.T) {
 		},
 		{
 			name:      "Nil site should panic",
-			setupMock: func(m *MockPageStorage) {},
+			setupMock: func(m *MockPageStore) {},
 			site:      nil,
 			pattern:   pattern,
 			wantPage:  nil,
@@ -251,8 +251,8 @@ func TestDefaultPageManager_GetByPattern(t *testing.T) {
 			wantPan:   true,
 		},
 		{
-			name: "Storage returns unexpected error",
-			setupMock: func(m *MockPageStorage) {
+			name: "Store returns unexpected error",
+			setupMock: func(m *MockPageStore) {
 				m.On("FindByPattern", ctx, siteID, pattern).Return(nil, assert.AnError)
 			},
 			site:      site,
@@ -266,17 +266,17 @@ func TestDefaultPageManager_GetByPattern(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.wantPan {
-				mockStorage := &MockPageStorage{}
-				tt.setupMock(mockStorage)
-				manager := &DefaultPageManager{storage: mockStorage}
+				mockStore := &MockPageStore{}
+				tt.setupMock(mockStore)
+				manager := &DefaultPageManager{store: mockStore}
 
 				assert.Panics(t, func() {
 					_, _ = manager.GetByPattern(ctx, tt.site, tt.pattern)
 				}, "GetByPattern() should panic with nil site")
 			} else {
-				mockStorage := &MockPageStorage{}
-				tt.setupMock(mockStorage)
-				manager := &DefaultPageManager{storage: mockStorage}
+				mockStore := &MockPageStore{}
+				tt.setupMock(mockStore)
+				manager := &DefaultPageManager{store: mockStore}
 
 				got, err := manager.GetByPattern(ctx, tt.site, tt.pattern)
 
@@ -289,7 +289,7 @@ func TestDefaultPageManager_GetByPattern(t *testing.T) {
 					assert.Equal(t, tt.wantPage, got, "GetByPattern() should return the expected page")
 				}
 
-				mockStorage.AssertExpectations(t)
+				mockStore.AssertExpectations(t)
 			}
 		})
 	}
@@ -305,7 +305,7 @@ func TestDefaultPageManager_GetByAlias(t *testing.T) {
 
 	tests := []struct {
 		name      string
-		setupMock func(*MockPageStorage)
+		setupMock func(*MockPageStore)
 		site      *Site
 		alias     string
 		wantPage  *Page
@@ -315,7 +315,7 @@ func TestDefaultPageManager_GetByAlias(t *testing.T) {
 	}{
 		{
 			name: "Successfully find page by alias without prefix",
-			setupMock: func(m *MockPageStorage) {
+			setupMock: func(m *MockPageStore) {
 				m.On("FindByAlias", ctx, siteID, aliasWithPrefix).Return(expectedPage, nil)
 			},
 			site:      site,
@@ -326,7 +326,7 @@ func TestDefaultPageManager_GetByAlias(t *testing.T) {
 		},
 		{
 			name: "Successfully find page by alias with prefix",
-			setupMock: func(m *MockPageStorage) {
+			setupMock: func(m *MockPageStore) {
 				m.On("FindByAlias", ctx, siteID, aliasWithPrefix).Return(expectedPage, nil)
 			},
 			site:      site,
@@ -337,7 +337,7 @@ func TestDefaultPageManager_GetByAlias(t *testing.T) {
 		},
 		{
 			name: "Page not found by alias",
-			setupMock: func(m *MockPageStorage) {
+			setupMock: func(m *MockPageStore) {
 				m.On("FindByAlias", ctx, siteID, aliasWithPrefix).Return(nil, ErrPageNotFound)
 			},
 			site:      site,
@@ -349,7 +349,7 @@ func TestDefaultPageManager_GetByAlias(t *testing.T) {
 		},
 		{
 			name:      "Nil site should panic",
-			setupMock: func(m *MockPageStorage) {},
+			setupMock: func(m *MockPageStore) {},
 			site:      nil,
 			alias:     alias,
 			wantPage:  nil,
@@ -357,8 +357,8 @@ func TestDefaultPageManager_GetByAlias(t *testing.T) {
 			wantPan:   true,
 		},
 		{
-			name: "Storage returns unexpected error",
-			setupMock: func(m *MockPageStorage) {
+			name: "Store returns unexpected error",
+			setupMock: func(m *MockPageStore) {
 				m.On("FindByAlias", ctx, siteID, aliasWithPrefix).Return(nil, assert.AnError)
 			},
 			site:      site,
@@ -372,17 +372,17 @@ func TestDefaultPageManager_GetByAlias(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.wantPan {
-				mockStorage := &MockPageStorage{}
-				tt.setupMock(mockStorage)
-				manager := &DefaultPageManager{storage: mockStorage}
+				mockStore := &MockPageStore{}
+				tt.setupMock(mockStore)
+				manager := &DefaultPageManager{store: mockStore}
 
 				assert.Panics(t, func() {
 					_, _ = manager.GetByAlias(ctx, tt.site, tt.alias)
 				}, "GetByAlias() should panic with nil site")
 			} else {
-				mockStorage := &MockPageStorage{}
-				tt.setupMock(mockStorage)
-				manager := &DefaultPageManager{storage: mockStorage}
+				mockStore := &MockPageStore{}
+				tt.setupMock(mockStore)
+				manager := &DefaultPageManager{store: mockStore}
 
 				got, err := manager.GetByAlias(ctx, tt.site, tt.alias)
 
@@ -395,7 +395,7 @@ func TestDefaultPageManager_GetByAlias(t *testing.T) {
 					assert.Equal(t, tt.wantPage, got, "GetByAlias() should return the expected page")
 				}
 
-				mockStorage.AssertExpectations(t)
+				mockStore.AssertExpectations(t)
 			}
 		})
 	}
@@ -405,15 +405,15 @@ func TestDefaultPageManager_InterfaceCompliance(t *testing.T) {
 	// Test that DefaultPageManager implements PageManager interface
 	var _ PageManager = (*DefaultPageManager)(nil)
 
-	mockStorage := &MockPageStorage{}
-	manager := NewPageManager(mockStorage)
+	mockStore := &MockPageStore{}
+	manager := NewPageManager(mockStore)
 
 	assert.NotNil(t, manager, "DefaultPageManager should implement PageManager interface")
 	assert.Implements(t, (*PageManager)(nil), manager, "DefaultPageManager should implement PageManager interface")
 }
 
 func TestDefaultPageManager_ContextPropagation(t *testing.T) {
-	// Test that context is properly passed to storage methods
+	// Test that context is properly passed to store methods
 	ctx := context.Background()
 	siteID := ID("test-site-id")
 	site := &Site{ID: siteID}
@@ -421,32 +421,32 @@ func TestDefaultPageManager_ContextPropagation(t *testing.T) {
 
 	tests := []struct {
 		name     string
-		testFunc func(*MockPageStorage, *DefaultPageManager)
+		testFunc func(*MockPageStore, *DefaultPageManager)
 	}{
 		{
 			name: "GetByID propagates context",
-			testFunc: func(m *MockPageStorage, pm *DefaultPageManager) {
+			testFunc: func(m *MockPageStore, pm *DefaultPageManager) {
 				m.On("FindByID", ctx, pageID).Return(&Page{}, nil)
 				_, _ = pm.GetByID(ctx, pageID)
 			},
 		},
 		{
 			name: "GetByURL propagates context",
-			testFunc: func(m *MockPageStorage, pm *DefaultPageManager) {
+			testFunc: func(m *MockPageStore, pm *DefaultPageManager) {
 				m.On("FindByURL", ctx, siteID, "/test").Return(&Page{}, nil)
 				_, _ = pm.GetByURL(ctx, site, "/test")
 			},
 		},
 		{
 			name: "GetByPattern propagates context",
-			testFunc: func(m *MockPageStorage, pm *DefaultPageManager) {
+			testFunc: func(m *MockPageStore, pm *DefaultPageManager) {
 				m.On("FindByPattern", ctx, siteID, "/test/{slug}").Return(&Page{}, nil)
 				_, _ = pm.GetByPattern(ctx, site, "/test/{slug}")
 			},
 		},
 		{
 			name: "GetByAlias propagates context",
-			testFunc: func(m *MockPageStorage, pm *DefaultPageManager) {
+			testFunc: func(m *MockPageStore, pm *DefaultPageManager) {
 				m.On("FindByAlias", ctx, siteID, PageAliasPrefix+"test").Return(&Page{}, nil)
 				_, _ = pm.GetByAlias(ctx, site, "test")
 			},
@@ -455,11 +455,11 @@ func TestDefaultPageManager_ContextPropagation(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			mockStorage := &MockPageStorage{}
-			manager := &DefaultPageManager{storage: mockStorage}
+			mockStore := &MockPageStore{}
+			manager := &DefaultPageManager{store: mockStore}
 
-			tt.testFunc(mockStorage, manager)
-			mockStorage.AssertExpectations(t)
+			tt.testFunc(mockStore, manager)
+			mockStore.AssertExpectations(t)
 		})
 	}
 }

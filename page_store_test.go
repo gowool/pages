@@ -11,23 +11,23 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestNewMemoryPageStorage(t *testing.T) {
-	storage := NewMemoryPageStorage()
+func TestNewMemoryPageStore(t *testing.T) {
+	store := NewMemoryPageStore()
 
-	require.NotNil(t, storage, "NewMemoryPageStorage() should not return nil")
+	require.NotNil(t, store, "NewMemoryPageStore() should not return nil")
 	// data slice is initially nil (not explicitly initialized)
-	assert.NotNil(t, storage.ids, "ids map should be initialized")
-	assert.NotNil(t, storage.paths, "paths map should be initialized")
-	assert.NotNil(t, storage.aliases, "aliases map should be initialized")
-	assert.Nil(t, storage.data, "data slice should be nil initially")
-	assert.Empty(t, storage.ids, "ids map should be empty initially")
-	assert.Empty(t, storage.paths, "paths map should be empty initially")
-	assert.Empty(t, storage.aliases, "aliases map should be empty initially")
+	assert.NotNil(t, store.ids, "ids map should be initialized")
+	assert.NotNil(t, store.paths, "paths map should be initialized")
+	assert.NotNil(t, store.aliases, "aliases map should be initialized")
+	assert.Nil(t, store.data, "data slice should be nil initially")
+	assert.Empty(t, store.ids, "ids map should be empty initially")
+	assert.Empty(t, store.paths, "paths map should be empty initially")
+	assert.Empty(t, store.aliases, "aliases map should be empty initially")
 }
 
-func TestMemoryPageStorage_Save(t *testing.T) {
+func TestMemoryPageStore_Save(t *testing.T) {
 	t.Run("Save new page", func(t *testing.T) {
-		storage := NewMemoryPageStorage()
+		store := NewMemoryPageStore()
 		ctx := context.Background()
 
 		page := &Page{
@@ -36,15 +36,15 @@ func TestMemoryPageStorage_Save(t *testing.T) {
 			Title:   "Test Page",
 		}
 
-		err := storage.Save(ctx, page)
+		err := store.Save(ctx, page)
 		assert.NoError(t, err, "Save() should not return error for new page")
 		assert.NotZero(t, page.ID, "Page ID should be set after save")
-		assert.Len(t, storage.data, 1, "Storage should contain 1 page")
-		assert.Contains(t, storage.ids, page.ID, "Page ID should be in ids map")
+		assert.Len(t, store.data, 1, "Store should contain 1 page")
+		assert.Contains(t, store.ids, page.ID, "Page ID should be in ids map")
 	})
 
 	t.Run("Save page with existing ID", func(t *testing.T) {
-		storage := NewMemoryPageStorage()
+		store := NewMemoryPageStore()
 		ctx := context.Background()
 
 		originalPage := &Page{
@@ -62,18 +62,18 @@ func TestMemoryPageStorage_Save(t *testing.T) {
 		}
 
 		// Save original page
-		err := storage.Save(ctx, originalPage)
+		err := store.Save(ctx, originalPage)
 		require.NoError(t, err)
 
 		// Save updated page with same ID
-		err = storage.Save(ctx, updatedPage)
+		err = store.Save(ctx, updatedPage)
 		assert.NoError(t, err, "Save() should not return error for updated page")
-		assert.Len(t, storage.data, 1, "Storage should still contain 1 page")
-		assert.Equal(t, "Updated Page", storage.data[0].Title, "Page should be updated")
+		assert.Len(t, store.data, 1, "Store should still contain 1 page")
+		assert.Equal(t, "Updated Page", store.data[0].Title, "Page should be updated")
 	})
 
 	t.Run("Save multiple pages", func(t *testing.T) {
-		storage := NewMemoryPageStorage()
+		store := NewMemoryPageStore()
 		ctx := context.Background()
 
 		pages := []*Page{
@@ -82,13 +82,13 @@ func TestMemoryPageStorage_Save(t *testing.T) {
 			{SiteID: ID("site2"), Pattern: "/page3", Alias: "alias3", Title: "Page 3"},
 		}
 
-		err := storage.Save(ctx, pages...)
+		err := store.Save(ctx, pages...)
 		assert.NoError(t, err, "Save() should not return error for multiple pages")
-		assert.Len(t, storage.data, 3, "Storage should contain 3 pages")
+		assert.Len(t, store.data, 3, "Store should contain 3 pages")
 	})
 
 	t.Run("Save CMS page with URL", func(t *testing.T) {
-		storage := NewMemoryPageStorage()
+		store := NewMemoryPageStore()
 		ctx := context.Background()
 
 		page := &Page{
@@ -98,16 +98,16 @@ func TestMemoryPageStorage_Save(t *testing.T) {
 			Title:   "CMS Page",
 		}
 
-		err := storage.Save(ctx, page)
+		err := store.Save(ctx, page)
 		assert.NoError(t, err, "Save() should not return error for CMS page")
 
 		// For CMS pages, the path should be based on URL, not Pattern
 		expectedPath := "site1-/actual-url"
-		assert.Contains(t, storage.paths, expectedPath, "CMS page should use URL as path")
+		assert.Contains(t, store.paths, expectedPath, "CMS page should use URL as path")
 	})
 
 	t.Run("Save page with duplicate path", func(t *testing.T) {
-		storage := NewMemoryPageStorage()
+		store := NewMemoryPageStore()
 		ctx := context.Background()
 
 		page1 := &Page{
@@ -125,17 +125,17 @@ func TestMemoryPageStorage_Save(t *testing.T) {
 		}
 
 		// Save first page
-		err := storage.Save(ctx, page1)
+		err := store.Save(ctx, page1)
 		require.NoError(t, err)
 
 		// Try to save second page with same path
-		err = storage.Save(ctx, page2)
+		err = store.Save(ctx, page2)
 		assert.Error(t, err, "Save() should return error for duplicate path")
 		assert.True(t, errors.Is(err, ErrUniqueViolation), "Error should be ErrUniqueViolation")
 	})
 
 	t.Run("Save page with duplicate alias", func(t *testing.T) {
-		storage := NewMemoryPageStorage()
+		store := NewMemoryPageStore()
 		ctx := context.Background()
 
 		page1 := &Page{
@@ -153,17 +153,17 @@ func TestMemoryPageStorage_Save(t *testing.T) {
 		}
 
 		// Save first page
-		err := storage.Save(ctx, page1)
+		err := store.Save(ctx, page1)
 		require.NoError(t, err)
 
 		// Try to save second page with same alias
-		err = storage.Save(ctx, page2)
+		err = store.Save(ctx, page2)
 		assert.Error(t, err, "Save() should return error for duplicate alias")
 		assert.True(t, errors.Is(err, ErrUniqueViolation), "Error should be ErrUniqueViolation")
 	})
 
 	t.Run("Save page updates path and alias correctly", func(t *testing.T) {
-		storage := NewMemoryPageStorage()
+		store := NewMemoryPageStore()
 		ctx := context.Background()
 
 		page := &Page{
@@ -175,31 +175,31 @@ func TestMemoryPageStorage_Save(t *testing.T) {
 		}
 
 		// Save original page
-		err := storage.Save(ctx, page)
+		err := store.Save(ctx, page)
 		require.NoError(t, err)
 
 		originalPath := "site1-/original"
 		originalAlias := "site1-original-alias"
-		assert.Contains(t, storage.paths, originalPath, "Original path should exist")
-		assert.Contains(t, storage.aliases, originalAlias, "Original alias should exist")
+		assert.Contains(t, store.paths, originalPath, "Original path should exist")
+		assert.Contains(t, store.aliases, originalAlias, "Original alias should exist")
 
 		// Update page with new pattern and alias
 		page.Pattern = "/updated"
 		page.Alias = "updated-alias"
-		err = storage.Save(ctx, page)
+		err = store.Save(ctx, page)
 		assert.NoError(t, err, "Save() should not return error for updated page")
 
 		updatedPath := "site1-/updated"
 		updatedAlias := "site1-updated-alias"
-		assert.NotContains(t, storage.paths, originalPath, "Original path should be removed")
-		assert.NotContains(t, storage.aliases, originalAlias, "Original alias should be removed")
-		assert.Contains(t, storage.paths, updatedPath, "Updated path should exist")
-		assert.Contains(t, storage.aliases, updatedAlias, "Updated alias should exist")
+		assert.NotContains(t, store.paths, originalPath, "Original path should be removed")
+		assert.NotContains(t, store.aliases, originalAlias, "Original alias should be removed")
+		assert.Contains(t, store.paths, updatedPath, "Updated path should exist")
+		assert.Contains(t, store.aliases, updatedAlias, "Updated alias should exist")
 	})
 }
 
-func TestMemoryPageStorage_FindByID(t *testing.T) {
-	storage := NewMemoryPageStorage()
+func TestMemoryPageStore_FindByID(t *testing.T) {
+	store := NewMemoryPageStore()
 	ctx := context.Background()
 
 	// Save a test page
@@ -208,11 +208,11 @@ func TestMemoryPageStorage_FindByID(t *testing.T) {
 		SiteID: ID("site1"),
 		Title:  "Test Page",
 	}
-	err := storage.Save(ctx, testPage)
+	err := store.Save(ctx, testPage)
 	require.NoError(t, err)
 
 	t.Run("Find existing page by ID", func(t *testing.T) {
-		foundPage, err := storage.FindByID(ctx, ID("test-id"))
+		foundPage, err := store.FindByID(ctx, ID("test-id"))
 		assert.NoError(t, err, "FindByID() should not return error for existing page")
 		assert.NotNil(t, foundPage, "Found page should not be nil")
 		assert.Equal(t, ID("test-id"), foundPage.ID, "Found page should have correct ID")
@@ -223,15 +223,15 @@ func TestMemoryPageStorage_FindByID(t *testing.T) {
 	})
 
 	t.Run("Find non-existent page by ID", func(t *testing.T) {
-		foundPage, err := storage.FindByID(ctx, ID("non-existent"))
+		foundPage, err := store.FindByID(ctx, ID("non-existent"))
 		assert.Error(t, err, "FindByID() should return error for non-existent page")
 		assert.Nil(t, foundPage, "Found page should be nil for non-existent page")
 		assert.True(t, errors.Is(err, ErrPageNotFound), "Error should be ErrPageNotFound")
 	})
 }
 
-func TestMemoryPageStorage_FindByURL(t *testing.T) {
-	storage := NewMemoryPageStorage()
+func TestMemoryPageStore_FindByURL(t *testing.T) {
+	store := NewMemoryPageStore()
 	ctx := context.Background()
 
 	// Save test pages
@@ -242,41 +242,41 @@ func TestMemoryPageStorage_FindByURL(t *testing.T) {
 	}
 
 	for _, page := range pages {
-		err := storage.Save(ctx, page)
+		err := store.Save(ctx, page)
 		require.NoError(t, err)
 	}
 
 	t.Run("Find existing page by URL", func(t *testing.T) {
-		foundPage, err := storage.FindByURL(ctx, ID("site1"), "/page1")
+		foundPage, err := store.FindByURL(ctx, ID("site1"), "/page1")
 		assert.NoError(t, err, "FindByURL() should not return error for existing page")
 		assert.NotNil(t, foundPage, "Found page should not be nil")
 		assert.Equal(t, ID("page1"), foundPage.ID, "Found page should have correct ID")
 	})
 
 	t.Run("Find CMS page by URL", func(t *testing.T) {
-		foundPage, err := storage.FindByURL(ctx, ID("site1"), "/cms-page")
+		foundPage, err := store.FindByURL(ctx, ID("site1"), "/cms-page")
 		assert.NoError(t, err, "FindByURL() should find CMS page by URL")
 		assert.NotNil(t, foundPage, "Found page should not be nil")
 		assert.Equal(t, ID("page3"), foundPage.ID, "Found page should have correct ID")
 	})
 
 	t.Run("Find non-existent page by URL", func(t *testing.T) {
-		foundPage, err := storage.FindByURL(ctx, ID("site1"), "/non-existent")
+		foundPage, err := store.FindByURL(ctx, ID("site1"), "/non-existent")
 		assert.Error(t, err, "FindByURL() should return error for non-existent page")
 		assert.Nil(t, foundPage, "Found page should be nil for non-existent page")
 		assert.True(t, errors.Is(err, ErrPageNotFound), "Error should be ErrPageNotFound")
 	})
 
 	t.Run("Find page with wrong site ID", func(t *testing.T) {
-		foundPage, err := storage.FindByURL(ctx, ID("wrong-site"), "/page1")
+		foundPage, err := store.FindByURL(ctx, ID("wrong-site"), "/page1")
 		assert.Error(t, err, "FindByURL() should return error for wrong site ID")
 		assert.Nil(t, foundPage, "Found page should be nil for wrong site ID")
 		assert.True(t, errors.Is(err, ErrPageNotFound), "Error should be ErrPageNotFound")
 	})
 }
 
-func TestMemoryPageStorage_FindByPattern(t *testing.T) {
-	storage := NewMemoryPageStorage()
+func TestMemoryPageStore_FindByPattern(t *testing.T) {
+	store := NewMemoryPageStore()
 	ctx := context.Background()
 
 	// Save test pages
@@ -286,34 +286,34 @@ func TestMemoryPageStorage_FindByPattern(t *testing.T) {
 	}
 
 	for _, page := range pages {
-		err := storage.Save(ctx, page)
+		err := store.Save(ctx, page)
 		require.NoError(t, err)
 	}
 
 	t.Run("Find existing page by pattern", func(t *testing.T) {
-		foundPage, err := storage.FindByPattern(ctx, ID("site1"), "/pattern1")
+		foundPage, err := store.FindByPattern(ctx, ID("site1"), "/pattern1")
 		assert.NoError(t, err, "FindByPattern() should not return error for existing page")
 		assert.NotNil(t, foundPage, "Found page should not be nil")
 		assert.Equal(t, ID("page1"), foundPage.ID, "Found page should have correct ID")
 	})
 
 	t.Run("Find non-existent page by pattern", func(t *testing.T) {
-		foundPage, err := storage.FindByPattern(ctx, ID("site1"), "/non-existent")
+		foundPage, err := store.FindByPattern(ctx, ID("site1"), "/non-existent")
 		assert.Error(t, err, "FindByPattern() should return error for non-existent page")
 		assert.Nil(t, foundPage, "Found page should be nil for non-existent page")
 		assert.True(t, errors.Is(err, ErrPageNotFound), "Error should be ErrPageNotFound")
 	})
 
 	t.Run("Find page with wrong site ID", func(t *testing.T) {
-		foundPage, err := storage.FindByPattern(ctx, ID("wrong-site"), "/pattern1")
+		foundPage, err := store.FindByPattern(ctx, ID("wrong-site"), "/pattern1")
 		assert.Error(t, err, "FindByPattern() should return error for wrong site ID")
 		assert.Nil(t, foundPage, "Found page should be nil for wrong site ID")
 		assert.True(t, errors.Is(err, ErrPageNotFound), "Error should be ErrPageNotFound")
 	})
 }
 
-func TestMemoryPageStorage_FindByAlias(t *testing.T) {
-	storage := NewMemoryPageStorage()
+func TestMemoryPageStore_FindByAlias(t *testing.T) {
+	store := NewMemoryPageStore()
 	ctx := context.Background()
 
 	// Save test pages
@@ -323,34 +323,34 @@ func TestMemoryPageStorage_FindByAlias(t *testing.T) {
 	}
 
 	for _, page := range pages {
-		err := storage.Save(ctx, page)
+		err := store.Save(ctx, page)
 		require.NoError(t, err)
 	}
 
 	t.Run("Find existing page by alias", func(t *testing.T) {
-		foundPage, err := storage.FindByAlias(ctx, ID("site1"), "alias1")
+		foundPage, err := store.FindByAlias(ctx, ID("site1"), "alias1")
 		assert.NoError(t, err, "FindByAlias() should not return error for existing page")
 		assert.NotNil(t, foundPage, "Found page should not be nil")
 		assert.Equal(t, ID("page1"), foundPage.ID, "Found page should have correct ID")
 	})
 
 	t.Run("Find non-existent page by alias", func(t *testing.T) {
-		foundPage, err := storage.FindByAlias(ctx, ID("site1"), "non-existent")
+		foundPage, err := store.FindByAlias(ctx, ID("site1"), "non-existent")
 		assert.Error(t, err, "FindByAlias() should return error for non-existent page")
 		assert.Nil(t, foundPage, "Found page should be nil for non-existent page")
 		assert.True(t, errors.Is(err, ErrPageNotFound), "Error should be ErrPageNotFound")
 	})
 
 	t.Run("Find page with wrong site ID", func(t *testing.T) {
-		foundPage, err := storage.FindByAlias(ctx, ID("wrong-site"), "alias1")
+		foundPage, err := store.FindByAlias(ctx, ID("wrong-site"), "alias1")
 		assert.Error(t, err, "FindByAlias() should return error for wrong site ID")
 		assert.Nil(t, foundPage, "Found page should be nil for wrong site ID")
 		assert.True(t, errors.Is(err, ErrPageNotFound), "Error should be ErrPageNotFound")
 	})
 }
 
-func TestMemoryPageStorage_DeleteByID(t *testing.T) {
-	storage := NewMemoryPageStorage()
+func TestMemoryPageStore_DeleteByID(t *testing.T) {
+	store := NewMemoryPageStore()
 	ctx := context.Background()
 
 	// Save test pages
@@ -361,29 +361,29 @@ func TestMemoryPageStorage_DeleteByID(t *testing.T) {
 	}
 
 	for _, page := range pages {
-		err := storage.Save(ctx, page)
+		err := store.Save(ctx, page)
 		require.NoError(t, err)
 	}
 
 	t.Run("Delete existing page by ID", func(t *testing.T) {
-		err := storage.DeleteByID(ctx, ID("page1"))
+		err := store.DeleteByID(ctx, ID("page1"))
 		assert.NoError(t, err, "DeleteByID() should not return error for existing page")
 
 		// Verify page is deleted
-		assert.Len(t, storage.data, 2, "Storage should contain 2 pages after deletion")
-		assert.NotContains(t, storage.ids, ID("page1"), "Deleted page ID should not be in ids map")
+		assert.Len(t, store.data, 2, "Store should contain 2 pages after deletion")
+		assert.NotContains(t, store.ids, ID("page1"), "Deleted page ID should not be in ids map")
 
 		// Verify path and alias are also deleted
-		assert.NotContains(t, storage.paths, "site1-/page1", "Deleted page path should not be in paths map")
-		assert.NotContains(t, storage.aliases, "site1-alias1", "Deleted page alias should not be in aliases map")
+		assert.NotContains(t, store.paths, "site1-/page1", "Deleted page path should not be in paths map")
+		assert.NotContains(t, store.aliases, "site1-alias1", "Deleted page alias should not be in aliases map")
 
 		// Verify other pages are still there
-		assert.Contains(t, storage.ids, ID("page2"), "Other page IDs should still be present")
-		assert.Contains(t, storage.ids, ID("page3"), "Other page IDs should still be present")
+		assert.Contains(t, store.ids, ID("page2"), "Other page IDs should still be present")
+		assert.Contains(t, store.ids, ID("page3"), "Other page IDs should still be present")
 	})
 
 	t.Run("Delete multiple pages by ID", func(t *testing.T) {
-		storage := NewMemoryPageStorage()
+		store := NewMemoryPageStore()
 		ctx := context.Background()
 
 		// Save test pages
@@ -393,31 +393,31 @@ func TestMemoryPageStorage_DeleteByID(t *testing.T) {
 		}
 
 		for _, page := range pages {
-			err := storage.Save(ctx, page)
+			err := store.Save(ctx, page)
 			require.NoError(t, err)
 		}
 
 		// Delete last page first to avoid index issues, then the first
-		err := storage.DeleteByID(ctx, ID("page2"))
+		err := store.DeleteByID(ctx, ID("page2"))
 		assert.NoError(t, err, "DeleteByID() should not return error for existing page")
 
-		err = storage.DeleteByID(ctx, ID("page1"))
+		err = store.DeleteByID(ctx, ID("page1"))
 		assert.NoError(t, err, "DeleteByID() should not return error for existing page")
 
-		assert.Len(t, storage.data, 0, "Storage should be empty after deleting all pages")
+		assert.Len(t, store.data, 0, "Store should be empty after deleting all pages")
 	})
 
 	t.Run("Delete non-existent page by ID", func(t *testing.T) {
-		err := storage.DeleteByID(ctx, ID("non-existent"))
+		err := store.DeleteByID(ctx, ID("non-existent"))
 		assert.Error(t, err, "DeleteByID() should return error for non-existent page")
 		assert.True(t, errors.Is(err, ErrPageNotFound), "Error should be ErrPageNotFound")
 
 		// Verify no pages were deleted
-		assert.Len(t, storage.data, 2, "Storage should still contain 2 pages")
+		assert.Len(t, store.data, 2, "Store should still contain 2 pages")
 	})
 
 	t.Run("Delete page and verify indexes are updated", func(t *testing.T) {
-		storage := NewMemoryPageStorage()
+		store := NewMemoryPageStore()
 		ctx := context.Background()
 
 		// Save test pages
@@ -428,27 +428,27 @@ func TestMemoryPageStorage_DeleteByID(t *testing.T) {
 		}
 
 		for _, page := range pages {
-			err := storage.Save(ctx, page)
+			err := store.Save(ctx, page)
 			require.NoError(t, err)
 		}
 
 		// Delete last page first to avoid index issues
-		err := storage.DeleteByID(ctx, ID("page3"))
+		err := store.DeleteByID(ctx, ID("page3"))
 		assert.NoError(t, err, "DeleteByID() should not return error for existing page")
 
 		// Verify remaining pages can still be found
-		foundPage1, err := storage.FindByID(ctx, ID("page1"))
+		foundPage1, err := store.FindByID(ctx, ID("page1"))
 		assert.NoError(t, err, "Should be able to find remaining page1")
 		assert.Equal(t, "Page 1", foundPage1.Title, "Remaining page1 should have correct title")
 
-		foundPage2, err := storage.FindByID(ctx, ID("page2"))
+		foundPage2, err := store.FindByID(ctx, ID("page2"))
 		assert.NoError(t, err, "Should be able to find remaining page2")
 		assert.Equal(t, "Page 2", foundPage2.Title, "Remaining page2 should have correct title")
 	})
 }
 
-func TestMemoryPageStorage_ConcurrentAccess(t *testing.T) {
-	storage := NewMemoryPageStorage()
+func TestMemoryPageStore_ConcurrentAccess(t *testing.T) {
+	store := NewMemoryPageStore()
 	ctx := context.Background()
 
 	// Save initial pages
@@ -460,7 +460,7 @@ func TestMemoryPageStorage_ConcurrentAccess(t *testing.T) {
 			Alias:   "alias" + string(rune(i)),
 			Title:   "Page " + string(rune(i)),
 		}
-		err := storage.Save(ctx, page)
+		err := store.Save(ctx, page)
 		require.NoError(t, err)
 	}
 
@@ -469,7 +469,7 @@ func TestMemoryPageStorage_ConcurrentAccess(t *testing.T) {
 		errChan := make(chan error, 10)
 
 		// Get the page IDs once before starting concurrent reads
-		data := storage.GetData()
+		data := store.GetData()
 		pageIDs := make([]ID, len(data))
 		for i, page := range data {
 			pageIDs[i] = page.ID
@@ -481,7 +481,7 @@ func TestMemoryPageStorage_ConcurrentAccess(t *testing.T) {
 			go func(id int) {
 				defer wg.Done()
 				for j := 0; j < 10; j++ {
-					_, err := storage.FindByID(ctx, pageIDs[id])
+					_, err := store.FindByID(ctx, pageIDs[id])
 					if err != nil {
 						errChan <- err
 						return
@@ -514,7 +514,7 @@ func TestMemoryPageStorage_ConcurrentAccess(t *testing.T) {
 					Alias:   "concurrent" + string(rune(index)),
 					Title:   "Concurrent Page " + string(rune(index)),
 				}
-				err := storage.Save(ctx, page)
+				err := store.Save(ctx, page)
 				errChan <- err
 			}(i)
 		}
@@ -527,7 +527,7 @@ func TestMemoryPageStorage_ConcurrentAccess(t *testing.T) {
 		}
 
 		// Verify all pages were saved
-		data := storage.GetData()
+		data := store.GetData()
 		assert.Len(t, data, 20, "All concurrent pages should be saved")
 	})
 
@@ -542,9 +542,9 @@ func TestMemoryPageStorage_ConcurrentAccess(t *testing.T) {
 				defer wg.Done()
 				for j := 0; j < 5; j++ {
 					// Use GetData() for thread-safe access to the data slice
-					data := storage.GetData()
+					data := store.GetData()
 					if len(data) > 0 {
-						_, err := storage.FindByID(ctx, data[0].ID)
+						_, err := store.FindByID(ctx, data[0].ID)
 						if err != nil && !errors.Is(err, ErrPageNotFound) {
 							errChan <- err
 							return
@@ -566,7 +566,7 @@ func TestMemoryPageStorage_ConcurrentAccess(t *testing.T) {
 					Alias:   "mixed" + string(rune(index)),
 					Title:   "Mixed Page " + string(rune(index)),
 				}
-				err := storage.Save(ctx, page)
+				err := store.Save(ctx, page)
 				errChan <- err
 			}(i)
 		}
@@ -580,11 +580,11 @@ func TestMemoryPageStorage_ConcurrentAccess(t *testing.T) {
 	})
 }
 
-func TestMemoryPageStorage_EdgeCases(t *testing.T) {
+func TestMemoryPageStore_EdgeCases(t *testing.T) {
 	ctx := context.Background()
 
 	t.Run("Save page with empty pattern and URL", func(t *testing.T) {
-		storage := NewMemoryPageStorage()
+		store := NewMemoryPageStore()
 
 		page := &Page{
 			ID:     ID("test"),
@@ -593,16 +593,16 @@ func TestMemoryPageStorage_EdgeCases(t *testing.T) {
 			Title:  "Test Page",
 		}
 
-		err := storage.Save(ctx, page)
+		err := store.Save(ctx, page)
 		assert.NoError(t, err, "Save() should handle empty pattern and URL")
 
 		// Should use empty string as path
 		expectedPath := "site1-"
-		assert.Contains(t, storage.paths, expectedPath, "Should create path with empty pattern/URL")
+		assert.Contains(t, store.paths, expectedPath, "Should create path with empty pattern/URL")
 	})
 
 	t.Run("Save page with special characters in path", func(t *testing.T) {
-		storage := NewMemoryPageStorage()
+		store := NewMemoryPageStore()
 
 		page := &Page{
 			ID:      ID("test"),
@@ -611,15 +611,15 @@ func TestMemoryPageStorage_EdgeCases(t *testing.T) {
 			Title:   "Test Page",
 		}
 
-		err := storage.Save(ctx, page)
+		err := store.Save(ctx, page)
 		assert.NoError(t, err, "Save() should handle special characters in path")
 
 		expectedPath := "site1-/path/with/special-chars?param=value#fragment"
-		assert.Contains(t, storage.paths, expectedPath, "Should handle special characters in path")
+		assert.Contains(t, store.paths, expectedPath, "Should handle special characters in path")
 	})
 
 	t.Run("Find operations with empty strings", func(t *testing.T) {
-		storage := NewMemoryPageStorage()
+		store := NewMemoryPageStore()
 
 		// Save page with empty pattern
 		page := &Page{
@@ -628,21 +628,21 @@ func TestMemoryPageStorage_EdgeCases(t *testing.T) {
 			Alias:  "test-alias",
 			Title:  "Test Page",
 		}
-		err := storage.Save(ctx, page)
+		err := store.Save(ctx, page)
 		require.NoError(t, err)
 
 		// Try to find with empty URL/pattern
-		foundPage, err := storage.FindByURL(ctx, ID("site1"), "")
+		foundPage, err := store.FindByURL(ctx, ID("site1"), "")
 		assert.NoError(t, err, "Should be able to find page with empty URL")
 		assert.Equal(t, ID("test"), foundPage.ID, "Should find correct page")
 
-		foundPage, err = storage.FindByPattern(ctx, ID("site1"), "")
+		foundPage, err = store.FindByPattern(ctx, ID("site1"), "")
 		assert.NoError(t, err, "Should be able to find page with empty pattern")
 		assert.Equal(t, ID("test"), foundPage.ID, "Should find correct page")
 	})
 
 	t.Run("Save and find with very long strings", func(t *testing.T) {
-		storage := NewMemoryPageStorage()
+		store := NewMemoryPageStore()
 
 		longPattern := "/" + string(make([]byte, 1000))
 		longTitle := string(make([]byte, 1000))
@@ -654,24 +654,24 @@ func TestMemoryPageStorage_EdgeCases(t *testing.T) {
 			Title:   longTitle,
 		}
 
-		err := storage.Save(ctx, page)
+		err := store.Save(ctx, page)
 		assert.NoError(t, err, "Save() should handle very long strings")
 
-		foundPage, err := storage.FindByPattern(ctx, ID("site1"), longPattern)
+		foundPage, err := store.FindByPattern(ctx, ID("site1"), longPattern)
 		assert.NoError(t, err, "Should be able to find page with long pattern")
 		assert.Equal(t, longTitle, foundPage.Title, "Should preserve long title")
 	})
 
-	t.Run("Delete from empty storage", func(t *testing.T) {
-		storage := NewMemoryPageStorage()
+	t.Run("Delete from empty store", func(t *testing.T) {
+		store := NewMemoryPageStore()
 
-		err := storage.DeleteByID(ctx, ID("non-existent"))
-		assert.Error(t, err, "Delete from empty storage should return error")
+		err := store.DeleteByID(ctx, ID("non-existent"))
+		assert.Error(t, err, "Delete from empty store should return error")
 		assert.True(t, errors.Is(err, ErrPageNotFound), "Error should be ErrPageNotFound")
 	})
 
 	t.Run("Update page to have conflicting path", func(t *testing.T) {
-		storage := NewMemoryPageStorage()
+		store := NewMemoryPageStore()
 
 		page1 := &Page{
 			ID:      ID("page1"),
@@ -690,22 +690,22 @@ func TestMemoryPageStorage_EdgeCases(t *testing.T) {
 		}
 
 		// Save both pages
-		err := storage.Save(ctx, page1, page2)
+		err := store.Save(ctx, page1, page2)
 		require.NoError(t, err)
 
 		// Try to update page2 to have same pattern as page1
 		page2.Pattern = "/path1"
-		err = storage.Save(ctx, page2)
+		err = store.Save(ctx, page2)
 		assert.Error(t, err, "Update to conflicting path should return error")
 		assert.True(t, errors.Is(err, ErrUniqueViolation), "Error should be ErrUniqueViolation")
 	})
 }
 
-func TestMemoryPageStorage_DataIsolation(t *testing.T) {
+func TestMemoryPageStore_DataIsolation(t *testing.T) {
 	ctx := context.Background()
 
-	t.Run("Modifying returned page should not affect storage", func(t *testing.T) {
-		storage := NewMemoryPageStorage()
+	t.Run("Modifying returned page should not affect store", func(t *testing.T) {
+		store := NewMemoryPageStore()
 
 		originalPage := &Page{
 			ID:      ID("test"),
@@ -714,26 +714,26 @@ func TestMemoryPageStorage_DataIsolation(t *testing.T) {
 			Title:   "Original Title",
 		}
 
-		err := storage.Save(ctx, originalPage)
+		err := store.Save(ctx, originalPage)
 		require.NoError(t, err)
 
 		// Find and modify the returned page
-		foundPage, err := storage.FindByID(ctx, ID("test"))
+		foundPage, err := store.FindByID(ctx, ID("test"))
 		require.NoError(t, err)
 
 		foundPage.Title = "Modified Title"
 
 		// Find again to verify original page is unchanged
-		foundPage2, err := storage.FindByID(ctx, ID("test"))
+		foundPage2, err := store.FindByID(ctx, ID("test"))
 		assert.NoError(t, err, "Should still be able to find page")
 		assert.Equal(t, "Original Title", foundPage2.Title, "Original page should not be modified")
 	})
 }
 
-func TestMemoryPageStorage_InterfaceCompliance(t *testing.T) {
-	var _ PageStorage = (*MemoryPageStorage)(nil)
+func TestMemoryPageStore_InterfaceCompliance(t *testing.T) {
+	var _ PageStore = (*MemoryPageStore)(nil)
 
-	storage := NewMemoryPageStorage()
+	store := NewMemoryPageStore()
 	ctx := context.Background()
 
 	// Test that all interface methods are implemented and work
@@ -744,31 +744,31 @@ func TestMemoryPageStorage_InterfaceCompliance(t *testing.T) {
 	}
 
 	// Save
-	err := storage.Save(ctx, page)
+	err := store.Save(ctx, page)
 	assert.NoError(t, err, "Save method should work")
 
 	// FindBy ID
-	foundPage, err := storage.FindByID(ctx, ID("test"))
+	foundPage, err := store.FindByID(ctx, ID("test"))
 	assert.NoError(t, err, "FindByID method should work")
 	assert.NotNil(t, foundPage, "FindByID should return page")
 
 	// FindBy URL
-	foundPage, err = storage.FindByURL(ctx, ID("site1"), "")
+	foundPage, err = store.FindByURL(ctx, ID("site1"), "")
 	assert.NoError(t, err, "FindByURL method should work")
 	assert.NotNil(t, foundPage, "FindByURL should return page")
 
 	// FindBy Pattern
-	foundPage, err = storage.FindByPattern(ctx, ID("site1"), "")
+	foundPage, err = store.FindByPattern(ctx, ID("site1"), "")
 	assert.NoError(t, err, "FindByPattern method should work")
 	assert.NotNil(t, foundPage, "FindByPattern should return page")
 
 	// Delete
-	err = storage.DeleteByID(ctx, ID("test"))
+	err = store.DeleteByID(ctx, ID("test"))
 	assert.NoError(t, err, "DeleteByID method should work")
 }
 
-func TestMemoryPageStorage_FindByPatterns(t *testing.T) {
-	storage := NewMemoryPageStorage()
+func TestMemoryPageStore_FindByPatterns(t *testing.T) {
+	store := NewMemoryPageStore()
 	ctx := context.Background()
 
 	// Save test pages
@@ -781,7 +781,7 @@ func TestMemoryPageStorage_FindByPatterns(t *testing.T) {
 	}
 
 	for _, page := range pages {
-		err := storage.Save(ctx, page)
+		err := store.Save(ctx, page)
 		require.NoError(t, err)
 	}
 
@@ -790,7 +790,7 @@ func TestMemoryPageStorage_FindByPatterns(t *testing.T) {
 		var foundPages []*Page
 		var foundErrors []error
 
-		seq := storage.FindByPatterns(ctx, ID("site1"), patterns...)
+		seq := store.FindByPatterns(ctx, ID("site1"), patterns...)
 		for page, err := range seq {
 			if err == nil {
 				foundPages = append(foundPages, page)
@@ -823,7 +823,7 @@ func TestMemoryPageStorage_FindByPatterns(t *testing.T) {
 		var foundPages []*Page
 		var foundErrors []error
 
-		seq := storage.FindByPatterns(ctx, ID("site1"), patterns...)
+		seq := store.FindByPatterns(ctx, ID("site1"), patterns...)
 		for page, err := range seq {
 			if err == nil {
 				foundPages = append(foundPages, page)
@@ -846,7 +846,7 @@ func TestMemoryPageStorage_FindByPatterns(t *testing.T) {
 		var foundErrors []error
 
 		// Search in site1 - should find page1
-		seq := storage.FindByPatterns(ctx, ID("site1"), patterns...)
+		seq := store.FindByPatterns(ctx, ID("site1"), patterns...)
 		for page, err := range seq {
 			if err == nil {
 				foundPages = append(foundPages, page)
@@ -862,7 +862,7 @@ func TestMemoryPageStorage_FindByPatterns(t *testing.T) {
 		// Search in site2 - should find page4 (different page with same pattern)
 		foundPages = nil
 		foundErrors = nil
-		seq = storage.FindByPatterns(ctx, ID("site2"), patterns...)
+		seq = store.FindByPatterns(ctx, ID("site2"), patterns...)
 		for page, err := range seq {
 			if err == nil {
 				foundPages = append(foundPages, page)
@@ -881,7 +881,7 @@ func TestMemoryPageStorage_FindByPatterns(t *testing.T) {
 		var foundPages []*Page
 		var foundErrors []error
 
-		seq := storage.FindByPatterns(ctx, ID("site1"), patterns...)
+		seq := store.FindByPatterns(ctx, ID("site1"), patterns...)
 		for page, err := range seq {
 			if err == nil {
 				foundPages = append(foundPages, page)
@@ -898,7 +898,7 @@ func TestMemoryPageStorage_FindByPatterns(t *testing.T) {
 		var foundPages []*Page
 		var foundErrors []error
 
-		seq := storage.FindByPatterns(ctx, ID("site1"))
+		seq := store.FindByPatterns(ctx, ID("site1"))
 		for page, err := range seq {
 			if err == nil {
 				foundPages = append(foundPages, page)
@@ -916,7 +916,7 @@ func TestMemoryPageStorage_FindByPatterns(t *testing.T) {
 		var foundPages []*Page
 		var foundErrors []error
 
-		seq := storage.FindByPatterns(ctx, ID("site1"), patterns...)
+		seq := store.FindByPatterns(ctx, ID("site1"), patterns...)
 		for page, err := range seq {
 			if err == nil {
 				foundPages = append(foundPages, page)
@@ -935,7 +935,7 @@ func TestMemoryPageStorage_FindByPatterns(t *testing.T) {
 		var foundPages []*Page
 		var foundErrors []error
 
-		seq := storage.FindByPatterns(ctx, ID("site1"), patterns...)
+		seq := store.FindByPatterns(ctx, ID("site1"), patterns...)
 		for page, err := range seq {
 			if err == nil {
 				foundPages = append(foundPages, page)
@@ -957,7 +957,7 @@ func TestMemoryPageStorage_FindByPatterns(t *testing.T) {
 		var foundPages []*Page
 		var foundErrors []error
 
-		seq := storage.FindByPatterns(ctx, ID("wrong-site"), patterns...)
+		seq := store.FindByPatterns(ctx, ID("wrong-site"), patterns...)
 		for page, err := range seq {
 			if err == nil {
 				foundPages = append(foundPages, page)
@@ -974,7 +974,7 @@ func TestMemoryPageStorage_FindByPatterns(t *testing.T) {
 		patterns := []string{"/pattern1"}
 		var foundPages []*Page
 
-		seq := storage.FindByPatterns(ctx, ID("site1"), patterns...)
+		seq := store.FindByPatterns(ctx, ID("site1"), patterns...)
 		for page, err := range seq {
 			if err == nil {
 				foundPages = append(foundPages, page)
@@ -984,22 +984,22 @@ func TestMemoryPageStorage_FindByPatterns(t *testing.T) {
 		require.Len(t, foundPages, 1, "Should find 1 page")
 
 		// Get original page for comparison
-		originalPage, err := storage.FindByID(ctx, foundPages[0].ID)
+		originalPage, err := store.FindByID(ctx, foundPages[0].ID)
 		require.NoError(t, err, "Should be able to find original page")
 
 		// Modify the returned page
 		foundPages[0].Title = "Modified Title"
 
 		// Verify original page is unchanged
-		originalPageAfter, err := storage.FindByID(ctx, foundPages[0].ID)
+		originalPageAfter, err := store.FindByID(ctx, foundPages[0].ID)
 		assert.NoError(t, err, "Should still be able to find original page")
 		assert.NotEqual(t, "Modified Title", originalPageAfter.Title, "Original page should not be modified")
 		assert.NotSame(t, originalPage, foundPages[0], "Should return a copy of the page")
 	})
 }
 
-func TestMemoryPageStorage_HelperFunctions(t *testing.T) {
-	storage := NewMemoryPageStorage()
+func TestMemoryPageStore_HelperFunctions(t *testing.T) {
+	store := NewMemoryPageStore()
 	ctx := context.Background()
 
 	// Save test pages
@@ -1010,54 +1010,54 @@ func TestMemoryPageStorage_HelperFunctions(t *testing.T) {
 	}
 
 	for _, page := range pages {
-		err := storage.Save(ctx, page)
+		err := store.Save(ctx, page)
 		require.NoError(t, err)
 	}
 
 	t.Run("deletePath helper function", func(t *testing.T) {
 		// Get initial count
-		initialCount := len(storage.paths)
-		assert.Greater(t, initialCount, 0, "Should have paths in storage")
+		initialCount := len(store.paths)
+		assert.Greater(t, initialCount, 0, "Should have paths in store")
 
 		// Delete middle page
-		storage.mu.Lock()
-		storage.deletePath(1) // Delete path for page2 (index 1)
-		storage.mu.Unlock()
+		store.mu.Lock()
+		store.deletePath(1) // Delete path for page2 (index 1)
+		store.mu.Unlock()
 
 		// Verify path was deleted
-		assert.Len(t, storage.paths, initialCount-1, "Path count should be reduced")
-		assert.NotContains(t, storage.paths, "site1-/test2", "Specific path should be deleted")
+		assert.Len(t, store.paths, initialCount-1, "Path count should be reduced")
+		assert.NotContains(t, store.paths, "site1-/test2", "Specific path should be deleted")
 
 		// Verify other paths still exist
-		assert.Contains(t, storage.paths, "site1-/test1", "Other paths should still exist")
-		assert.Contains(t, storage.paths, "site1-/test3", "Other paths should still exist")
+		assert.Contains(t, store.paths, "site1-/test1", "Other paths should still exist")
+		assert.Contains(t, store.paths, "site1-/test3", "Other paths should still exist")
 	})
 
 	t.Run("deleteAlias helper function", func(t *testing.T) {
 		// Get initial count
-		initialCount := len(storage.aliases)
-		assert.Greater(t, initialCount, 0, "Should have aliases in storage")
+		initialCount := len(store.aliases)
+		assert.Greater(t, initialCount, 0, "Should have aliases in store")
 
 		// Delete middle page alias
-		storage.mu.Lock()
-		storage.deleteAlias(1) // Delete alias for page2 (index 1)
-		storage.mu.Unlock()
+		store.mu.Lock()
+		store.deleteAlias(1) // Delete alias for page2 (index 1)
+		store.mu.Unlock()
 
 		// Verify alias was deleted
-		assert.Len(t, storage.aliases, initialCount-1, "Alias count should be reduced")
-		assert.NotContains(t, storage.aliases, "site1-alias2", "Specific alias should be deleted")
+		assert.Len(t, store.aliases, initialCount-1, "Alias count should be reduced")
+		assert.NotContains(t, store.aliases, "site1-alias2", "Specific alias should be deleted")
 
 		// Verify other aliases still exist
-		assert.Contains(t, storage.aliases, "site1-alias1", "Other aliases should still exist")
-		assert.Contains(t, storage.aliases, "site1-alias3", "Other aliases should still exist")
+		assert.Contains(t, store.aliases, "site1-alias1", "Other aliases should still exist")
+		assert.Contains(t, store.aliases, "site1-alias3", "Other aliases should still exist")
 	})
 
 	t.Run("findByPath helper function", func(t *testing.T) {
-		foundPage, err := storage.findByPath(ID("site1"), "/test1")
+		foundPage, err := store.findByPath(ID("site1"), "/test1")
 		assert.NoError(t, err, "findByPath should find existing page")
 		assert.Equal(t, ID("page1"), foundPage.ID, "Should find correct page")
 
-		foundPage, err = storage.findByPath(ID("site1"), "/non-existent")
+		foundPage, err = store.findByPath(ID("site1"), "/non-existent")
 		assert.Error(t, err, "findByPath should return error for non-existent page")
 		assert.Nil(t, foundPage, "Should return nil for non-existent page")
 		assert.True(t, errors.Is(err, ErrPageNotFound), "Error should be ErrPageNotFound")

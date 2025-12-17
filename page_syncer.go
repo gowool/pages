@@ -39,20 +39,20 @@ type IDGenerator func(ctx context.Context) (ID, error)
 type IgnorePattern func(ctx context.Context, pattern string) bool
 
 type DefaultPageSyncer struct {
-	router      Router
-	pageStorage PageStorage
-	generator   IDGenerator
-	ignore      IgnorePattern
+	router    Router
+	store     PageStore
+	generator IDGenerator
+	ignore    IgnorePattern
 }
 
 func NewDefaultPageSyncer(
-	pageStorage PageStorage,
+	store PageStore,
 	generator IDGenerator,
 	router Router,
 	ignore IgnorePattern,
 ) *DefaultPageSyncer {
-	if pageStorage == nil {
-		panic("page syncer: page storage is required")
+	if store == nil {
+		panic("page syncer: page store is required")
 	}
 
 	if generator == nil {
@@ -68,10 +68,10 @@ func NewDefaultPageSyncer(
 	}
 
 	return &DefaultPageSyncer{
-		pageStorage: pageStorage,
-		generator:   generator,
-		router:      router,
-		ignore:      ignore,
+		store:     store,
+		generator: generator,
+		router:    router,
+		ignore:    ignore,
 	}
 }
 
@@ -84,10 +84,10 @@ func (s *DefaultPageSyncer) Sync(ctx context.Context, site *Site) error {
 	patterns = append(patterns, PageInternalCreate, PageError4xx, PageError5xx)
 
 	if !homeHybrid {
-		root, _ = s.pageStorage.FindByURL(ctx, site.ID, "/")
+		root, _ = s.store.FindByURL(ctx, site.ID, "/")
 	}
 
-	for page, err := range s.pageStorage.FindByPatterns(ctx, site.ID, patterns...) {
+	for page, err := range s.store.FindByPatterns(ctx, site.ID, patterns...) {
 		if err != nil {
 			return fmt.Errorf("page syncer: find page by pattern error: %w", err)
 		}
@@ -134,7 +134,7 @@ func (s *DefaultPageSyncer) Sync(ctx context.Context, site *Site) error {
 		newPages = append(newPages, page)
 	}
 
-	if err := s.pageStorage.Save(ctx, newPages...); err != nil {
+	if err := s.store.Save(ctx, newPages...); err != nil {
 		return fmt.Errorf("page syncer: save pages error: %w", err)
 	}
 
@@ -161,7 +161,7 @@ func (s *DefaultPageSyncer) createRootPage(ctx context.Context, site *Site, home
 	root.Site = site
 	root.Position = 0
 
-	if err := s.pageStorage.Save(ctx, root); err != nil {
+	if err := s.store.Save(ctx, root); err != nil {
 		return nil, fmt.Errorf("page syncer: save root page error: %w", err)
 	}
 
