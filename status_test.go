@@ -15,19 +15,14 @@ func TestStatus_String(t *testing.T) {
 		expected string
 	}{
 		{
-			name:     "DraftStatus string representation",
-			status:   DraftStatus,
+			name:     "Draft string representation",
+			status:   Draft,
 			expected: "draft",
 		},
 		{
-			name:     "PublishStatus string representation",
-			status:   PublishStatus,
+			name:     "Published string representation",
+			status:   Published,
 			expected: "publish",
-		},
-		{
-			name:     "PrivateStatus string representation",
-			status:   PrivateStatus,
-			expected: "private",
 		},
 		{
 			name:     "Unknown status (negative value)",
@@ -42,7 +37,7 @@ func TestStatus_String(t *testing.T) {
 		{
 			name:     "Unknown status (zero value)",
 			status:   Status(0),
-			expected: "draft", // 0 corresponds to DraftStatus
+			expected: "draft", // 0 corresponds to Draft
 		},
 	}
 
@@ -56,13 +51,12 @@ func TestStatus_String(t *testing.T) {
 
 func TestStatus_Constants(t *testing.T) {
 	t.Run("Constant values are correct", func(t *testing.T) {
-		assert.Equal(t, Status(0), DraftStatus, "DraftStatus should be 0")
-		assert.Equal(t, Status(1), PublishStatus, "PublishStatus should be 1")
-		assert.Equal(t, Status(2), PrivateStatus, "PrivateStatus should be 2")
+		assert.Equal(t, Status(0), Draft, "Draft should be 0")
+		assert.Equal(t, Status(1), Published, "Published should be 1")
 	})
 
 	t.Run("Constants are unique", func(t *testing.T) {
-		constants := []Status{DraftStatus, PublishStatus, PrivateStatus}
+		constants := []Status{Draft, Published}
 		seen := make(map[Status]bool)
 
 		for _, status := range constants {
@@ -72,26 +66,22 @@ func TestStatus_Constants(t *testing.T) {
 	})
 
 	t.Run("Constants are in ascending order", func(t *testing.T) {
-		assert.True(t, DraftStatus < PublishStatus, "DraftStatus should be less than PublishStatus")
-		assert.True(t, PublishStatus < PrivateStatus, "PublishStatus should be less than PrivateStatus")
-		assert.True(t, DraftStatus < PrivateStatus, "DraftStatus should be less than PrivateStatus")
+		assert.True(t, Draft < Published, "Draft should be less than Published")
 	})
 }
 
 func TestStatus_Usage(t *testing.T) {
 	t.Run("Status in switch statements", func(t *testing.T) {
-		statuses := []Status{DraftStatus, PublishStatus, PrivateStatus}
+		statuses := []Status{Draft, Published}
 		expectedStrings := []string{"draft", "publish", "private"}
 
 		for i, status := range statuses {
 			var result string
 			switch status {
-			case DraftStatus:
+			case Draft:
 				result = "found draft"
-			case PublishStatus:
+			case Published:
 				result = "found publish"
-			case PrivateStatus:
-				result = "found private"
 			default:
 				result = "found unknown"
 			}
@@ -102,49 +92,33 @@ func TestStatus_Usage(t *testing.T) {
 
 	t.Run("Status as map key", func(t *testing.T) {
 		statusMap := map[Status]string{
-			DraftStatus:   "Draft content",
-			PublishStatus: "Published content",
-			PrivateStatus: "Private content",
+			Draft:     "Draft content",
+			Published: "Published content",
 		}
 
-		assert.Equal(t, "Draft content", statusMap[DraftStatus], "Status should work as map key")
-		assert.Equal(t, "Published content", statusMap[PublishStatus], "Status should work as map key")
-		assert.Equal(t, "Private content", statusMap[PrivateStatus], "Status should work as map key")
+		assert.Equal(t, "Draft content", statusMap[Draft], "Status should work as map key")
+		assert.Equal(t, "Published content", statusMap[Published], "Status should work as map key")
 		assert.Empty(t, statusMap[Status(100)], "Unknown status should return empty string")
 	})
 
 	t.Run("Status slice operations", func(t *testing.T) {
-		statuses := []Status{PublishStatus, DraftStatus, PrivateStatus}
+		statuses := []Status{Published, Draft}
 
-		assert.Contains(t, statuses, DraftStatus, "Status slice should contain DraftStatus")
-		assert.Contains(t, statuses, PublishStatus, "Status slice should contain PublishStatus")
-		assert.Contains(t, statuses, PrivateStatus, "Status slice should contain PrivateStatus")
+		assert.Contains(t, statuses, Draft, "Status slice should contain Draft")
+		assert.Contains(t, statuses, Published, "Status slice should contain Published")
 		assert.Len(t, statuses, 3, "Status slice should have correct length")
 	})
 }
 
 func TestStatus_StringIntegration(t *testing.T) {
 	t.Run("Status String() method in formatting", func(t *testing.T) {
-		statuses := []Status{DraftStatus, PublishStatus, PrivateStatus}
+		statuses := []Status{Draft, Published}
 
 		for _, status := range statuses {
-			formatted := fmt.Sprintf("Status: %s", status.String())
+			formatted := fmt.Sprintf("Status: %s", status)
 			expected := fmt.Sprintf("Status: %s", status.String())
 			assert.Equal(t, expected, formatted, "Status should format correctly with fmt.Sprintf")
 		}
-	})
-
-	t.Run("Status String() method with different verbs", func(t *testing.T) {
-		status := PublishStatus
-
-		assert.Equal(t, "publish", status.String())
-	})
-
-	t.Run("Status String() method in logging scenarios", func(t *testing.T) {
-		status := PrivateStatus
-		logMessage := fmt.Sprintf("Page status changed to %s", status.String())
-		expected := "Page status changed to private"
-		assert.Equal(t, expected, logMessage, "Status should be usable in log messages")
 	})
 }
 
@@ -167,8 +141,8 @@ func TestStatus_EdgeCases(t *testing.T) {
 			expected string
 		}{
 			{Status(-1), "unknown"},
-			{Status(0), "draft"},   // DraftStatus
-			{Status(1), "publish"}, // PublishStatus
+			{Status(0), "draft"},   // Draft
+			{Status(1), "publish"}, // Published
 			{Status(2), "private"}, // PrivateStatus
 			{Status(3), "unknown"},
 		}
@@ -189,13 +163,10 @@ func TestStatus_TypeProperties(t *testing.T) {
 	})
 
 	t.Run("Status arithmetic operations", func(t *testing.T) {
-		status1 := DraftStatus
+		status1 := Draft
 		status2 := status1 + 1
 
-		assert.Equal(t, PublishStatus, status2, "Status arithmetic should work")
-
-		status3 := PrivateStatus - 1
-		assert.Equal(t, PublishStatus, status3, "Status arithmetic should work")
+		assert.Equal(t, Published, status2, "Status arithmetic should work")
 	})
 
 	t.Run("Status type size", func(t *testing.T) {
@@ -207,7 +178,7 @@ func TestStatus_TypeProperties(t *testing.T) {
 func TestStatus_DefaultValues(t *testing.T) {
 	t.Run("Zero value of Status", func(t *testing.T) {
 		var status Status
-		assert.Equal(t, DraftStatus, status, "Zero value should be DraftStatus")
+		assert.Equal(t, Draft, status, "Zero value should be Draft")
 		assert.Equal(t, "draft", status.String(), "Zero value should stringify to 'draft'")
 	})
 
@@ -216,15 +187,14 @@ func TestStatus_DefaultValues(t *testing.T) {
 			return s.String()
 		}
 
-		assert.Equal(t, "draft", checkStatus(DraftStatus), "Status should pass as parameter correctly")
-		assert.Equal(t, "publish", checkStatus(PublishStatus), "Status should pass as parameter correctly")
-		assert.Equal(t, "private", checkStatus(PrivateStatus), "Status should pass as parameter correctly")
+		assert.Equal(t, "draft", checkStatus(Draft), "Status should pass as parameter correctly")
+		assert.Equal(t, "publish", checkStatus(Published), "Status should pass as parameter correctly")
 	})
 }
 
 func TestStatus_ConcurrentAccess(t *testing.T) {
 	t.Run("Concurrent String() calls", func(t *testing.T) {
-		status := PublishStatus
+		status := Published
 		results := make(chan string, 100)
 
 		// Launch multiple goroutines calling String() concurrently
@@ -242,7 +212,7 @@ func TestStatus_ConcurrentAccess(t *testing.T) {
 	})
 
 	t.Run("Concurrent status operations", func(t *testing.T) {
-		statuses := []Status{DraftStatus, PublishStatus, PrivateStatus}
+		statuses := []Status{Draft, Published}
 		results := make(chan string, len(statuses))
 
 		for _, status := range statuses {
@@ -265,7 +235,7 @@ func TestStatus_ConcurrentAccess(t *testing.T) {
 
 // Benchmark tests for performance validation
 func BenchmarkStatus_String(b *testing.B) {
-	status := PublishStatus
+	status := Published
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -274,7 +244,7 @@ func BenchmarkStatus_String(b *testing.B) {
 }
 
 func BenchmarkStatus_AllConstants_String(b *testing.B) {
-	statuses := []Status{DraftStatus, PublishStatus, PrivateStatus}
+	statuses := []Status{Draft, Published}
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {

@@ -2,7 +2,6 @@ package pages
 
 import (
 	"errors"
-	"fmt"
 	"html/template"
 	"net/http"
 	"unsafe"
@@ -58,32 +57,29 @@ func PageMiddleware[T Resolver](
 
 		e.SetPage(page)
 
-		if page.Status != PublishStatus {
-			switch page.Status {
-			case DraftStatus:
-				decision, err := authorizer.Authorize(e, ViewDraftPage)
-				if err != nil {
-					return wo.ErrNotFound.WithInternal(err)
-				}
+		if page.Status == Draft {
+			decision, err := authorizer.Authorize(e, ViewDraftPage)
+			if err != nil {
+				return wo.ErrNotFound.WithInternal(err)
+			}
 
-				if decision == Deny {
-					return wo.ErrNotFound.WithInternal(ErrPageNotFound)
-				}
-			case PrivateStatus:
-				if e.IsGuest() {
-					return wo.ErrUnauthorized.WithInternal(ErrPrivatePage)
-				}
+			if decision == Deny {
+				return wo.ErrNotFound.WithInternal(ErrPageNotFound)
+			}
+		}
 
-				decision, err := authorizer.Authorize(e, ViewPrivatePage)
-				if err != nil {
-					return wo.ErrForbidden.WithInternal(err)
-				}
+		if page.Visibility == Private {
+			if e.IsGuest() {
+				return wo.ErrUnauthorized.WithInternal(ErrPrivatePage)
+			}
 
-				if decision == Deny {
-					return wo.ErrForbidden.WithInternal(ErrPrivatePage)
-				}
-			default:
-				return wo.ErrNotFound.WithInternal(errors.Join(fmt.Errorf("unknown page status %d", page.Status), ErrPageNotFound))
+			decision, err := authorizer.Authorize(e, ViewPrivatePage)
+			if err != nil {
+				return wo.ErrForbidden.WithInternal(err)
+			}
+
+			if decision == Deny {
+				return wo.ErrForbidden.WithInternal(ErrPrivatePage)
 			}
 		}
 

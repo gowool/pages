@@ -39,7 +39,8 @@ type Page struct {
 	Created time.Time `json:"created,omitzero" yaml:"created,omitempty"`
 	Updated time.Time `json:"updated,omitzero" yaml:"updated,omitempty"`
 
-	Status Status `json:"status,omitempty" yaml:"status,omitempty"`
+	Status     Status     `json:"status,omitempty" yaml:"status,omitempty"`
+	Visibility Visibility `json:"visibility,omitempty" yaml:"visibility,omitempty"`
 
 	MetaTags *MetaTags           `json:"metaTags,omitempty" yaml:"metaTags,omitempty"`
 	Metadata map[string]any      `json:"metadata,omitempty" yaml:"metadata,omitempty"`
@@ -61,12 +62,13 @@ func NewPage() *Page {
 	t := time.Now().UTC()
 
 	return &Page{
-		Created:  t,
-		Updated:  t,
-		MetaTags: NewMetaTags(DefaultCharset),
-		Metadata: make(map[string]any),
-		Header:   make(map[string][]string),
-		Status:   DraftStatus,
+		Created:    t,
+		Updated:    t,
+		MetaTags:   NewMetaTags(DefaultCharset),
+		Metadata:   make(map[string]any),
+		Header:     make(map[string][]string),
+		Status:     Draft,
+		Visibility: Public,
 	}
 }
 

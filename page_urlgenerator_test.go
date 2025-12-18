@@ -23,7 +23,7 @@ func NewTestPage(pattern string) *Page {
 	page.Pattern = pattern
 	page.Name = "Test Page"
 	page.Site = NewTestSite()
-	page.Status = PublishStatus
+	page.Status = Published
 	return page
 }
 

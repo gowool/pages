@@ -3,20 +3,26 @@ package pages
 type Status int8
 
 const (
-	DraftStatus Status = iota
-	PublishStatus
-	PrivateStatus
+	Draft Status = iota
+	Published
 )
 
 func (s Status) String() string {
 	switch s {
-	case DraftStatus:
+	case Draft:
 		return "draft"
-	case PublishStatus:
-		return "publish"
-	case PrivateStatus:
-		return "private"
+	case Published:
+		return "published"
+	default:
+		return "unknown"
 	}
+}
 
-	return "unknown"
+func StatusFromString(s string) Status {
+	switch s {
+	case "published":
+		return Published
+	default:
+		return Draft
+	}
 }

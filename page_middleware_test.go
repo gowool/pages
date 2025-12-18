@@ -96,7 +96,7 @@ func TestPageMiddleware_PublishedCMSPage(t *testing.T) {
 
 	page := &Page{
 		ID:      "page1",
-		Status:  PublishStatus,
+		Status:  Published,
 		Pattern: PageCMS, // CMS page (non-hybrid)
 	}
 
@@ -155,7 +155,7 @@ func TestPageMiddleware_HybridPagePattern(t *testing.T) {
 
 			page := &Page{
 				ID:       "page1",
-				Status:   PublishStatus,
+				Status:   Published,
 				Pattern:  tt.pattern,
 				Decorate: tt.decorate,
 			}
@@ -200,7 +200,7 @@ func TestPageMiddleware_DraftPageUnauthorized(t *testing.T) {
 
 	page := &Page{
 		ID:      "page1",
-		Status:  DraftStatus,
+		Status:  Draft,
 		Pattern: PageCMS,
 	}
 
@@ -235,7 +235,7 @@ func TestPageMiddleware_DraftPageAuthorized(t *testing.T) {
 	// Use a CMS page (non-hybrid) to avoid buffer issues
 	page := &Page{
 		ID:      "page1",
-		Status:  DraftStatus,
+		Status:  Draft,
 		Pattern: PageCMS,
 	}
 
@@ -476,7 +476,7 @@ func TestPageMiddleware_DraftPageAuthError(t *testing.T) {
 
 	page := &Page{
 		ID:      "page1",
-		Status:  DraftStatus,
+		Status:  Draft,
 		Pattern: PageCMS,
 	}
 
@@ -577,7 +577,7 @@ func TestPageMiddleware_PageWithExistingSite(t *testing.T) {
 	pageSite := &Site{ID: "page_site"}
 	page := &Page{
 		ID:      "page1",
-		Status:  PublishStatus,
+		Status:  Published,
 		Pattern: PageCMS,  // CMS page (non-hybrid)
 		Site:    pageSite, // Already has a site
 	}

@@ -21,7 +21,7 @@ func CreateTestSite(name, host, locale string, isDefault bool, countries ...stri
 	site.Locale = locale
 	site.IsDefault = isDefault
 	site.Countries = countries
-	site.Enabled = true
+	site.Status = Published
 	return site
 }
 

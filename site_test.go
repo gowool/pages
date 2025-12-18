@@ -30,7 +30,7 @@ func TestNewSite(t *testing.T) {
 
 	assert.NotNil(t, site.Metadata, "Metadata map should be initialized")
 
-	assert.False(t, site.Enabled, "Enabled should be false by default")
+	assert.Equal(t, Draft, site.Status, "Status should be draft by default")
 
 	assert.False(t, site.IsDefault, "IsDefault should be false by default")
 }
@@ -374,7 +374,7 @@ func TestSite_CompleteExample(t *testing.T) {
 		Host:         "example.com",
 		RelativePath: "/blog",
 		IsDefault:    true,
-		Enabled:      true,
+		Status:       Published,
 		Metadata:     map[string]any{"theme": "dark"},
 	}
 
@@ -451,7 +451,7 @@ func TestSite_Copy(t *testing.T) {
 			Host:         "example.com",
 			RelativePath: "/blog",
 			IsDefault:    true,
-			Enabled:      true,
+			Status:       Published,
 			Metadata:     map[string]any{"theme": "dark", "version": 1},
 			MetaTags:     NewMetaTags("UTF-8"),
 			isRoot:       false,
@@ -477,7 +477,7 @@ func TestSite_Copy(t *testing.T) {
 		assert.Equal(t, original.Host, copy.Host, "Host should be copied")
 		assert.Equal(t, original.RelativePath, copy.RelativePath, "RelativePath should be copied")
 		assert.Equal(t, original.IsDefault, copy.IsDefault, "IsDefault should be copied")
-		assert.Equal(t, original.Enabled, copy.Enabled, "Enabled should be copied")
+		assert.Equal(t, original.Status, copy.Status, "Status should be copied")
 
 		// Verify slices are cloned
 		assert.Equal(t, original.Countries, copy.Countries, "Countries should be copied")

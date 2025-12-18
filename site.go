@@ -14,6 +14,8 @@ type Site struct {
 	Created time.Time `json:"created,omitzero" yaml:"created,omitempty"`
 	Updated time.Time `json:"updated,omitzero" yaml:"updated,omitempty"`
 
+	Status Status `json:"status,omitempty" yaml:"status,omitempty"`
+
 	MetaTags *MetaTags      `json:"metaTags,omitempty" yaml:"metaTags,omitempty"`
 	Metadata map[string]any `json:"metadata,omitempty" yaml:"metadata,omitempty"`
 
@@ -28,7 +30,6 @@ type Site struct {
 	Host         string `json:"host,omitempty" yaml:"host,omitempty"`
 	RelativePath string `json:"relativePath,omitempty" yaml:"relativePath,omitempty"`
 	IsDefault    bool   `json:"isDefault,omitempty" yaml:"isDefault,omitempty"`
-	Enabled      bool   `json:"enabled,omitempty" yaml:"enabled,omitempty"`
 
 	location *time.Location
 	tag      *language.Tag
@@ -49,6 +50,7 @@ func NewSite() *Site {
 		Separator: " | ",
 		MetaTags:  NewMetaTags(DefaultCharset),
 		Metadata:  make(map[string]any),
+		Status:    Draft,
 	}
 }
 

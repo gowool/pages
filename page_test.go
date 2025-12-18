@@ -638,7 +638,7 @@ func TestPage_Copy(t *testing.T) {
 		Children:  []*Page{},
 		Created:   originalTime,
 		Updated:   originalTime,
-		Status:    PublishStatus,
+		Status:    Published,
 		MetaTags:  NewMetaTags("iso-8859-1"),
 		Metadata:  map[string]any{"key1": "value1", "key2": 42, "key3": true},
 		Header:    map[string][]string{"Content-Type": {"text/html"}, "X-Custom": {"custom-value"}},

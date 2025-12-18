@@ -64,13 +64,6 @@ func (s *DefaultSiteSelector) Retrieve(r *http.Request) (*Site, string, error) {
 		}
 	}
 
-	siteSeq, err := s.store.FindEnabled(r.Context())
-	if err != nil {
-		if site, pathInfo, err := s.resolveError(r, err); site != nil || err != nil {
-			return site, pathInfo, err
-		}
-	}
-
 	if r.URL.Path == "" {
 		r.URL.Path = "/"
 	}
@@ -87,7 +80,7 @@ func (s *DefaultSiteSelector) Retrieve(r *http.Request) (*Site, string, error) {
 	sites := make(map[language.Tag]*Site)
 	paths := make(map[language.Tag]string)
 
-	for site, err := range siteSeq {
+	for site, err := range s.store.FindEnabled(r.Context()) {
 		if err != nil {
 			if site, pathInfo, err := s.resolveError(r, err); site != nil || err != nil {
 				return site, pathInfo, err
