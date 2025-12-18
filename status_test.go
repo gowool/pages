@@ -22,7 +22,7 @@ func TestStatus_String(t *testing.T) {
 		{
 			name:     "Published string representation",
 			status:   Published,
-			expected: "publish",
+			expected: "published",
 		},
 		{
 			name:     "Unknown status (negative value)",
@@ -73,19 +73,18 @@ func TestStatus_Constants(t *testing.T) {
 func TestStatus_Usage(t *testing.T) {
 	t.Run("Status in switch statements", func(t *testing.T) {
 		statuses := []Status{Draft, Published}
-		expectedStrings := []string{"draft", "publish", "private"}
 
-		for i, status := range statuses {
+		for _, status := range statuses {
 			var result string
 			switch status {
 			case Draft:
 				result = "found draft"
 			case Published:
-				result = "found publish"
+				result = "found published"
 			default:
 				result = "found unknown"
 			}
-			expected := "found " + expectedStrings[i]
+			expected := "found " + status.String()
 			assert.Equal(t, expected, result, "Switch statement should handle status correctly")
 		}
 	})
@@ -106,7 +105,7 @@ func TestStatus_Usage(t *testing.T) {
 
 		assert.Contains(t, statuses, Draft, "Status slice should contain Draft")
 		assert.Contains(t, statuses, Published, "Status slice should contain Published")
-		assert.Len(t, statuses, 3, "Status slice should have correct length")
+		assert.Len(t, statuses, 2, "Status slice should have correct length")
 	})
 }
 
@@ -141,9 +140,9 @@ func TestStatus_EdgeCases(t *testing.T) {
 			expected string
 		}{
 			{Status(-1), "unknown"},
-			{Status(0), "draft"},   // Draft
-			{Status(1), "publish"}, // Published
-			{Status(2), "private"}, // PrivateStatus
+			{Status(0), "draft"},     // Draft
+			{Status(1), "published"}, // Published
+			{Status(2), "unknown"},   // No more PrivateStatus
 			{Status(3), "unknown"},
 		}
 
@@ -188,7 +187,7 @@ func TestStatus_DefaultValues(t *testing.T) {
 		}
 
 		assert.Equal(t, "draft", checkStatus(Draft), "Status should pass as parameter correctly")
-		assert.Equal(t, "publish", checkStatus(Published), "Status should pass as parameter correctly")
+		assert.Equal(t, "published", checkStatus(Published), "Status should pass as parameter correctly")
 	})
 }
 
@@ -207,7 +206,7 @@ func TestStatus_ConcurrentAccess(t *testing.T) {
 		// Collect results
 		for i := 0; i < 100; i++ {
 			result := <-results
-			assert.Equal(t, "publish", result, "Concurrent String() calls should return consistent results")
+			assert.Equal(t, "published", result, "Concurrent String() calls should return consistent results")
 		}
 	})
 
@@ -221,7 +220,7 @@ func TestStatus_ConcurrentAccess(t *testing.T) {
 			}(status)
 		}
 
-		expectedResults := []string{"status_draft", "status_publish", "status_private"}
+		expectedResults := []string{"status_draft", "status_published"}
 		actualResults := make([]string, 0, len(statuses))
 
 		for i := 0; i < len(statuses); i++ {

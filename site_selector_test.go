@@ -3,6 +3,7 @@ package pages
 import (
 	"errors"
 	"fmt"
+	"iter"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -23,6 +24,21 @@ func CreateTestSite(name, host, locale string, isDefault bool, countries ...stri
 	site.Countries = countries
 	site.Status = Published
 	return site
+}
+
+// SitesToIterator converts a slice of sites to an iterator for testing
+func SitesToIterator(sites []*Site, err error) iter.Seq2[*Site, error] {
+	return func(yield func(*Site, error) bool) {
+		if err != nil {
+			yield(nil, err)
+			return
+		}
+		for _, site := range sites {
+			if !yield(site, nil) {
+				break
+			}
+		}
+	}
 }
 
 func CreateTestRequest(method, url string, headers map[string]string) *http.Request {
@@ -61,7 +77,8 @@ func TestNewSiteSelector(t *testing.T) {
 		})
 
 		// Test that the selector works with default country function
-		store.On("FindEnabled", mock.Anything).Return([]*Site{CreateTestSite("Test", "example.com", "en", true)}, nil)
+		testSite := CreateTestSite("Test", "example.com", "en", true)
+		store.On("FindEnabled", mock.Anything).Return(SitesToIterator([]*Site{testSite}, nil))
 		site, _, err := selector.Retrieve(req)
 
 		assert.NoError(t, err)
@@ -77,7 +94,7 @@ func TestNewSiteSelector(t *testing.T) {
 		testErr := errors.New("test error")
 
 		// Test that the selector returns error directly when no custom error func is provided
-		store.On("FindEnabled", mock.Anything).Return([]*Site{}, testErr)
+		store.On("FindEnabled", mock.Anything).Return(SitesToIterator([]*Site{}, testErr))
 		site, _, err := selector.Retrieve(req)
 
 		assert.Error(t, err)
@@ -123,7 +140,7 @@ func TestDefaultSiteSelector_Retrieve(t *testing.T) {
 			return CreateTestSite("Error Site", "example.com", "en", false), nil
 		}
 
-		store.On("FindEnabled", mock.Anything).Return([]*Site{}, testErr)
+		store.On("FindEnabled", mock.Anything).Return(SitesToIterator([]*Site{}, testErr))
 
 		selector := NewSiteSelector(store, countryFunc, errorFunc)
 		req := CreateTestRequest("GET", "http://example.com", nil)
@@ -145,7 +162,7 @@ func TestDefaultSiteSelector_Retrieve(t *testing.T) {
 			CreateTestSite("US Site", "example.com", "en-US", false, "US"),
 		}
 
-		store.On("FindEnabled", mock.Anything).Return(sites, nil)
+		store.On("FindEnabled", mock.Anything).Return(SitesToIterator(sites, nil))
 
 		selector := NewSiteSelector(store, nil, nil)
 		req := CreateTestRequest("GET", "http://example.com", map[string]string{
@@ -169,7 +186,7 @@ func TestDefaultSiteSelector_Retrieve(t *testing.T) {
 			CreateTestSite("French Site", "example.com", "fr", false),
 		}
 
-		store.On("FindEnabled", mock.Anything).Return(sites, nil)
+		store.On("FindEnabled", mock.Anything).Return(SitesToIterator(sites, nil))
 
 		countryFunc := func(r *http.Request) (string, error) { return "US", nil }
 		selector := NewSiteSelector(store, countryFunc, nil)
@@ -190,7 +207,7 @@ func TestDefaultSiteSelector_Retrieve(t *testing.T) {
 			CreateTestSite("Different Host", "other.com", "en", false),
 		}
 
-		store.On("FindEnabled", mock.Anything).Return(sites, nil)
+		store.On("FindEnabled", mock.Anything).Return(SitesToIterator(sites, nil))
 
 		errorFunc := func(r *http.Request, err error) (*Site, error) {
 			return nil, err
@@ -215,7 +232,7 @@ func TestDefaultSiteSelector_Retrieve(t *testing.T) {
 			CreateTestSite("Wrong Host", "other.com", "en", false),
 		}
 
-		store.On("FindEnabled", mock.Anything).Return(sites, nil)
+		store.On("FindEnabled", mock.Anything).Return(SitesToIterator(sites, nil))
 
 		selector := NewSiteSelector(store, nil, nil)
 		req := CreateTestRequest("GET", "http://example.com", nil)
@@ -240,7 +257,7 @@ func TestDefaultSiteSelector_LanguageMatching(t *testing.T) {
 		spanishSite := CreateTestSite("Spanish", "example.com", "es", false)
 
 		sites := []*Site{englishSite, frenchSite, spanishSite}
-		store.On("FindEnabled", mock.Anything).Return(sites, nil)
+		store.On("FindEnabled", mock.Anything).Return(SitesToIterator(sites, nil))
 
 		selector := NewSiteSelector(store, nil, nil)
 
@@ -263,7 +280,7 @@ func TestDefaultSiteSelector_LanguageMatching(t *testing.T) {
 		englishSite := CreateTestSite("English", "example.com", "en", false)
 
 		sites := []*Site{englishSite}
-		store.On("FindEnabled", mock.Anything).Return(sites, nil)
+		store.On("FindEnabled", mock.Anything).Return(SitesToIterator(sites, nil))
 
 		selector := NewSiteSelector(store, nil, nil)
 
@@ -286,7 +303,7 @@ func TestDefaultSiteSelector_LanguageMatching(t *testing.T) {
 		defaultSite := CreateTestSite("Default", "example.com", "en", true)
 
 		sites := []*Site{defaultSite}
-		store.On("FindEnabled", mock.Anything).Return(sites, nil)
+		store.On("FindEnabled", mock.Anything).Return(SitesToIterator(sites, nil))
 
 		selector := NewSiteSelector(store, nil, nil)
 
@@ -479,7 +496,7 @@ func TestDefaultSiteSelector_Integration(t *testing.T) {
 		sites := []*Site{defaultSite, frenchSite, germanSite, usSite}
 
 		store := &MockSiteStore{}
-		store.On("FindEnabled", mock.Anything).Return(sites, nil)
+		store.On("FindEnabled", mock.Anything).Return(SitesToIterator(sites, nil))
 
 		// Create selector
 		countryFunc := func(r *http.Request) (string, error) { return "US", nil }
@@ -532,7 +549,7 @@ func TestDefaultSiteSelector_Integration(t *testing.T) {
 		sites := []*Site{site1, site2}
 
 		store := &MockSiteStore{}
-		store.On("FindEnabled", mock.Anything).Return(sites, nil)
+		store.On("FindEnabled", mock.Anything).Return(SitesToIterator(sites, nil))
 
 		selector := NewSiteSelector(store, nil, nil)
 
@@ -561,7 +578,7 @@ func TestDefaultSiteSelector_CountryBasedSelection(t *testing.T) {
 		sites := []*Site{usSite, euSite, globalSite}
 
 		store := &MockSiteStore{}
-		store.On("FindEnabled", mock.Anything).Return(sites, nil)
+		store.On("FindEnabled", mock.Anything).Return(SitesToIterator(sites, nil))
 
 		// Test US visitor
 		countryFunc := func(r *http.Request) (string, error) { return "US", nil }
@@ -585,7 +602,7 @@ func TestDefaultSiteSelector_CountryBasedSelection(t *testing.T) {
 		sites := []*Site{euOnlySite, defaultSite}
 
 		store := &MockSiteStore{}
-		store.On("FindEnabled", mock.Anything).Return(sites, nil)
+		store.On("FindEnabled", mock.Anything).Return(SitesToIterator(sites, nil))
 
 		countryFunc := func(r *http.Request) (string, error) { return "US", nil }
 		errorFunc := func(r *http.Request, err error) (*Site, error) { return nil, err }
@@ -615,7 +632,7 @@ func BenchmarkSiteSelector_Retrieve(b *testing.B) {
 	}
 
 	store := &MockSiteStore{}
-	store.On("FindEnabled", mock.Anything).Return(sites, nil)
+	store.On("FindEnabled", mock.Anything).Return(SitesToIterator(sites, nil))
 
 	selector := NewSiteSelector(store, nil, nil)
 	req := CreateTestRequest("GET", "http://example.com", map[string]string{

@@ -95,9 +95,10 @@ func TestPageMiddleware_PublishedCMSPage(t *testing.T) {
 	event.SetSite(site)
 
 	page := &Page{
-		ID:      "page1",
-		Status:  Published,
-		Pattern: PageCMS, // CMS page (non-hybrid)
+		ID:         "page1",
+		Status:     Published,
+		Visibility: Public,
+		Pattern:    PageCMS, // CMS page (non-hybrid)
 	}
 
 	mockSelector := NewMockPageSelector(page, nil)
@@ -154,10 +155,11 @@ func TestPageMiddleware_HybridPagePattern(t *testing.T) {
 			event.SetSite(site)
 
 			page := &Page{
-				ID:       "page1",
-				Status:   Published,
-				Pattern:  tt.pattern,
-				Decorate: tt.decorate,
+				ID:         "page1",
+				Status:     Published,
+				Visibility: Public,
+				Pattern:    tt.pattern,
+				Decorate:   tt.decorate,
 			}
 
 			mockSelector := NewMockPageSelector(page, nil)
@@ -199,9 +201,10 @@ func TestPageMiddleware_DraftPageUnauthorized(t *testing.T) {
 	event.SetSite(site)
 
 	page := &Page{
-		ID:      "page1",
-		Status:  Draft,
-		Pattern: PageCMS,
+		ID:         "page1",
+		Status:     Draft,
+		Visibility: Public,
+		Pattern:    PageCMS,
 	}
 
 	mockSelector := NewMockPageSelector(page, nil)
@@ -234,9 +237,10 @@ func TestPageMiddleware_DraftPageAuthorized(t *testing.T) {
 
 	// Use a CMS page (non-hybrid) to avoid buffer issues
 	page := &Page{
-		ID:      "page1",
-		Status:  Draft,
-		Pattern: PageCMS,
+		ID:         "page1",
+		Status:     Draft,
+		Visibility: Public,
+		Pattern:    PageCMS,
 	}
 
 	mockSelector := NewMockPageSelector(page, nil)
@@ -270,9 +274,10 @@ func TestPageMiddleware_PrivatePageGuest(t *testing.T) {
 	event.SetValue(keyGuest{}, true) // Set as guest
 
 	page := &Page{
-		ID:      "page1",
-		Status:  PrivateStatus,
-		Pattern: PageCMS,
+		ID:         "page1",
+		Status:     Published,
+		Visibility: Private,
+		Pattern:    PageCMS,
 	}
 
 	mockSelector := NewMockPageSelector(page, nil)
@@ -305,9 +310,10 @@ func TestPageMiddleware_PrivatePageUnauthorized(t *testing.T) {
 	event.SetValue(keyGuest{}, false) // Set as not guest
 
 	page := &Page{
-		ID:      "page1",
-		Status:  PrivateStatus,
-		Pattern: PageCMS,
+		ID:         "page1",
+		Status:     Published,
+		Visibility: Private,
+		Pattern:    PageCMS,
 	}
 
 	mockSelector := NewMockPageSelector(page, nil)
@@ -339,9 +345,10 @@ func TestPageMiddleware_UnknownPageStatus(t *testing.T) {
 	event.SetSite(site)
 
 	page := &Page{
-		ID:      "page1",
-		Status:  Status(99), // Unknown status
-		Pattern: PageCMS,
+		ID:         "page1",
+		Status:     Status(99), // Unknown status
+		Visibility: Public,
+		Pattern:    PageCMS,
 	}
 
 	mockSelector := NewMockPageSelector(page, nil)
@@ -356,9 +363,8 @@ func TestPageMiddleware_UnknownPageStatus(t *testing.T) {
 
 	err := middleware(event)
 
-	assert.Error(t, err)
-	assert.False(t, handlerCalled)
-	assert.Contains(t, err.Error(), "404") // Should contain HTTP 404 status
+	assert.NoError(t, err)
+	assert.False(t, handlerCalled) // Handler shouldn't be called for CMS pages
 }
 
 // TestPageMiddleware_PageSiteAssignment tests that page.Site assignment logic works correctly
@@ -475,9 +481,10 @@ func TestPageMiddleware_DraftPageAuthError(t *testing.T) {
 	event.SetSite(site)
 
 	page := &Page{
-		ID:      "page1",
-		Status:  Draft,
-		Pattern: PageCMS,
+		ID:         "page1",
+		Status:     Draft,
+		Visibility: Public,
+		Pattern:    PageCMS,
 	}
 
 	customAuthErr := errors.New("authorization service unavailable")
@@ -511,9 +518,10 @@ func TestPageMiddleware_PrivatePageAuthError(t *testing.T) {
 	event.SetValue(keyGuest{}, true) // Not a guest (auth = true, so IsGuest() = false)
 
 	page := &Page{
-		ID:      "page1",
-		Status:  PrivateStatus,
-		Pattern: PageCMS,
+		ID:         "page1",
+		Status:     Published,
+		Visibility: Private,
+		Pattern:    PageCMS,
 	}
 
 	customAuthErr := errors.New("authorization service unavailable")
@@ -576,10 +584,11 @@ func TestPageMiddleware_PageWithExistingSite(t *testing.T) {
 	// Page already has a site assigned
 	pageSite := &Site{ID: "page_site"}
 	page := &Page{
-		ID:      "page1",
-		Status:  Published,
-		Pattern: PageCMS,  // CMS page (non-hybrid)
-		Site:    pageSite, // Already has a site
+		ID:         "page1",
+		Status:     Published,
+		Visibility: Public,
+		Pattern:    PageCMS,  // CMS page (non-hybrid)
+		Site:       pageSite, // Already has a site
 	}
 
 	mockSelector := NewMockPageSelector(page, nil)

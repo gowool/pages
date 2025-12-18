@@ -22,15 +22,15 @@ func TestLocalhostSiteStore_FindEnabled(t *testing.T) {
 	ctx := context.Background()
 
 	t.Run("FindEnabled returns iterator", func(t *testing.T) {
-		iterator, err := store.FindEnabled(ctx)
+		iterator := store.FindEnabled(ctx)
 
-		assert.NoError(t, err, "FindEnabled() should not return error")
+		assert.NotNil(t, iterator, "FindEnabled() should return iterator")
 		assert.NotNil(t, iterator, "FindEnabled() should return iterator")
 	})
 
 	t.Run("Iterator yields one enabled site", func(t *testing.T) {
-		iterator, err := store.FindEnabled(ctx)
-		require.NoError(t, err, "FindEnabled() should not return error")
+		iterator := store.FindEnabled(ctx)
+		require.NotNil(t, iterator, "FindEnabled() should return iterator")
 
 		var sites []*Site
 		var errors []error
@@ -48,7 +48,7 @@ func TestLocalhostSiteStore_FindEnabled(t *testing.T) {
 		assert.Len(t, sites, 1, "Iterator should yield exactly one site")
 
 		site := sites[0]
-		assert.True(t, site.Enabled, "Site should be enabled")
+		assert.True(t, site.Status == Published, "Site should be enabled")
 		assert.Equal(t, "Localhost", site.Name, "Site should have default name")
 		assert.Equal(t, "localhost", site.Host, "Site should have default host")
 		assert.Equal(t, "https", site.Scheme, "Site should have default scheme")
@@ -63,8 +63,8 @@ func TestLocalhostSiteStore_FindEnabled(t *testing.T) {
 	})
 
 	t.Run("Iterator can be stopped early", func(t *testing.T) {
-		iterator, err := store.FindEnabled(ctx)
-		require.NoError(t, err, "FindEnabled() should not return error")
+		iterator := store.FindEnabled(ctx)
+		require.NotNil(t, iterator, "FindEnabled() should return iterator")
 
 		var iterationCount int
 		iterator(func(site *Site, err error) bool {
@@ -77,11 +77,11 @@ func TestLocalhostSiteStore_FindEnabled(t *testing.T) {
 	})
 
 	t.Run("Multiple calls return same data", func(t *testing.T) {
-		iterator1, err1 := store.FindEnabled(ctx)
-		iterator2, err2 := store.FindEnabled(ctx)
+		iterator1 := store.FindEnabled(ctx)
+		iterator2 := store.FindEnabled(ctx)
 
-		assert.NoError(t, err1, "First call should not return error")
-		assert.NoError(t, err2, "Second call should not return error")
+		assert.NotNil(t, iterator1, "First call should return iterator")
+		assert.NotNil(t, iterator2, "Second call should return iterator")
 
 		// Get first site
 		var site1 *Site
@@ -100,7 +100,7 @@ func TestLocalhostSiteStore_FindEnabled(t *testing.T) {
 		// Both sites should have same basic properties (but are different instances)
 		assert.Equal(t, site1.Name, site2.Name, "Both sites should have same name")
 		assert.Equal(t, site1.Host, site2.Host, "Both sites should have same host")
-		assert.Equal(t, site1.Enabled, site2.Enabled, "Both sites should be enabled")
+		assert.Equal(t, site1.Status, site2.Status, "Both sites should have same status")
 		assert.NotSame(t, site1, site2, "Sites should be different instances")
 	})
 
@@ -108,8 +108,8 @@ func TestLocalhostSiteStore_FindEnabled(t *testing.T) {
 		ctx, cancel := context.WithCancel(context.Background())
 		cancel() // Cancel immediately
 
-		iterator, err := store.FindEnabled(ctx)
-		assert.NoError(t, err, "FindEnabled() should not return error even with cancelled context")
+		iterator := store.FindEnabled(ctx)
+		assert.NotNil(t, iterator, "FindEnabled() should return iterator even with cancelled context")
 
 		var wasCalled bool
 		iterator(func(site *Site, err error) bool {
@@ -128,8 +128,8 @@ func TestLocalhostSiteStore_InterfaceCompliance(t *testing.T) {
 	ctx := context.Background()
 
 	// Test that all interface methods are implemented and work
-	iterator, err := store.FindEnabled(ctx)
-	assert.NoError(t, err, "FindEnabled method should work")
+	iterator := store.FindEnabled(ctx)
+	assert.NotNil(t, iterator, "FindEnabled should return iterator")
 	assert.NotNil(t, iterator, "FindEnabled should return iterator")
 }
 
@@ -141,8 +141,8 @@ func TestLocalhostSiteStore_ConcurrentAccess(t *testing.T) {
 		// Start multiple goroutines calling FindEnabled
 		for i := 0; i < 10; i++ {
 			go func() {
-				iterator, err := store.FindEnabled(ctx)
-				assert.NoError(t, err, "FindEnabled() should not return error")
+				iterator := store.FindEnabled(ctx)
+				assert.NotNil(t, iterator, "FindEnabled() should return iterator")
 
 				var count int
 				iterator(func(site *Site, err error) bool {
@@ -160,10 +160,10 @@ func TestLocalhostSiteStore_IteratorBehavior(t *testing.T) {
 	ctx := context.Background()
 
 	t.Run("Iterator yields different instances", func(t *testing.T) {
-		iterator1, err1 := store.FindEnabled(ctx)
-		iterator2, err2 := store.FindEnabled(ctx)
-		require.NoError(t, err1)
-		require.NoError(t, err2)
+		iterator1 := store.FindEnabled(ctx)
+		iterator2 := store.FindEnabled(ctx)
+		require.NotNil(t, iterator1)
+		require.NotNil(t, iterator2)
 
 		var site1, site2 *Site
 
@@ -182,8 +182,8 @@ func TestLocalhostSiteStore_IteratorBehavior(t *testing.T) {
 	})
 
 	t.Run("Iterator yields complete site data", func(t *testing.T) {
-		iterator, err := store.FindEnabled(ctx)
-		require.NoError(t, err)
+		iterator := store.FindEnabled(ctx)
+		require.NotNil(t, iterator)
 
 		var site *Site
 		iterator(func(s *Site, e error) bool {
@@ -194,7 +194,7 @@ func TestLocalhostSiteStore_IteratorBehavior(t *testing.T) {
 		require.NotNil(t, site, "Should have yielded a site")
 
 		// Verify all expected fields are populated
-		assert.True(t, site.Enabled, "Site should be enabled")
+		assert.True(t, site.Status == Published, "Site should be enabled")
 		assert.NotEmpty(t, site.Name, "Site should have name")
 		assert.NotEmpty(t, site.Host, "Site should have host")
 		assert.NotEmpty(t, site.Scheme, "Site should have scheme")
@@ -208,8 +208,8 @@ func TestLocalhostSiteStore_IteratorBehavior(t *testing.T) {
 	})
 
 	t.Run("Iterator error handling", func(t *testing.T) {
-		iterator, err := store.FindEnabled(ctx)
-		require.NoError(t, err)
+		iterator := store.FindEnabled(ctx)
+		require.NotNil(t, iterator)
 
 		var yieldedError error
 		iterator(func(site *Site, err error) bool {
@@ -225,8 +225,8 @@ func TestLocalhostSiteStore_SiteProperties(t *testing.T) {
 	store := NewLocalhostSiteStore()
 	ctx := context.Background()
 
-	iterator, err := store.FindEnabled(ctx)
-	require.NoError(t, err)
+	iterator := store.FindEnabled(ctx)
+	require.NotNil(t, iterator)
 
 	var site *Site
 	iterator(func(s *Site, e error) bool {
@@ -243,7 +243,7 @@ func TestLocalhostSiteStore_SiteProperties(t *testing.T) {
 		assert.Equal(t, "en", site.Locale, "Default locale should be en")
 		assert.Equal(t, "UTC", site.Timezone, "Default timezone should be UTC")
 		assert.Equal(t, " | ", site.Separator, "Default separator should be ' | '")
-		assert.True(t, site.Enabled, "Site should be enabled")
+		assert.True(t, site.Status == Published, "Site should be enabled")
 		assert.False(t, site.IsDefault, "Site should not be default by default")
 		assert.Empty(t, site.Countries, "Countries should be empty by default")
 		assert.Empty(t, site.RelativePath, "RelativePath should be empty by default")
@@ -276,8 +276,8 @@ func TestLocalhostSiteStore_IteratorPerformance(t *testing.T) {
 	t.Run("Iterator completes quickly", func(t *testing.T) {
 		start := time.Now()
 
-		iterator, err := store.FindEnabled(ctx)
-		require.NoError(t, err)
+		iterator := store.FindEnabled(ctx)
+		require.NotNil(t, iterator)
 
 		var count int
 		iterator(func(site *Site, err error) bool {
@@ -297,8 +297,8 @@ func TestLocalhostSiteStore_EdgeCases(t *testing.T) {
 	t.Run("Multiple iterations", func(t *testing.T) {
 		// Test that we can call FindEnabled multiple times and get consistent results
 		for i := 0; i < 5; i++ {
-			iterator, err := store.FindEnabled(context.Background())
-			assert.NoError(t, err, "Call %d should succeed", i+1)
+			iterator := store.FindEnabled(context.Background())
+			assert.NotNil(t, iterator, "Call %d should return iterator", i+1)
 
 			var count int
 			iterator(func(site *Site, err error) bool {
@@ -333,8 +333,8 @@ func TestLocalhostSiteStore_Integration(t *testing.T) {
 
 	t.Run("Integration test with realistic usage", func(t *testing.T) {
 		// Simulate realistic usage pattern
-		iterator, err := store.FindEnabled(ctx)
-		require.NoError(t, err)
+		iterator := store.FindEnabled(ctx)
+		require.NotNil(t, iterator)
 
 		sites, errors := collectSites(iterator)
 		assert.Empty(t, errors, "Should not have any errors")
@@ -343,7 +343,7 @@ func TestLocalhostSiteStore_Integration(t *testing.T) {
 		site := sites[0]
 
 		// Verify the site is suitable for use
-		assert.True(t, site.Enabled, "Site should be enabled")
+		assert.True(t, site.Status == Published, "Site should be enabled")
 		assert.NotEmpty(t, site.Host, "Site should have host")
 		assert.NotEmpty(t, site.Scheme, "Site should have scheme")
 
