@@ -174,6 +174,201 @@ func TestStatus_TypeProperties(t *testing.T) {
 	})
 }
 
+func TestStatusFromString(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		expected Status
+	}{
+		{
+			name:     "Published string",
+			input:    "published",
+			expected: Published,
+		},
+		{
+			name:     "Draft string - default case",
+			input:    "draft",
+			expected: Draft,
+		},
+		{
+			name:     "Empty string",
+			input:    "",
+			expected: Draft,
+		},
+		{
+			name:     "Invalid string",
+			input:    "invalid",
+			expected: Draft,
+		},
+		{
+			name:     "Mixed case published",
+			input:    "Published",
+			expected: Draft,
+		},
+		{
+			name:     "Uppercase published",
+			input:    "PUBLISHED",
+			expected: Draft,
+		},
+		{
+			name:     "Whitespace around published",
+			input:    " published ",
+			expected: Draft,
+		},
+		{
+			name:     "Partial match",
+			input:    "pub",
+			expected: Draft,
+		},
+		{
+			name:     "Number string",
+			input:    "123",
+			expected: Draft,
+		},
+		{
+			name:     "Null character string",
+			input:    "\x00",
+			expected: Draft,
+		},
+		{
+			name:     "Long string",
+			input:    "this is a very long string that should not match any status",
+			expected: Draft,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := StatusFromString(tt.input)
+			assert.Equal(t, tt.expected, result, "StatusFromString() should return the expected status")
+		})
+	}
+}
+
+func TestStatus_StatusFromString_RoundTrip(t *testing.T) {
+	tests := []struct {
+		name     string
+		original Status
+	}{
+		{
+			name:     "Draft round trip",
+			original: Draft,
+		},
+		{
+			name:     "Published round trip",
+			original: Published,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Convert to string and back
+			str := tt.original.String()
+			result := StatusFromString(str)
+
+			assert.Equal(t, tt.original, result, "Round trip conversion should preserve the original value")
+		})
+	}
+}
+
+func TestStatusFromString_EdgeCases(t *testing.T) {
+	t.Run("StatusFromString with Unicode characters", func(t *testing.T) {
+		testCases := []struct {
+			input    string
+			expected Status
+		}{
+			{"published✓", Draft},
+			{"📝draft", Draft},
+			{"published🚀", Draft},
+			{"", Draft},
+		}
+
+		for _, tc := range testCases {
+			result := StatusFromString(tc.input)
+			assert.Equal(t, tc.expected, result, "Unicode characters should be handled gracefully")
+		}
+	})
+
+	t.Run("StatusFromString with special characters", func(t *testing.T) {
+		testCases := []struct {
+			input    string
+			expected Status
+		}{
+			{"published\n", Draft},
+			{"published\t", Draft},
+			{"published\r", Draft},
+			{"published ", Draft},
+			{"published!", Draft},
+			{"published?", Draft},
+			{"published.", Draft},
+		}
+
+		for _, tc := range testCases {
+			result := StatusFromString(tc.input)
+			assert.Equal(t, tc.expected, result, "Special characters should prevent matching")
+		}
+	})
+
+	t.Run("StatusFromString with exact match only", func(t *testing.T) {
+		// Only exact "published" should match, everything else should return Draft
+		result := StatusFromString("published")
+		assert.Equal(t, Published, result, "Exact 'published' should match")
+
+		// These should not match
+		nonMatchingInputs := []string{
+			" published", // leading space
+			"published ", // trailing space
+			"publishedd", // extra character
+			"publish",    // partial
+			"PUBLISHED",  // case sensitive
+			"Publish",    // case sensitive
+		}
+
+		for _, input := range nonMatchingInputs {
+			result := StatusFromString(input)
+			assert.Equal(t, Draft, result, "Input '%s' should not match and return Draft", input)
+		}
+	})
+}
+
+func TestStatusFromString_Integration(t *testing.T) {
+	t.Run("StatusFromString with user input simulation", func(t *testing.T) {
+		// Simulate various types of user input
+		userInputs := []string{
+			"published",      // valid input
+			"draft",          // invalid input (should default to Draft)
+			"",               // empty input
+			"  published  ",  // whitespace (should not match)
+			"PUBLISHED",      // uppercase (should not match)
+			"something else", // random input
+		}
+
+		for _, input := range userInputs {
+			result := StatusFromString(input)
+			// All results should be either Draft or Published
+			assert.True(t, result == Draft || result == Published,
+				"Result should be either Draft or Published for input: '%s'", input)
+		}
+	})
+
+	t.Run("StatusFromString performance considerations", func(t *testing.T) {
+		// Test with many different inputs to ensure the function is efficient
+		inputs := make([]string, 1000)
+		for i := range inputs {
+			if i%2 == 0 {
+				inputs[i] = "published"
+			} else {
+				inputs[i] = "some_other_input"
+			}
+		}
+
+		// This should complete quickly even with 1000 inputs
+		for _, input := range inputs {
+			_ = StatusFromString(input)
+		}
+	})
+}
+
 func TestStatus_DefaultValues(t *testing.T) {
 	t.Run("Zero value of Status", func(t *testing.T) {
 		var status Status
@@ -249,6 +444,44 @@ func BenchmarkStatus_AllConstants_String(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		for _, status := range statuses {
 			_ = status.String()
+		}
+	}
+}
+
+func BenchmarkStatusFromString(b *testing.B) {
+	inputs := []string{"published", "draft", "invalid", ""}
+
+	for _, input := range inputs {
+		b.Run(input, func(b *testing.B) {
+			b.ResetTimer()
+			for i := 0; i < b.N; i++ {
+				_ = StatusFromString(input)
+			}
+		})
+	}
+}
+
+func BenchmarkStatusFromString_Published(b *testing.B) {
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_ = StatusFromString("published")
+	}
+}
+
+func BenchmarkStatusFromString_Draft_Default(b *testing.B) {
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_ = StatusFromString("some_other_input")
+	}
+}
+
+func BenchmarkStatus_RoundTrip(b *testing.B) {
+	statuses := []Status{Draft, Published}
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		for _, status := range statuses {
+			_ = StatusFromString(status.String())
 		}
 	}
 }
