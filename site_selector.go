@@ -80,7 +80,7 @@ func (s *DefaultSiteSelector) Retrieve(r *http.Request) (*Site, string, error) {
 	sites := make(map[language.Tag]*Site)
 	paths := make(map[language.Tag]string)
 
-	for site, err := range s.store.FindEnabled(r.Context()) {
+	for site, err := range s.store.FindPublished(r.Context()) {
 		if err != nil {
 			if site, pathInfo, err := s.resolveError(r, err); site != nil || err != nil {
 				return site, pathInfo, err

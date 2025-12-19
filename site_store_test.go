@@ -17,20 +17,20 @@ func TestNewLocalhostSiteStore(t *testing.T) {
 	assert.IsType(t, &LocalhostSiteStore{}, store, "Should return LocalhostSiteStore instance")
 }
 
-func TestLocalhostSiteStore_FindEnabled(t *testing.T) {
+func TestLocalhostSiteStore_FindPublished(t *testing.T) {
 	store := NewLocalhostSiteStore()
 	ctx := context.Background()
 
-	t.Run("FindEnabled returns iterator", func(t *testing.T) {
-		iterator := store.FindEnabled(ctx)
+	t.Run("FindPublished returns iterator", func(t *testing.T) {
+		iterator := store.FindPublished(ctx)
 
-		assert.NotNil(t, iterator, "FindEnabled() should return iterator")
-		assert.NotNil(t, iterator, "FindEnabled() should return iterator")
+		assert.NotNil(t, iterator, "FindPublished() should return iterator")
+		assert.NotNil(t, iterator, "FindPublished() should return iterator")
 	})
 
-	t.Run("Iterator yields one enabled site", func(t *testing.T) {
-		iterator := store.FindEnabled(ctx)
-		require.NotNil(t, iterator, "FindEnabled() should return iterator")
+	t.Run("Iterator yields one published site", func(t *testing.T) {
+		iterator := store.FindPublished(ctx)
+		require.NotNil(t, iterator, "FindPublished() should return iterator")
 
 		var sites []*Site
 		var errors []error
@@ -48,7 +48,7 @@ func TestLocalhostSiteStore_FindEnabled(t *testing.T) {
 		assert.Len(t, sites, 1, "Iterator should yield exactly one site")
 
 		site := sites[0]
-		assert.True(t, site.Status == Published, "Site should be enabled")
+		assert.True(t, site.Status == Published, "Site should be published")
 		assert.Equal(t, "Localhost", site.Name, "Site should have default name")
 		assert.Equal(t, "localhost", site.Host, "Site should have default host")
 		assert.Equal(t, "https", site.Scheme, "Site should have default scheme")
@@ -63,8 +63,8 @@ func TestLocalhostSiteStore_FindEnabled(t *testing.T) {
 	})
 
 	t.Run("Iterator can be stopped early", func(t *testing.T) {
-		iterator := store.FindEnabled(ctx)
-		require.NotNil(t, iterator, "FindEnabled() should return iterator")
+		iterator := store.FindPublished(ctx)
+		require.NotNil(t, iterator, "FindPublished() should return iterator")
 
 		var iterationCount int
 		iterator(func(site *Site, err error) bool {
@@ -77,8 +77,8 @@ func TestLocalhostSiteStore_FindEnabled(t *testing.T) {
 	})
 
 	t.Run("Multiple calls return same data", func(t *testing.T) {
-		iterator1 := store.FindEnabled(ctx)
-		iterator2 := store.FindEnabled(ctx)
+		iterator1 := store.FindPublished(ctx)
+		iterator2 := store.FindPublished(ctx)
 
 		assert.NotNil(t, iterator1, "First call should return iterator")
 		assert.NotNil(t, iterator2, "Second call should return iterator")
@@ -108,8 +108,8 @@ func TestLocalhostSiteStore_FindEnabled(t *testing.T) {
 		ctx, cancel := context.WithCancel(context.Background())
 		cancel() // Cancel immediately
 
-		iterator := store.FindEnabled(ctx)
-		assert.NotNil(t, iterator, "FindEnabled() should return iterator even with cancelled context")
+		iterator := store.FindPublished(ctx)
+		assert.NotNil(t, iterator, "FindPublished() should return iterator even with cancelled context")
 
 		var wasCalled bool
 		iterator(func(site *Site, err error) bool {
@@ -128,9 +128,9 @@ func TestLocalhostSiteStore_InterfaceCompliance(t *testing.T) {
 	ctx := context.Background()
 
 	// Test that all interface methods are implemented and work
-	iterator := store.FindEnabled(ctx)
-	assert.NotNil(t, iterator, "FindEnabled should return iterator")
-	assert.NotNil(t, iterator, "FindEnabled should return iterator")
+	iterator := store.FindPublished(ctx)
+	assert.NotNil(t, iterator, "FindPublished should return iterator")
+	assert.NotNil(t, iterator, "FindPublished should return iterator")
 }
 
 func TestLocalhostSiteStore_ConcurrentAccess(t *testing.T) {
@@ -138,11 +138,11 @@ func TestLocalhostSiteStore_ConcurrentAccess(t *testing.T) {
 	ctx := context.Background()
 
 	t.Run("Concurrent iterator calls", func(t *testing.T) {
-		// Start multiple goroutines calling FindEnabled
+		// Start multiple goroutines calling FindPublished
 		for i := 0; i < 10; i++ {
 			go func() {
-				iterator := store.FindEnabled(ctx)
-				assert.NotNil(t, iterator, "FindEnabled() should return iterator")
+				iterator := store.FindPublished(ctx)
+				assert.NotNil(t, iterator, "FindPublished() should return iterator")
 
 				var count int
 				iterator(func(site *Site, err error) bool {
@@ -160,8 +160,8 @@ func TestLocalhostSiteStore_IteratorBehavior(t *testing.T) {
 	ctx := context.Background()
 
 	t.Run("Iterator yields different instances", func(t *testing.T) {
-		iterator1 := store.FindEnabled(ctx)
-		iterator2 := store.FindEnabled(ctx)
+		iterator1 := store.FindPublished(ctx)
+		iterator2 := store.FindPublished(ctx)
 		require.NotNil(t, iterator1)
 		require.NotNil(t, iterator2)
 
@@ -182,7 +182,7 @@ func TestLocalhostSiteStore_IteratorBehavior(t *testing.T) {
 	})
 
 	t.Run("Iterator yields complete site data", func(t *testing.T) {
-		iterator := store.FindEnabled(ctx)
+		iterator := store.FindPublished(ctx)
 		require.NotNil(t, iterator)
 
 		var site *Site
@@ -194,7 +194,7 @@ func TestLocalhostSiteStore_IteratorBehavior(t *testing.T) {
 		require.NotNil(t, site, "Should have yielded a site")
 
 		// Verify all expected fields are populated
-		assert.True(t, site.Status == Published, "Site should be enabled")
+		assert.True(t, site.Status == Published, "Site should be published")
 		assert.NotEmpty(t, site.Name, "Site should have name")
 		assert.NotEmpty(t, site.Host, "Site should have host")
 		assert.NotEmpty(t, site.Scheme, "Site should have scheme")
@@ -208,7 +208,7 @@ func TestLocalhostSiteStore_IteratorBehavior(t *testing.T) {
 	})
 
 	t.Run("Iterator error handling", func(t *testing.T) {
-		iterator := store.FindEnabled(ctx)
+		iterator := store.FindPublished(ctx)
 		require.NotNil(t, iterator)
 
 		var yieldedError error
@@ -225,7 +225,7 @@ func TestLocalhostSiteStore_SiteProperties(t *testing.T) {
 	store := NewLocalhostSiteStore()
 	ctx := context.Background()
 
-	iterator := store.FindEnabled(ctx)
+	iterator := store.FindPublished(ctx)
 	require.NotNil(t, iterator)
 
 	var site *Site
@@ -243,7 +243,7 @@ func TestLocalhostSiteStore_SiteProperties(t *testing.T) {
 		assert.Equal(t, "en", site.Locale, "Default locale should be en")
 		assert.Equal(t, "UTC", site.Timezone, "Default timezone should be UTC")
 		assert.Equal(t, " | ", site.Separator, "Default separator should be ' | '")
-		assert.True(t, site.Status == Published, "Site should be enabled")
+		assert.True(t, site.Status == Published, "Site should be published")
 		assert.False(t, site.IsDefault, "Site should not be default by default")
 		assert.Empty(t, site.Countries, "Countries should be empty by default")
 		assert.Empty(t, site.RelativePath, "RelativePath should be empty by default")
@@ -276,7 +276,7 @@ func TestLocalhostSiteStore_IteratorPerformance(t *testing.T) {
 	t.Run("Iterator completes quickly", func(t *testing.T) {
 		start := time.Now()
 
-		iterator := store.FindEnabled(ctx)
+		iterator := store.FindPublished(ctx)
 		require.NotNil(t, iterator)
 
 		var count int
@@ -295,9 +295,9 @@ func TestLocalhostSiteStore_EdgeCases(t *testing.T) {
 	store := NewLocalhostSiteStore()
 
 	t.Run("Multiple iterations", func(t *testing.T) {
-		// Test that we can call FindEnabled multiple times and get consistent results
+		// Test that we can call FindPublished multiple times and get consistent results
 		for i := 0; i < 5; i++ {
-			iterator := store.FindEnabled(context.Background())
+			iterator := store.FindPublished(context.Background())
 			assert.NotNil(t, iterator, "Call %d should return iterator", i+1)
 
 			var count int
@@ -333,7 +333,7 @@ func TestLocalhostSiteStore_Integration(t *testing.T) {
 
 	t.Run("Integration test with realistic usage", func(t *testing.T) {
 		// Simulate realistic usage pattern
-		iterator := store.FindEnabled(ctx)
+		iterator := store.FindPublished(ctx)
 		require.NotNil(t, iterator)
 
 		sites, errors := collectSites(iterator)
@@ -343,7 +343,7 @@ func TestLocalhostSiteStore_Integration(t *testing.T) {
 		site := sites[0]
 
 		// Verify the site is suitable for use
-		assert.True(t, site.Status == Published, "Site should be enabled")
+		assert.True(t, site.Status == Published, "Site should be published")
 		assert.NotEmpty(t, site.Host, "Site should have host")
 		assert.NotEmpty(t, site.Scheme, "Site should have scheme")
 
