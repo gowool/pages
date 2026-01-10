@@ -81,8 +81,6 @@ func (s *DefaultPageSyncer) Sync(ctx context.Context, site *Site) error {
 	pages := make(map[string]*Page)
 
 	patterns, homeHybrid := s.getPatterns(ctx)
-	patterns = append(patterns, PageInternalCreate, PageError4xx, PageError5xx)
-
 	if !homeHybrid {
 		root, _ = s.store.FindByURL(ctx, site.ID, "/")
 	}
@@ -169,7 +167,11 @@ func (s *DefaultPageSyncer) createRootPage(ctx context.Context, site *Site, home
 }
 
 func (s *DefaultPageSyncer) getPatterns(ctx context.Context) ([]string, bool) {
-	patterns := make(map[string]struct{})
+	patterns := map[string]struct{}{
+		PageInternalCreate: {},
+		PageError4xx:       {},
+		PageError5xx:       {},
+	}
 
 	for pattern := range s.router.Patterns() {
 		var ok bool

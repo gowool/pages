@@ -101,10 +101,9 @@ func TestDefaultPageSyncer_Sync(t *testing.T) {
 		}
 		mockStore.On("FindByURL", ctx, site.ID, "/").Return(rootPage, nil)
 
-		// Mock FindByPatterns for internal pages
-		mockStore.On("FindByPatterns", ctx, site.ID, []string{PageInternalCreate, PageError4xx, PageError5xx}).Return(iter.Seq2[*Page, error](func(yield func(*Page, error) bool) {
-			// No internal pages found
-		}))
+		mockStore.On("FindByPatterns", ctx, site.ID, mock.MatchedBy(func(ps []string) bool {
+			return assert.ElementsMatch(t, ps, []string{PageInternalCreate, PageError4xx, PageError5xx})
+		})).Return(iter.Seq2[*Page, error](func(yield func(*Page, error) bool) {}))
 
 		// Mock save for internal pages
 		mockStore.On("Save", ctx, mock.MatchedBy(func(pages []*Page) bool {
@@ -126,10 +125,9 @@ func TestDefaultPageSyncer_Sync(t *testing.T) {
 
 		syncer := NewDefaultPageSyncer(mockStore, generator, mockRouter, ignore)
 
-		// Mock FindByPatterns for internal pages
-		mockStore.On("FindByPatterns", ctx, site.ID, []string{HomeHybridPattern, PageInternalCreate, PageError4xx, PageError5xx}).Return(iter.Seq2[*Page, error](func(yield func(*Page, error) bool) {
-			// No pages found
-		}))
+		mockStore.On("FindByPatterns", ctx, site.ID, mock.MatchedBy(func(ps []string) bool {
+			return assert.ElementsMatch(t, ps, []string{HomeHybridPattern, PageInternalCreate, PageError4xx, PageError5xx})
+		})).Return(iter.Seq2[*Page, error](func(yield func(*Page, error) bool) {}))
 
 		// Mock save calls - root page is saved separately via createRootPage, then internal pages
 		mockStore.On("Save", ctx, mock.MatchedBy(func(pages []*Page) bool {
@@ -202,8 +200,9 @@ func TestDefaultPageSyncer_Sync(t *testing.T) {
 		// Mock no existing root page
 		mockStore.On("FindByURL", ctx, site.ID, "/").Return(nil, ErrPageNotFound)
 
-		// Mock FindByPatterns for internal pages
-		mockStore.On("FindByPatterns", ctx, site.ID, []string{"/test", PageInternalCreate, PageError4xx, PageError5xx}).Return(iter.Seq2[*Page, error](func(yield func(*Page, error) bool) {}))
+		mockStore.On("FindByPatterns", ctx, site.ID, mock.MatchedBy(func(ps []string) bool {
+			return assert.ElementsMatch(t, ps, []string{"/test", PageInternalCreate, PageError4xx, PageError5xx})
+		})).Return(iter.Seq2[*Page, error](func(yield func(*Page, error) bool) {}))
 
 		err := syncer.Sync(ctx, site)
 		assert.Error(t, err, "Sync should return error when generator fails")
@@ -224,7 +223,9 @@ func TestDefaultPageSyncer_Sync(t *testing.T) {
 		mockStore.On("FindByURL", ctx, site.ID, "/").Return(nil, ErrPageNotFound)
 
 		// Mock FindByPatterns returning an error
-		mockStore.On("FindByPatterns", ctx, site.ID, []string{"/test", PageInternalCreate, PageError4xx, PageError5xx}).Return(iter.Seq2[*Page, error](func(yield func(*Page, error) bool) {
+		mockStore.On("FindByPatterns", ctx, site.ID, mock.MatchedBy(func(ps []string) bool {
+			return assert.ElementsMatch(t, ps, []string{"/test", PageInternalCreate, PageError4xx, PageError5xx})
+		})).Return(iter.Seq2[*Page, error](func(yield func(*Page, error) bool) {
 			yield(nil, errors.New("store error"))
 		}))
 
@@ -247,7 +248,9 @@ func TestDefaultPageSyncer_Sync(t *testing.T) {
 		mockStore.On("FindByURL", ctx, site.ID, "/").Return(nil, ErrPageNotFound)
 
 		// Mock FindByPatterns for internal pages
-		mockStore.On("FindByPatterns", ctx, site.ID, []string{"/test", PageInternalCreate, PageError4xx, PageError5xx}).Return(iter.Seq2[*Page, error](func(yield func(*Page, error) bool) {}))
+		mockStore.On("FindByPatterns", ctx, site.ID, mock.MatchedBy(func(ps []string) bool {
+			return assert.ElementsMatch(t, ps, []string{"/test", PageInternalCreate, PageError4xx, PageError5xx})
+		})).Return(iter.Seq2[*Page, error](func(yield func(*Page, error) bool) {}))
 
 		// Mock save error
 		mockStore.On("Save", ctx, mock.AnythingOfType("[]*pages.Page")).Return(errors.New("save error"))
@@ -369,10 +372,13 @@ func TestDefaultPageSyncer_getPatterns(t *testing.T) {
 
 		patterns, homeHybrid := syncer.getPatterns(ctx)
 
-		assert.Len(t, patterns, 3, "Should have 3 patterns")
+		assert.Len(t, patterns, 6, "Should have 6 patterns (3 router + 3 internal)")
 		assert.Contains(t, patterns, "/blog/{slug}", "Should include /blog/{slug}")
 		assert.Contains(t, patterns, "/about", "Should include /about")
 		assert.Contains(t, patterns, "/products", "Should include /products")
+		assert.Contains(t, patterns, PageInternalCreate, "Should include internal create pattern")
+		assert.Contains(t, patterns, PageError4xx, "Should include internal 4xx error pattern")
+		assert.Contains(t, patterns, PageError5xx, "Should include internal 5xx error pattern")
 		assert.NotContains(t, patterns, "POST /contact", "Should not include POST /contact")
 		assert.NotContains(t, patterns, PageCMSPattern, "Should not include CMS pattern")
 		assert.NotContains(t, patterns, "/ignored", "Should not include ignored pattern")
@@ -392,9 +398,12 @@ func TestDefaultPageSyncer_getPatterns(t *testing.T) {
 
 		patterns, homeHybrid := syncer.getPatterns(ctx)
 
-		assert.Len(t, patterns, 2, "Should have 2 patterns")
+		assert.Len(t, patterns, 5, "Should have 5 patterns (2 router + 3 internal)")
 		assert.Contains(t, patterns, HomeHybridPattern, "Should include HomeHybridPattern")
 		assert.Contains(t, patterns, "/about", "Should include /about")
+		assert.Contains(t, patterns, PageInternalCreate, "Should include internal create pattern")
+		assert.Contains(t, patterns, PageError4xx, "Should include internal 4xx error pattern")
+		assert.Contains(t, patterns, PageError5xx, "Should include internal 5xx error pattern")
 		assert.True(t, homeHybrid, "homeHybrid should be true")
 	})
 
@@ -412,7 +421,10 @@ func TestDefaultPageSyncer_getPatterns(t *testing.T) {
 
 		patterns, homeHybrid := syncer.getPatterns(ctx)
 
-		assert.Empty(t, patterns, "Should have no patterns")
+		assert.Len(t, patterns, 3, "Should have 3 internal patterns")
+		assert.Contains(t, patterns, PageInternalCreate, "Should include internal create pattern")
+		assert.Contains(t, patterns, PageError4xx, "Should include internal 4xx error pattern")
+		assert.Contains(t, patterns, PageError5xx, "Should include internal 5xx error pattern")
 		assert.False(t, homeHybrid, "homeHybrid should be false")
 	})
 
@@ -431,9 +443,12 @@ func TestDefaultPageSyncer_getPatterns(t *testing.T) {
 
 		patterns, homeHybrid := syncer.getPatterns(ctx)
 
-		assert.Len(t, patterns, 2, "Should have 2 unique patterns")
+		assert.Len(t, patterns, 5, "Should have 5 patterns (2 unique router + 3 internal)")
 		assert.Contains(t, patterns, "/about", "Should include /about")
 		assert.Contains(t, patterns, "/blog/{slug}", "Should include /blog/{slug}")
+		assert.Contains(t, patterns, PageInternalCreate, "Should include internal create pattern")
+		assert.Contains(t, patterns, PageError4xx, "Should include internal 4xx error pattern")
+		assert.Contains(t, patterns, PageError5xx, "Should include internal 5xx error pattern")
 		assert.False(t, homeHybrid, "homeHybrid should be false")
 	})
 }
@@ -563,8 +578,11 @@ func TestDefaultPageSyncer_ErrorHandling(t *testing.T) {
 
 		patterns, homeHybrid := syncer.getPatterns(ctx)
 
-		assert.Len(t, patterns, 1, "Should handle correctly")
+		assert.Len(t, patterns, 4, "Should have 4 patterns (1 router + 3 internal)")
 		assert.Contains(t, patterns, "/pattern1", "Should include the yielded pattern")
+		assert.Contains(t, patterns, PageInternalCreate, "Should include internal create pattern")
+		assert.Contains(t, patterns, PageError4xx, "Should include internal 4xx error pattern")
+		assert.Contains(t, patterns, PageError5xx, "Should include internal 5xx error pattern")
 		assert.False(t, homeHybrid, "homeHybrid should be false")
 	})
 }
