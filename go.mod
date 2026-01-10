@@ -6,7 +6,7 @@ require (
 	github.com/dlclark/regexp2 v1.11.5
 	github.com/google/uuid v1.6.0
 	github.com/gosimple/slug v1.15.0
-	github.com/gowool/wo v0.0.0-20260110143230-50449870bacc
+	github.com/gowool/wo v0.0.0-20260110160633-dd2991c13d9e
 	github.com/invopop/validation v0.8.0
 	github.com/spf13/cast v1.10.0
 	github.com/stretchr/testify v1.11.1

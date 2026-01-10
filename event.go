@@ -2,7 +2,6 @@ package pages
 
 import (
 	"bytes"
-	"context"
 	"html/template"
 	"net/http"
 	"strings"
@@ -65,16 +64,6 @@ func (e *Event) Reset(w *wo.Response, r *http.Request, t Theme) {
 	e.Event.Reset(w, r)
 	e.SEO().Reset()
 	e.theme = t
-}
-
-func (e *Event) SetValue(key, value any) {
-	ctx := context.WithValue(e.Context(), key, value)
-
-	e.SetRequest(e.Request().WithContext(ctx))
-}
-
-func (e *Event) Value(key any) any {
-	return e.Context().Value(key)
 }
 
 func (e *Event) IsRoot() bool {

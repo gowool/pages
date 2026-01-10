@@ -77,48 +77,6 @@ func TestEvent_Reset(t *testing.T) {
 	}
 }
 
-func TestEvent_SetValue_Value(t *testing.T) {
-	tests := []struct {
-		name     string
-		key      any
-		value    any
-		expected any
-	}{
-		{
-			name:     "set string value",
-			key:      "testKey",
-			value:    "testValue",
-			expected: "testValue",
-		},
-		{
-			name:     "set int value",
-			key:      "numberKey",
-			value:    42,
-			expected: 42,
-		},
-		{
-			name:     "set struct value",
-			key:      keyStatus{},
-			value:    http.StatusNotFound,
-			expected: http.StatusNotFound,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			w := httptest.NewRecorder()
-			r := httptest.NewRequest("GET", "/", nil)
-			theme := &MockTheme{}
-
-			e := &Event{}
-			e.Reset(&wo.Response{ResponseWriter: w}, r, theme)
-
-			e.SetValue(tt.key, tt.value)
-			assert.Equal(t, tt.expected, e.Value(tt.key))
-		})
-	}
-}
-
 func TestEvent_IsRoot(t *testing.T) {
 	tests := []struct {
 		name   string
@@ -828,21 +786,6 @@ func TestEvent_Render_RenderHTML(t *testing.T) {
 // Test Event implements Resolver interface
 func TestEvent_ResolverImplementation(t *testing.T) {
 	var _ Resolver = (*Event)(nil)
-}
-
-// Benchmark tests
-func BenchmarkEvent_SetValue(b *testing.B) {
-	w := httptest.NewRecorder()
-	r := httptest.NewRequest("GET", "/", nil)
-	theme := &MockTheme{}
-
-	e := &Event{}
-	e.Reset(&wo.Response{ResponseWriter: w}, r, theme)
-
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		e.SetValue("benchmarkKey", "benchmarkValue")
-	}
 }
 
 func BenchmarkPatternArgs(b *testing.B) {
