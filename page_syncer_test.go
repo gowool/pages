@@ -12,17 +12,17 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// MockRouter is a mock implementation of Router interface
-type MockRouter struct {
+// MockPatterns is a mock implementation of Patterns interface
+type MockPatterns struct {
 	mock.Mock
 	patterns []string
 }
 
-func NewMockRouter(patterns []string) *MockRouter {
-	return &MockRouter{patterns: patterns}
+func NewMockPatterns(patterns []string) *MockPatterns {
+	return &MockPatterns{patterns: patterns}
 }
 
-func (m *MockRouter) Patterns() iter.Seq[string] {
+func (m *MockPatterns) Patterns() iter.Seq[string] {
 	return func(yield func(string) bool) {
 		for _, pattern := range m.patterns {
 			if !yield(pattern) {
@@ -34,40 +34,40 @@ func (m *MockRouter) Patterns() iter.Seq[string] {
 
 func TestNewDefaultPageSyncer(t *testing.T) {
 	mockStore := &MockPageStore{}
-	mockRouter := NewMockRouter([]string{})
+	mockPatterns := NewMockPatterns([]string{})
 	generator := func(context.Context) (ID, error) { return ID(uuid.NewString()), nil }
 	ignore := func(context.Context, string) bool { return false }
 
 	t.Run("valid parameters", func(t *testing.T) {
-		syncer := NewDefaultPageSyncer(mockStore, generator, mockRouter, ignore)
+		syncer := NewDefaultPageSyncer(mockStore, generator, mockPatterns, ignore)
 
 		assert.NotNil(t, syncer, "NewDefaultPageSyncer() should not return nil")
 		assert.Equal(t, mockStore, syncer.store, "store should be set correctly")
-		assert.Equal(t, mockRouter, syncer.router, "router should be set correctly")
+		assert.Equal(t, mockPatterns, syncer.patterns, "patterns should be set correctly")
 		assert.NotNil(t, syncer.generator, "generator should be set")
 		assert.NotNil(t, syncer.ignore, "ignore should be set")
 	})
 
 	t.Run("nil page store", func(t *testing.T) {
 		assert.Panics(t, func() {
-			NewDefaultPageSyncer(nil, generator, mockRouter, ignore)
+			NewDefaultPageSyncer(nil, generator, mockPatterns, ignore)
 		}, "Should panic when store is nil")
 	})
 
 	t.Run("nil generator", func(t *testing.T) {
 		assert.Panics(t, func() {
-			NewDefaultPageSyncer(mockStore, nil, mockRouter, ignore)
+			NewDefaultPageSyncer(mockStore, nil, mockPatterns, ignore)
 		}, "Should panic when generator is nil")
 	})
 
-	t.Run("nil router", func(t *testing.T) {
+	t.Run("nil patterns", func(t *testing.T) {
 		assert.Panics(t, func() {
 			NewDefaultPageSyncer(mockStore, generator, nil, ignore)
-		}, "Should panic when router is nil")
+		}, "Should panic when patterns is nil")
 	})
 
 	t.Run("nil ignore function", func(t *testing.T) {
-		syncer := NewDefaultPageSyncer(mockStore, generator, mockRouter, nil)
+		syncer := NewDefaultPageSyncer(mockStore, generator, mockPatterns, nil)
 
 		assert.NotNil(t, syncer.ignore, "ignore should be set to default function when nil")
 
@@ -86,11 +86,11 @@ func TestDefaultPageSyncer_Sync(t *testing.T) {
 
 	t.Run("sync with existing root page and no new patterns", func(t *testing.T) {
 		mockStore := &MockPageStore{}
-		mockRouter := NewMockRouter([]string{})
+		mockPatterns := NewMockPatterns([]string{})
 		generator := func(context.Context) (ID, error) { return ID(uuid.NewString()), nil }
 		ignore := func(context.Context, string) bool { return false }
 
-		syncer := NewDefaultPageSyncer(mockStore, generator, mockRouter, ignore)
+		syncer := NewDefaultPageSyncer(mockStore, generator, mockPatterns, ignore)
 
 		// Mock existing root page
 		rootPage := &Page{
@@ -119,11 +119,11 @@ func TestDefaultPageSyncer_Sync(t *testing.T) {
 
 	t.Run("sync with home hybrid pattern and no existing root", func(t *testing.T) {
 		mockStore := &MockPageStore{}
-		mockRouter := NewMockRouter([]string{HomeHybridPattern})
+		mockPatterns := NewMockPatterns([]string{HomeHybridPattern})
 		generator := func(context.Context) (ID, error) { return ID(uuid.NewString()), nil }
 		ignore := func(context.Context, string) bool { return false }
 
-		syncer := NewDefaultPageSyncer(mockStore, generator, mockRouter, ignore)
+		syncer := NewDefaultPageSyncer(mockStore, generator, mockPatterns, ignore)
 
 		mockStore.On("FindByPatterns", ctx, site.ID, mock.MatchedBy(func(ps []string) bool {
 			return assert.ElementsMatch(t, ps, []string{HomeHybridPattern, PageInternalCreate, PageError4xx, PageError5xx})
@@ -148,11 +148,11 @@ func TestDefaultPageSyncer_Sync(t *testing.T) {
 	t.Run("sync with new patterns and existing pages", func(t *testing.T) {
 		mockStore := &MockPageStore{}
 		routerPatterns := []string{"/blog/{slug}", "/about", "/contact"}
-		mockRouter := NewMockRouter(routerPatterns)
+		mockPatterns := NewMockPatterns(routerPatterns)
 		generator := func(context.Context) (ID, error) { return ID(uuid.NewString()), nil }
 		ignore := func(context.Context, string) bool { return false }
 
-		syncer := NewDefaultPageSyncer(mockStore, generator, mockRouter, ignore)
+		syncer := NewDefaultPageSyncer(mockStore, generator, mockPatterns, ignore)
 
 		// Mock existing root page
 		rootPage := &Page{
@@ -191,11 +191,11 @@ func TestDefaultPageSyncer_Sync(t *testing.T) {
 
 	t.Run("sync with generator error", func(t *testing.T) {
 		mockStore := &MockPageStore{}
-		mockRouter := NewMockRouter([]string{"/test"})
+		mockPatterns := NewMockPatterns([]string{"/test"})
 		generator := func(context.Context) (ID, error) { return ID(""), errors.New("generator error") }
 		ignore := func(context.Context, string) bool { return false }
 
-		syncer := NewDefaultPageSyncer(mockStore, generator, mockRouter, ignore)
+		syncer := NewDefaultPageSyncer(mockStore, generator, mockPatterns, ignore)
 
 		// Mock no existing root page
 		mockStore.On("FindByURL", ctx, site.ID, "/").Return(nil, ErrPageNotFound)
@@ -213,11 +213,11 @@ func TestDefaultPageSyncer_Sync(t *testing.T) {
 
 	t.Run("sync with store error during FindByPatterns", func(t *testing.T) {
 		mockStore := &MockPageStore{}
-		mockRouter := NewMockRouter([]string{"/test"})
+		mockPatterns := NewMockPatterns([]string{"/test"})
 		generator := func(context.Context) (ID, error) { return ID("test-id"), nil }
 		ignore := func(context.Context, string) bool { return false }
 
-		syncer := NewDefaultPageSyncer(mockStore, generator, mockRouter, ignore)
+		syncer := NewDefaultPageSyncer(mockStore, generator, mockPatterns, ignore)
 
 		// Mock no existing root page
 		mockStore.On("FindByURL", ctx, site.ID, "/").Return(nil, ErrPageNotFound)
@@ -238,11 +238,11 @@ func TestDefaultPageSyncer_Sync(t *testing.T) {
 
 	t.Run("sync with store error during Save", func(t *testing.T) {
 		mockStore := &MockPageStore{}
-		mockRouter := NewMockRouter([]string{"/test"})
+		mockPatterns := NewMockPatterns([]string{"/test"})
 		generator := func(context.Context) (ID, error) { return ID("new-id"), nil }
 		ignore := func(context.Context, string) bool { return false }
 
-		syncer := NewDefaultPageSyncer(mockStore, generator, mockRouter, ignore)
+		syncer := NewDefaultPageSyncer(mockStore, generator, mockPatterns, ignore)
 
 		// Mock no existing root page
 		mockStore.On("FindByURL", ctx, site.ID, "/").Return(nil, ErrPageNotFound)
@@ -272,10 +272,10 @@ func TestDefaultPageSyncer_createRootPage(t *testing.T) {
 
 	t.Run("create home hybrid root page", func(t *testing.T) {
 		mockStore := &MockPageStore{}
-		mockRouter := NewMockRouter([]string{})
+		mockPatterns := NewMockPatterns([]string{})
 		generator := func(ctx context.Context) (ID, error) { return ID("root-id"), nil }
 
-		syncer := NewDefaultPageSyncer(mockStore, generator, mockRouter, nil)
+		syncer := NewDefaultPageSyncer(mockStore, generator, mockPatterns, nil)
 
 		mockStore.On("Save", ctx, mock.MatchedBy(func(pages []*Page) bool {
 			return len(pages) == 1 && pages[0].Pattern == HomeHybridPattern && pages[0].Template == homeHybridTemplate
@@ -295,10 +295,10 @@ func TestDefaultPageSyncer_createRootPage(t *testing.T) {
 
 	t.Run("create regular CMS root page", func(t *testing.T) {
 		mockStore := &MockPageStore{}
-		mockRouter := NewMockRouter([]string{})
+		mockPatterns := NewMockPatterns([]string{})
 		generator := func(ctx context.Context) (ID, error) { return ID("root-id"), nil }
 
-		syncer := NewDefaultPageSyncer(mockStore, generator, mockRouter, nil)
+		syncer := NewDefaultPageSyncer(mockStore, generator, mockPatterns, nil)
 
 		mockStore.On("Save", ctx, mock.MatchedBy(func(pages []*Page) bool {
 			return len(pages) == 1 && pages[0].Pattern == PageCMS && pages[0].URL == "/"
@@ -319,10 +319,10 @@ func TestDefaultPageSyncer_createRootPage(t *testing.T) {
 
 	t.Run("generator error", func(t *testing.T) {
 		mockStore := &MockPageStore{}
-		mockRouter := NewMockRouter([]string{})
+		mockPatterns := NewMockPatterns([]string{})
 		generator := func(ctx context.Context) (ID, error) { return ID(""), errors.New("generator error") }
 
-		syncer := NewDefaultPageSyncer(mockStore, generator, mockRouter, nil)
+		syncer := NewDefaultPageSyncer(mockStore, generator, mockPatterns, nil)
 
 		rootPage, err := syncer.createRootPage(ctx, site, true)
 		assert.Error(t, err, "createRootPage should return error")
@@ -332,10 +332,10 @@ func TestDefaultPageSyncer_createRootPage(t *testing.T) {
 
 	t.Run("store save error", func(t *testing.T) {
 		mockStore := &MockPageStore{}
-		mockRouter := NewMockRouter([]string{})
+		mockPatterns := NewMockPatterns([]string{})
 		generator := func(ctx context.Context) (ID, error) { return ID("root-id"), nil }
 
-		syncer := NewDefaultPageSyncer(mockStore, generator, mockRouter, nil)
+		syncer := NewDefaultPageSyncer(mockStore, generator, mockPatterns, nil)
 
 		mockStore.On("Save", ctx, mock.MatchedBy(func(pages []*Page) bool {
 			return len(pages) == 1
@@ -353,7 +353,7 @@ func TestDefaultPageSyncer_createRootPage(t *testing.T) {
 func TestDefaultPageSyncer_getPatterns(t *testing.T) {
 	ctx := context.Background()
 
-	t.Run("get patterns from router with valid GET patterns", func(t *testing.T) {
+	t.Run("get patterns from patterns with valid GET patterns", func(t *testing.T) {
 		routerPatterns := []string{
 			"/blog/{slug}",
 			"/about",
@@ -363,16 +363,16 @@ func TestDefaultPageSyncer_getPatterns(t *testing.T) {
 			"/ignored",      // Should be filtered out by ignore function
 		}
 
-		mockRouter := NewMockRouter(routerPatterns)
+		mockPatterns := NewMockPatterns(routerPatterns)
 		ignore := func(ctx context.Context, pattern string) bool {
 			return pattern == "/ignored"
 		}
 
-		syncer := NewDefaultPageSyncer(&MockPageStore{}, func(ctx context.Context) (ID, error) { return ID("test"), nil }, mockRouter, ignore)
+		syncer := NewDefaultPageSyncer(&MockPageStore{}, func(ctx context.Context) (ID, error) { return ID("test"), nil }, mockPatterns, ignore)
 
 		patterns, homeHybrid := syncer.getPatterns(ctx)
 
-		assert.Len(t, patterns, 6, "Should have 6 patterns (3 router + 3 internal)")
+		assert.Len(t, patterns, 6, "Should have 6 patterns (3 patterns + 3 internal)")
 		assert.Contains(t, patterns, "/blog/{slug}", "Should include /blog/{slug}")
 		assert.Contains(t, patterns, "/about", "Should include /about")
 		assert.Contains(t, patterns, "/products", "Should include /products")
@@ -391,14 +391,14 @@ func TestDefaultPageSyncer_getPatterns(t *testing.T) {
 			"/about",
 		}
 
-		mockRouter := NewMockRouter(routerPatterns)
+		mockPatterns := NewMockPatterns(routerPatterns)
 		ignore := func(ctx context.Context, pattern string) bool { return false }
 
-		syncer := NewDefaultPageSyncer(&MockPageStore{}, func(ctx context.Context) (ID, error) { return ID("test"), nil }, mockRouter, ignore)
+		syncer := NewDefaultPageSyncer(&MockPageStore{}, func(ctx context.Context) (ID, error) { return ID("test"), nil }, mockPatterns, ignore)
 
 		patterns, homeHybrid := syncer.getPatterns(ctx)
 
-		assert.Len(t, patterns, 5, "Should have 5 patterns (2 router + 3 internal)")
+		assert.Len(t, patterns, 5, "Should have 5 patterns (2 patterns + 3 internal)")
 		assert.Contains(t, patterns, HomeHybridPattern, "Should include HomeHybridPattern")
 		assert.Contains(t, patterns, "/about", "Should include /about")
 		assert.Contains(t, patterns, PageInternalCreate, "Should include internal create pattern")
@@ -414,10 +414,10 @@ func TestDefaultPageSyncer_getPatterns(t *testing.T) {
 			PageCMSPattern,
 		}
 
-		mockRouter := NewMockRouter(routerPatterns)
+		mockPatterns := NewMockPatterns(routerPatterns)
 		ignore := func(ctx context.Context, pattern string) bool { return true } // Ignore all
 
-		syncer := NewDefaultPageSyncer(&MockPageStore{}, func(ctx context.Context) (ID, error) { return ID("test"), nil }, mockRouter, ignore)
+		syncer := NewDefaultPageSyncer(&MockPageStore{}, func(ctx context.Context) (ID, error) { return ID("test"), nil }, mockPatterns, ignore)
 
 		patterns, homeHybrid := syncer.getPatterns(ctx)
 
@@ -436,14 +436,14 @@ func TestDefaultPageSyncer_getPatterns(t *testing.T) {
 			"/about", // Another duplicate
 		}
 
-		mockRouter := NewMockRouter(routerPatterns)
+		mockPatterns := NewMockPatterns(routerPatterns)
 		ignore := func(ctx context.Context, pattern string) bool { return false }
 
-		syncer := NewDefaultPageSyncer(&MockPageStore{}, func(ctx context.Context) (ID, error) { return ID("test"), nil }, mockRouter, ignore)
+		syncer := NewDefaultPageSyncer(&MockPageStore{}, func(ctx context.Context) (ID, error) { return ID("test"), nil }, mockPatterns, ignore)
 
 		patterns, homeHybrid := syncer.getPatterns(ctx)
 
-		assert.Len(t, patterns, 5, "Should have 5 patterns (2 unique router + 3 internal)")
+		assert.Len(t, patterns, 5, "Should have 5 patterns (2 unique patterns + 3 internal)")
 		assert.Contains(t, patterns, "/about", "Should include /about")
 		assert.Contains(t, patterns, "/blog/{slug}", "Should include /blog/{slug}")
 		assert.Contains(t, patterns, PageInternalCreate, "Should include internal create pattern")
@@ -469,11 +469,11 @@ func TestDefaultPageSyncer_IntegrationScenarios(t *testing.T) {
 			"/contact",
 			"POST /api/contact", // Should be filtered out
 		}
-		mockRouter := NewMockRouter(routerPatterns)
+		mockPatterns := NewMockPatterns(routerPatterns)
 		generator := func(ctx context.Context) (ID, error) { return ID(uuid.NewString()), nil }
 		ignore := func(ctx context.Context, pattern string) bool { return false }
 
-		syncer := NewDefaultPageSyncer(store, generator, mockRouter, ignore)
+		syncer := NewDefaultPageSyncer(store, generator, mockPatterns, ignore)
 
 		err := syncer.Sync(ctx, site)
 		assert.NoError(t, err, "Sync should succeed for new site")
@@ -514,11 +514,11 @@ func TestDefaultPageSyncer_IntegrationScenarios(t *testing.T) {
 	t.Run("sync with existing pages should not create duplicates", func(t *testing.T) {
 		store := NewMemoryPageStore()
 		routerPatterns := []string{"/about", "/contact"}
-		mockRouter := NewMockRouter(routerPatterns)
+		mockPatterns := NewMockPatterns(routerPatterns)
 		generator := func(ctx context.Context) (ID, error) { return ID(uuid.NewString()), nil }
 		ignore := func(ctx context.Context, pattern string) bool { return false }
 
-		syncer := NewDefaultPageSyncer(store, generator, mockRouter, ignore)
+		syncer := NewDefaultPageSyncer(store, generator, mockPatterns, ignore)
 
 		// Pre-populate with some pages
 		existingRoot := &Page{
@@ -569,16 +569,16 @@ func TestDefaultPageSyncer_IntegrationScenarios(t *testing.T) {
 func TestDefaultPageSyncer_ErrorHandling(t *testing.T) {
 	ctx := context.Background()
 
-	t.Run("handle router pattern iteration stop", func(t *testing.T) {
-		// Create a mock router that yields only one pattern then stops
-		mockRouter := NewMockRouter([]string{"/pattern1"})
+	t.Run("handle patterns pattern iteration stop", func(t *testing.T) {
+		// Create a mock patterns that yields only one pattern then stops
+		mockPatterns := NewMockPatterns([]string{"/pattern1"})
 		ignore := func(ctx context.Context, pattern string) bool { return false }
 
-		syncer := NewDefaultPageSyncer(&MockPageStore{}, func(ctx context.Context) (ID, error) { return ID("test"), nil }, mockRouter, ignore)
+		syncer := NewDefaultPageSyncer(&MockPageStore{}, func(ctx context.Context) (ID, error) { return ID("test"), nil }, mockPatterns, ignore)
 
 		patterns, homeHybrid := syncer.getPatterns(ctx)
 
-		assert.Len(t, patterns, 4, "Should have 4 patterns (1 router + 3 internal)")
+		assert.Len(t, patterns, 4, "Should have 4 patterns (1 patterns + 3 internal)")
 		assert.Contains(t, patterns, "/pattern1", "Should include the yielded pattern")
 		assert.Contains(t, patterns, PageInternalCreate, "Should include internal create pattern")
 		assert.Contains(t, patterns, PageError4xx, "Should include internal 4xx error pattern")

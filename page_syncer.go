@@ -30,7 +30,7 @@ type PageSyncer interface {
 	Sync(ctx context.Context, site *Site) error
 }
 
-type Router interface {
+type Patterns interface {
 	Patterns() iter.Seq[string]
 }
 
@@ -39,7 +39,7 @@ type IDGenerator func(ctx context.Context) (ID, error)
 type IgnorePattern func(ctx context.Context, pattern string) bool
 
 type DefaultPageSyncer struct {
-	router    Router
+	patterns  Patterns
 	store     PageStore
 	generator IDGenerator
 	ignore    IgnorePattern
@@ -48,7 +48,7 @@ type DefaultPageSyncer struct {
 func NewDefaultPageSyncer(
 	store PageStore,
 	generator IDGenerator,
-	router Router,
+	patterns Patterns,
 	ignore IgnorePattern,
 ) *DefaultPageSyncer {
 	if store == nil {
@@ -59,8 +59,8 @@ func NewDefaultPageSyncer(
 		panic("page syncer: id generator is required")
 	}
 
-	if router == nil {
-		panic("page syncer: router is required")
+	if patterns == nil {
+		panic("page syncer: patterns is required")
 	}
 
 	if ignore == nil {
@@ -70,7 +70,7 @@ func NewDefaultPageSyncer(
 	return &DefaultPageSyncer{
 		store:     store,
 		generator: generator,
-		router:    router,
+		patterns:  patterns,
 		ignore:    ignore,
 	}
 }
@@ -173,7 +173,7 @@ func (s *DefaultPageSyncer) getPatterns(ctx context.Context) ([]string, bool) {
 		PageError5xx:       {},
 	}
 
-	for pattern := range s.router.Patterns() {
+	for pattern := range s.patterns.Patterns() {
 		var ok bool
 		if pattern, ok = middleware.CheckMethod(http.MethodGet, pattern); !ok {
 			continue
