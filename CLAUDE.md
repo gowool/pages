@@ -45,6 +45,9 @@ go vet ./...
 
 # Run go mod tidy to clean dependencies
 go mod tidy
+
+# Run static analysis (if available)
+golangci-lint run -v --timeout=5m --build-tags=race --output.code-climate.path gl-code-quality-report.json
 ```
 
 ## Architecture Overview
