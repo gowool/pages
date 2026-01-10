@@ -20,7 +20,7 @@ func TestPage_AbsURL(t *testing.T) {
 		Updated   time.Time
 		Status    Status
 		MetaTags  *MetaTags
-		Metadata  map[string]any
+		Metadata  Metadata
 		Header    map[string][]string
 		Name      string
 		Title     string
@@ -145,7 +145,7 @@ func TestPage_FixURL(t *testing.T) {
 		Updated   time.Time
 		Status    Status
 		MetaTags  *MetaTags
-		Metadata  map[string]any
+		Metadata  Metadata
 		Header    map[string][]string
 		Name      string
 		Title     string
@@ -215,7 +215,7 @@ func TestPage_IsCMS(t *testing.T) {
 		Updated   time.Time
 		Status    Status
 		MetaTags  *MetaTags
-		Metadata  map[string]any
+		Metadata  Metadata
 		Header    map[string][]string
 		Name      string
 		Title     string
@@ -281,7 +281,7 @@ func TestPage_IsDynamic(t *testing.T) {
 		Updated   time.Time
 		Status    Status
 		MetaTags  *MetaTags
-		Metadata  map[string]any
+		Metadata  Metadata
 		Header    map[string][]string
 		Name      string
 		Title     string
@@ -348,7 +348,7 @@ func TestPage_IsError(t *testing.T) {
 		Updated   time.Time
 		Status    Status
 		MetaTags  *MetaTags
-		Metadata  map[string]any
+		Metadata  Metadata
 		Header    map[string][]string
 		Name      string
 		Title     string
@@ -416,7 +416,7 @@ func TestPage_IsHybrid(t *testing.T) {
 		Updated   time.Time
 		Status    Status
 		MetaTags  *MetaTags
-		Metadata  map[string]any
+		Metadata  Metadata
 		Header    map[string][]string
 		Name      string
 		Title     string
@@ -484,7 +484,7 @@ func TestPage_IsInternal(t *testing.T) {
 		Updated   time.Time
 		Status    Status
 		MetaTags  *MetaTags
-		Metadata  map[string]any
+		Metadata  Metadata
 		Header    map[string][]string
 		Name      string
 		Title     string
@@ -552,7 +552,7 @@ func TestPage_SetAlias(t *testing.T) {
 		Updated   time.Time
 		Status    Status
 		MetaTags  *MetaTags
-		Metadata  map[string]any
+		Metadata  Metadata
 		Header    map[string][]string
 		Name      string
 		Title     string
@@ -624,7 +624,7 @@ func TestPage_Copy(t *testing.T) {
 		URL:      "/parent",
 		Created:  originalTime,
 		Updated:  originalTime,
-		Metadata: map[string]any{"key": "parent-value"},
+		Metadata: NewMetadata(map[string]any{"key": "parent-value"}),
 		Header:   map[string][]string{"X-Parent": {"value1", "value2"}},
 		MetaTags: NewMetaTags("utf-8"),
 	}
@@ -640,7 +640,7 @@ func TestPage_Copy(t *testing.T) {
 		Updated:   originalTime,
 		Status:    Published,
 		MetaTags:  NewMetaTags("iso-8859-1"),
-		Metadata:  map[string]any{"key1": "value1", "key2": 42, "key3": true},
+		Metadata:  NewMetadata(map[string]any{"key1": "value1", "key2": 42, "key3": true}),
 		Header:    map[string][]string{"Content-Type": {"text/html"}, "X-Custom": {"custom-value"}},
 		Name:      "Test Page",
 		Title:     "Test Title",
@@ -661,7 +661,7 @@ func TestPage_Copy(t *testing.T) {
 		Pattern:  PageCMS,
 		Created:  originalTime,
 		Updated:  originalTime,
-		Metadata: map[string]any{"nested": "deep"},
+		Metadata: NewMetadata(map[string]any{"nested": "deep"}),
 	}
 	child.Children = append(child.Children, grandchild)
 

@@ -16,8 +16,8 @@ type Site struct {
 
 	Status Status `json:"status,omitempty" yaml:"status,omitempty"`
 
-	MetaTags *MetaTags      `json:"metaTags,omitempty" yaml:"metaTags,omitempty"`
-	Metadata map[string]any `json:"metadata,omitempty" yaml:"metadata,omitempty"`
+	MetaTags *MetaTags `json:"metaTags,omitempty" yaml:"metaTags,omitempty"`
+	Metadata Metadata  `json:"metadata,omitempty" yaml:"metadata,omitempty"`
 
 	Name      string   `json:"name,omitempty" yaml:"name,omitempty"`
 	Title     string   `json:"title,omitempty" yaml:"title,omitempty"`
@@ -49,7 +49,7 @@ func NewSite() *Site {
 		Timezone:  "UTC",
 		Separator: " | ",
 		MetaTags:  NewMetaTags(DefaultCharset),
-		Metadata:  make(map[string]any),
+		Metadata:  NewMetadata(nil),
 		Status:    Draft,
 	}
 }

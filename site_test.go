@@ -375,7 +375,7 @@ func TestSite_CompleteExample(t *testing.T) {
 		RelativePath: "/blog",
 		IsDefault:    true,
 		Status:       Published,
-		Metadata:     map[string]any{"theme": "dark"},
+		Metadata:     NewMetadata(map[string]any{"theme": "dark"}),
 	}
 
 	// Test all methods
@@ -452,7 +452,7 @@ func TestSite_Copy(t *testing.T) {
 			RelativePath: "/blog",
 			IsDefault:    true,
 			Status:       Published,
-			Metadata:     map[string]any{"theme": "dark", "version": 1},
+			Metadata:     NewMetadata(map[string]any{"theme": "dark", "version": 1}),
 			MetaTags:     NewMetaTags("UTF-8"),
 			isRoot:       false,
 		}
@@ -523,7 +523,7 @@ func TestSite_Copy(t *testing.T) {
 		original := &Site{
 			Name:      "Test Site",
 			Countries: []string{},
-			Metadata:  make(map[string]any),
+			Metadata:  NewMetadata(nil),
 			MetaTags:  NewMetaTags("UTF-8"),
 		}
 
@@ -544,7 +544,7 @@ func TestSite_Copy(t *testing.T) {
 		original := &Site{
 			Name:      "Original Site",
 			Countries: []string{"US"},
-			Metadata:  map[string]any{"key": "original"},
+			Metadata:  NewMetadata(map[string]any{"key": "original"}),
 			MetaTags:  NewMetaTags("UTF-8"),
 		}
 
@@ -761,7 +761,7 @@ func BenchmarkSite_Copy(b *testing.B) {
 		Updated:   time.Now(),
 		Name:      "Test Site",
 		Countries: []string{"US", "CA", "MX", "GB", "FR"},
-		Metadata:  map[string]any{"theme": "dark", "version": 1, "features": []string{"search", "api"}},
+		Metadata:  NewMetadata(map[string]any{"theme": "dark", "version": 1, "features": []string{"search", "api"}}),
 		MetaTags:  NewMetaTags("UTF-8"),
 	}
 	original.MetaTags.SetName("description", "Test description")

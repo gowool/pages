@@ -43,7 +43,7 @@ type Page struct {
 	Visibility Visibility `json:"visibility,omitempty" yaml:"visibility,omitempty"`
 
 	MetaTags *MetaTags           `json:"metaTags,omitempty" yaml:"metaTags,omitempty"`
-	Metadata map[string]any      `json:"metadata,omitempty" yaml:"metadata,omitempty"`
+	Metadata Metadata            `json:"metadata,omitempty" yaml:"metadata,omitempty"`
 	Header   map[string][]string `json:"header,omitempty" yaml:"header,omitempty"`
 
 	Name      string `json:"name,omitempty" yaml:"name,omitempty"`
@@ -65,7 +65,7 @@ func NewPage() *Page {
 		Created:    t,
 		Updated:    t,
 		MetaTags:   NewMetaTags(DefaultCharset),
-		Metadata:   make(map[string]any),
+		Metadata:   NewMetadata(nil),
 		Header:     make(map[string][]string),
 		Status:     Draft,
 		Visibility: Public,

@@ -14,10 +14,7 @@ func NewMetadata(m map[string]any) Metadata {
 		return make(Metadata)
 	}
 
-	metadata := make(Metadata, len(m))
-	maps.Copy(metadata, m)
-
-	return metadata
+	return maps.Clone(m)
 }
 
 func (m Metadata) Set(key string, value any) {
