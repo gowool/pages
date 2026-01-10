@@ -13,7 +13,7 @@ import (
 
 var _ PageSyncer = (*DefaultPageSyncer)(nil)
 
-var defaultPages = map[string]*Page{
+var SyncerPatternPages = map[string]*Page{
 	PageInternalCreate: newPage("Create Page", PageInternalCreate, "internal/create.gohtml"),
 	PageError4xx:       newPage("Error 4xx", PageError4xx, "internal/error/4xx.gohtml"),
 	PageError5xx:       newPage("Error 5xx", PageError5xx, "internal/error/5xx.gohtml"),
@@ -117,7 +117,7 @@ func (s *DefaultPageSyncer) Sync(ctx context.Context, site *Site) error {
 		}
 
 		var page *Page
-		if p, ok := defaultPages[pattern]; ok {
+		if p, ok := SyncerPatternPages[pattern]; ok {
 			page = p.Copy()
 		} else {
 			page = newPage(pattern, pattern, hybridTemplate)
