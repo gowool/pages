@@ -13,12 +13,24 @@ import (
 
 var _ PageSyncer = (*DefaultPageSyncer)(nil)
 
-var SyncerPatternPages = map[string]*Page{
-	PageInternalCreate: newPage("Create Page", PageInternalCreate, "internal/create.gohtml"),
-	PageError4xx:       newPage("Error 4xx", PageError4xx, "internal/error/4xx.gohtml"),
-	PageError5xx:       newPage("Error 5xx", PageError5xx, "internal/error/5xx.gohtml"),
-	HomeHybridPattern:  newPage("Home Hybrid", HomeHybridPattern, "page/home_hybrid.gohtml"),
-}
+var (
+	SyncerPatternPages = map[string]*Page{
+		PageInternalCreate: SyncerNewPage("Create Page", PageInternalCreate, "internal/create.gohtml"),
+		PageError4xx:       SyncerNewPage("Error 4xx", PageError4xx, "internal/error/4xx.gohtml"),
+		PageError5xx:       SyncerNewPage("Error 5xx", PageError5xx, "internal/error/5xx.gohtml"),
+		HomeHybridPattern:  SyncerNewPage("Home Hybrid", HomeHybridPattern, "page/home_hybrid.gohtml"),
+	}
+
+	SyncerNewPage = func(name, pattern, template string) *Page {
+		page := NewPage()
+		page.Name = name
+		page.Pattern = pattern
+		page.Template = template
+		page.Position = 1
+		page.Decorate = true
+		return page
+	}
+)
 
 const (
 	homeTemplate       = "page/home.gohtml"
@@ -120,7 +132,7 @@ func (s *DefaultPageSyncer) Sync(ctx context.Context, site *Site) error {
 		if p, ok := SyncerPatternPages[pattern]; ok {
 			page = p.Copy()
 		} else {
-			page = newPage(pattern, pattern, hybridTemplate)
+			page = SyncerNewPage(pattern, pattern, hybridTemplate)
 		}
 
 		page.ID = id
@@ -143,9 +155,9 @@ func (s *DefaultPageSyncer) createRootPage(ctx context.Context, site *Site, home
 	var root *Page
 
 	if homeHybrid {
-		root = newPage("Home Hybrid", HomeHybridPattern, homeHybridTemplate)
+		root = SyncerNewPage("Home Hybrid", HomeHybridPattern, homeHybridTemplate)
 	} else {
-		root = newPage("Home", PageCMS, homeTemplate)
+		root = SyncerNewPage("Home", PageCMS, homeTemplate)
 		root.URL = "/"
 	}
 
@@ -194,14 +206,4 @@ func (s *DefaultPageSyncer) getPatterns(ctx context.Context) ([]string, bool) {
 	_, homeHybrid = patterns[HomeHybridPattern]
 
 	return slices.Collect(maps.Keys(patterns)), homeHybrid
-}
-
-func newPage(name, pattern, template string) *Page {
-	page := NewPage()
-	page.Name = name
-	page.Pattern = pattern
-	page.Template = template
-	page.Position = 1
-	page.Decorate = true
-	return page
 }
