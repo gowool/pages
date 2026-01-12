@@ -3,6 +3,7 @@ package pages
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
@@ -47,8 +48,8 @@ func TestErrorMapper(t *testing.T) {
 		},
 		{
 			name:     "Wrapped ErrSiteNotFound maps correctly",
-			err:      errors.New("wrapped: " + ErrSiteNotFound.Error()),
-			expected: nil, // Should not match wrapped errors
+			err:      fmt.Errorf("wrapped: %w", ErrSiteNotFound),
+			expected: wo.ErrInternalServerError.WithInternal(ErrSiteNotFound),
 		},
 		{
 			name:     "Unknown error returns nil",
@@ -399,4 +400,313 @@ func TestErrorRenderer_HandlerError(t *testing.T) {
 
 	assert.Equal(t, http.StatusBadRequest, event.Status())
 	assert.Equal(t, page, event.Page())
+}
+
+// TestErrorRenderer_ChainSkipper tests that ErrorRenderer chains multiple skippers
+func TestErrorRenderer_ChainSkipper(t *testing.T) {
+	handler := func(e Resolver) error { return nil }
+	manager := &MockPageManager{}
+	authorizer := &MockPageAuthorizer{}
+
+	skipper1 := func(e Resolver) bool {
+		return false
+	}
+
+	skipper2 := func(e Resolver) bool {
+		return true
+	}
+
+	renderer := ErrorRenderer[Resolver](handler, manager, authorizer, nil, slog.Default(), skipper1, skipper2)
+
+	req := httptest.NewRequest("GET", "http://example.com", nil)
+	req.Header.Set(wo.HeaderAccept, wo.MIMETextHTML)
+	resp := httptest.NewRecorder()
+
+	site := &Site{ID: "site1"}
+	event := &Event{}
+	event.Reset(&wo.Response{ResponseWriter: resp}, req, &MockPageTheme{})
+	event.SetSite(site)
+
+	httpErr := wo.ErrBadRequest
+
+	renderer(event, httpErr)
+
+	assert.Equal(t, http.StatusOK, event.Status())
+}
+
+// TestErrorRenderer_UnauthorizedError tests default pattern finder for unauthorized errors
+func TestErrorRenderer_UnauthorizedError(t *testing.T) {
+	handler := func(e Resolver) error { return nil }
+	site := &Site{ID: "site1"}
+	page := &Page{ID: "page1", Pattern: PageErrorUnauthorized}
+
+	manager := newMockPatternPageManager(page, nil)
+	authorizer := NewMockPageAuthorizer(Deny, nil)
+
+	renderer := ErrorRenderer[Resolver](handler, manager, authorizer, nil, slog.Default())
+
+	req := httptest.NewRequest("GET", "http://example.com", nil)
+	req.Header.Set(wo.HeaderAccept, wo.MIMETextHTML)
+	resp := httptest.NewRecorder()
+
+	event := &Event{}
+	event.Reset(&wo.Response{ResponseWriter: resp}, req, &MockPageTheme{})
+	event.SetSite(site)
+
+	httpErr := wo.ErrUnauthorized
+
+	renderer(event, httpErr)
+
+	assert.Equal(t, http.StatusUnauthorized, event.Status())
+	assert.Equal(t, page, event.Page())
+}
+
+// TestErrorRenderer_ForbiddenError tests default pattern finder for forbidden errors
+func TestErrorRenderer_ForbiddenError(t *testing.T) {
+	handler := func(e Resolver) error { return nil }
+	site := &Site{ID: "site1"}
+	page := &Page{ID: "page1", Pattern: PageErrorForbidden}
+
+	manager := newMockPatternPageManager(page, nil)
+	authorizer := NewMockPageAuthorizer(Deny, nil)
+
+	renderer := ErrorRenderer[Resolver](handler, manager, authorizer, nil, slog.Default())
+
+	req := httptest.NewRequest("GET", "http://example.com", nil)
+	req.Header.Set(wo.HeaderAccept, wo.MIMETextHTML)
+	resp := httptest.NewRecorder()
+
+	event := &Event{}
+	event.Reset(&wo.Response{ResponseWriter: resp}, req, &MockPageTheme{})
+	event.SetSite(site)
+
+	httpErr := wo.ErrForbidden
+
+	renderer(event, httpErr)
+
+	assert.Equal(t, http.StatusForbidden, event.Status())
+	assert.Equal(t, page, event.Page())
+}
+
+// TestErrorRenderer_NotFoundError tests default pattern finder for not found errors
+func TestErrorRenderer_NotFoundError(t *testing.T) {
+	handler := func(e Resolver) error { return nil }
+	site := &Site{ID: "site1"}
+	page := &Page{ID: "page1", Pattern: PageErrorNotFound}
+
+	manager := newMockPatternPageManager(page, nil)
+	authorizer := NewMockPageAuthorizer(Deny, nil)
+
+	renderer := ErrorRenderer[Resolver](handler, manager, authorizer, nil, slog.Default())
+
+	req := httptest.NewRequest("GET", "http://example.com", nil)
+	req.Header.Set(wo.HeaderAccept, wo.MIMETextHTML)
+	resp := httptest.NewRecorder()
+
+	event := &Event{}
+	event.Reset(&wo.Response{ResponseWriter: resp}, req, &MockPageTheme{})
+	event.SetSite(site)
+
+	httpErr := wo.ErrNotFound
+
+	renderer(event, httpErr)
+
+	assert.Equal(t, http.StatusNotFound, event.Status())
+	assert.Equal(t, page, event.Page())
+}
+
+// TestErrorRenderer_Other4xxError tests default pattern finder for other 4xx errors
+func TestErrorRenderer_Other4xxError(t *testing.T) {
+	handler := func(e Resolver) error { return nil }
+	site := &Site{ID: "site1"}
+	page := &Page{ID: "page1", Pattern: PageError4xx}
+
+	manager := newMockPatternPageManager(page, nil)
+	authorizer := NewMockPageAuthorizer(Deny, nil)
+
+	renderer := ErrorRenderer[Resolver](handler, manager, authorizer, nil, slog.Default())
+
+	req := httptest.NewRequest("GET", "http://example.com", nil)
+	req.Header.Set(wo.HeaderAccept, wo.MIMETextHTML)
+	resp := httptest.NewRecorder()
+
+	event := &Event{}
+	event.Reset(&wo.Response{ResponseWriter: resp}, req, &MockPageTheme{})
+	event.SetSite(site)
+
+	httpErr := &wo.HTTPError{Status: http.StatusPaymentRequired}
+
+	renderer(event, httpErr)
+
+	assert.Equal(t, http.StatusPaymentRequired, event.Status())
+	assert.Equal(t, page, event.Page())
+}
+
+// TestErrorRenderer_Other5xxError tests default pattern finder for other 5xx errors
+func TestErrorRenderer_Other5xxError(t *testing.T) {
+	handler := func(e Resolver) error { return nil }
+	site := &Site{ID: "site1"}
+	page := &Page{ID: "page1", Pattern: PageError5xx}
+
+	manager := newMockPatternPageManager(page, nil)
+	authorizer := NewMockPageAuthorizer(Deny, nil)
+
+	renderer := ErrorRenderer[Resolver](handler, manager, authorizer, nil, slog.Default())
+
+	req := httptest.NewRequest("GET", "http://example.com", nil)
+	req.Header.Set(wo.HeaderAccept, wo.MIMETextHTML)
+	resp := httptest.NewRecorder()
+
+	event := &Event{}
+	event.Reset(&wo.Response{ResponseWriter: resp}, req, &MockPageTheme{})
+	event.SetSite(site)
+
+	httpErr := &wo.HTTPError{Status: http.StatusBadGateway}
+
+	renderer(event, httpErr)
+
+	assert.Equal(t, http.StatusBadGateway, event.Status())
+	assert.Equal(t, page, event.Page())
+}
+
+// TestErrorRenderer_CustomPatternFinderEmpty tests that ErrorRenderer falls back to default when custom pattern returns empty
+func TestErrorRenderer_CustomPatternFinderEmpty(t *testing.T) {
+	handler := func(e Resolver) error { return nil }
+	site := &Site{ID: "site1"}
+	page := &Page{ID: "page1", Pattern: PageError5xx}
+
+	manager := newMockPatternPageManager(page, nil)
+	authorizer := NewMockPageAuthorizer(Deny, nil)
+
+	patternFinder := func(ctx context.Context, status int) (string, error) {
+		return "", nil
+	}
+
+	renderer := ErrorRenderer[Resolver](handler, manager, authorizer, patternFinder, slog.Default())
+
+	req := httptest.NewRequest("GET", "http://example.com", nil)
+	req.Header.Set(wo.HeaderAccept, wo.MIMETextHTML)
+	resp := httptest.NewRecorder()
+
+	event := &Event{}
+	event.Reset(&wo.Response{ResponseWriter: resp}, req, &MockPageTheme{})
+	event.SetSite(site)
+
+	httpErr := wo.ErrBadRequest
+
+	renderer(event, httpErr)
+
+	assert.Equal(t, http.StatusBadRequest, event.Status())
+	assert.Equal(t, page, event.Page())
+}
+
+// TestErrorRenderer_SetsError tests that ErrorRenderer sets the error on the event
+func TestErrorRenderer_SetsError(t *testing.T) {
+	handler := func(e Resolver) error { return nil }
+	site := &Site{ID: "site1"}
+	page := &Page{ID: "page1", Pattern: PageError4xx}
+
+	manager := newMockPatternPageManager(page, nil)
+	authorizer := NewMockPageAuthorizer(Deny, nil)
+
+	renderer := ErrorRenderer[Resolver](handler, manager, authorizer, nil, slog.Default())
+
+	req := httptest.NewRequest("GET", "http://example.com", nil)
+	req.Header.Set(wo.HeaderAccept, wo.MIMETextHTML)
+	resp := httptest.NewRecorder()
+
+	event := &Event{}
+	event.Reset(&wo.Response{ResponseWriter: resp}, req, &MockPageTheme{})
+	event.SetSite(site)
+
+	httpErr := wo.ErrBadRequest
+
+	renderer(event, httpErr)
+
+	assert.NotNil(t, event.Error())
+	assert.Equal(t, httpErr, event.Error())
+}
+
+// TestErrorRenderer_StatusOKTestsDefaultPattern tests that status 200 uses default pattern
+func TestErrorRenderer_StatusOKTestsDefaultPattern(t *testing.T) {
+	handler := func(e Resolver) error { return nil }
+	site := &Site{ID: "site1"}
+	page := &Page{ID: "page1", Pattern: PageError5xx}
+
+	manager := newMockPatternPageManager(page, nil)
+	authorizer := NewMockPageAuthorizer(Deny, nil)
+
+	renderer := ErrorRenderer[Resolver](handler, manager, authorizer, nil, slog.Default())
+
+	req := httptest.NewRequest("GET", "http://example.com", nil)
+	req.Header.Set(wo.HeaderAccept, wo.MIMETextHTML)
+	resp := httptest.NewRecorder()
+
+	event := &Event{}
+	event.Reset(&wo.Response{ResponseWriter: resp}, req, &MockPageTheme{})
+	event.SetSite(site)
+
+	httpErr := &wo.HTTPError{Status: http.StatusOK}
+
+	renderer(event, httpErr)
+
+	assert.Equal(t, http.StatusOK, event.Status())
+	assert.Equal(t, page, event.Page())
+}
+
+// TestErrorRenderer_PartialHTMLAccept tests that ErrorRenderer works with partial HTML accept header
+func TestErrorRenderer_PartialHTMLAccept(t *testing.T) {
+	handler := func(e Resolver) error { return nil }
+	site := &Site{ID: "site1"}
+	page := &Page{ID: "page1", Pattern: PageError4xx}
+
+	manager := newMockPatternPageManager(page, nil)
+	authorizer := NewMockPageAuthorizer(Deny, nil)
+
+	renderer := ErrorRenderer[Resolver](handler, manager, authorizer, nil, slog.Default())
+
+	req := httptest.NewRequest("GET", "http://example.com", nil)
+	req.Header.Set(wo.HeaderAccept, "application/json,"+wo.MIMETextHTML)
+	resp := httptest.NewRecorder()
+
+	event := &Event{}
+	event.Reset(&wo.Response{ResponseWriter: resp}, req, &MockPageTheme{})
+	event.SetSite(site)
+
+	httpErr := wo.ErrBadRequest
+
+	renderer(event, httpErr)
+
+	assert.Equal(t, http.StatusBadRequest, event.Status())
+	assert.Equal(t, page, event.Page())
+}
+
+// TestErrorRenderer_HandlerSuccess tests that ErrorRenderer calls handler successfully
+func TestErrorRenderer_HandlerSuccess(t *testing.T) {
+	handlerCalled := false
+	handler := func(e Resolver) error {
+		handlerCalled = true
+		return nil
+	}
+	site := &Site{ID: "site1"}
+	page := &Page{ID: "page1", Pattern: PageError4xx}
+
+	manager := newMockPatternPageManager(page, nil)
+	authorizer := NewMockPageAuthorizer(Deny, nil)
+
+	renderer := ErrorRenderer[Resolver](handler, manager, authorizer, nil, slog.Default())
+
+	req := httptest.NewRequest("GET", "http://example.com", nil)
+	req.Header.Set(wo.HeaderAccept, wo.MIMETextHTML)
+	resp := httptest.NewRecorder()
+
+	event := &Event{}
+	event.Reset(&wo.Response{ResponseWriter: resp}, req, &MockPageTheme{})
+	event.SetSite(site)
+
+	httpErr := wo.ErrBadRequest
+
+	renderer(event, httpErr)
+
+	assert.True(t, handlerCalled)
 }

@@ -97,13 +97,6 @@ func (c *PageSyncerConfig) SetDefaults() {
 		c.DefaultPatterns = make(map[string]*PageConfig)
 	}
 
-	if _, ok := c.DefaultPatterns[PageCMS]; ok {
-		delete(c.DefaultPatterns, PageCMS)
-	}
-	if _, ok := c.DefaultPatterns[PageCMSPattern]; ok {
-		delete(c.DefaultPatterns, PageCMSPattern)
-	}
-
 	if p, ok := c.DefaultPatterns[HomeHybridPattern]; !ok || p == nil {
 		c.DefaultPatterns[HomeHybridPattern] = new(PageConfig)
 	}
