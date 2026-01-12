@@ -84,6 +84,37 @@ func TestDefaultPageSyncer_Sync(t *testing.T) {
 		Name: "Test Site",
 	}
 
+	t.Run("sync with existing root page found by FindByURL", func(t *testing.T) {
+		mockStore := &MockPageStore{}
+		mockPatterns := NewMockPatterns([]string{})
+		generator := func(context.Context) (ID, error) { return ID(uuid.NewString()), nil }
+		ignore := func(context.Context, string) bool { return false }
+
+		syncer := NewDefaultPageSyncer(PageSyncerConfig{}, mockStore, generator, mockPatterns, ignore)
+
+		rootPage := &Page{
+			ID:      ID("root-id"),
+			SiteID:  site.ID,
+			Pattern: PageCMS,
+			URL:     "/",
+		}
+
+		mockStore.On("FindByURL", ctx, site.ID, "/").Return(rootPage, nil)
+
+		mockStore.On("FindByPatterns", ctx, site.ID, mock.MatchedBy(func(ps []string) bool {
+			return assert.ElementsMatch(t, ps, []string{PageInternalCreate, PageErrorUnauthorized, PageErrorForbidden, PageErrorNotFound, PageError4xx, PageError5xx})
+		})).Return(iter.Seq2[*Page, error](func(yield func(*Page, error) bool) {}))
+
+		mockStore.On("Save", ctx, mock.MatchedBy(func(pages []*Page) bool {
+			return len(pages) == 6
+		})).Return(nil).Once()
+
+		err := syncer.Sync(ctx, site)
+		assert.NoError(t, err, "Sync should not return error")
+
+		mockStore.AssertExpectations(t)
+	})
+
 	t.Run("sync with existing root page and no new patterns", func(t *testing.T) {
 		mockStore := &MockPageStore{}
 		mockPatterns := NewMockPatterns([]string{})
@@ -232,6 +263,194 @@ func TestDefaultPageSyncer_Sync(t *testing.T) {
 		err := syncer.Sync(ctx, site)
 		assert.Error(t, err, "Sync should return error when FindByPatterns fails")
 		assert.Contains(t, err.Error(), "find page by pattern error")
+
+		mockStore.AssertExpectations(t)
+	})
+
+	t.Run("sync with generator error when creating new pages", func(t *testing.T) {
+		mockStore := &MockPageStore{}
+		routerPatterns := []string{"/blog/{slug}", "/about"}
+		mockPatterns := NewMockPatterns(routerPatterns)
+
+		// First call succeeds (root page), second call fails (new pages)
+		callCount := 0
+		generator := func(context.Context) (ID, error) {
+			callCount++
+			if callCount == 1 {
+				return ID("root-id"), nil
+			}
+			return ID(""), errors.New("generator error for new page")
+		}
+
+		ignore := func(context.Context, string) bool { return false }
+
+		syncer := NewDefaultPageSyncer(PageSyncerConfig{}, mockStore, generator, mockPatterns, ignore)
+
+		// Mock no existing root page
+		mockStore.On("FindByURL", ctx, site.ID, "/").Return(nil, ErrPageNotFound)
+
+		mockStore.On("FindByPatterns", ctx, site.ID, mock.MatchedBy(func(ps []string) bool {
+			return assert.ElementsMatch(t, ps, []string{"/blog/{slug}", "/about", PageInternalCreate, PageErrorUnauthorized, PageErrorForbidden, PageErrorNotFound, PageError4xx, PageError5xx})
+		})).Return(iter.Seq2[*Page, error](func(yield func(*Page, error) bool) {}))
+
+		// Mock save for root page (should succeed)
+		mockStore.On("Save", ctx, mock.MatchedBy(func(pages []*Page) bool {
+			return len(pages) == 1
+		})).Return(nil).Once()
+
+		err := syncer.Sync(ctx, site)
+		assert.Error(t, err, "Sync should return error when generator fails for new pages")
+		assert.Contains(t, err.Error(), "generate page id error")
+
+		mockStore.AssertExpectations(t)
+	})
+
+	t.Run("sync with no root page found and no home hybrid pattern", func(t *testing.T) {
+		mockStore := &MockPageStore{}
+		routerPatterns := []string{"/test"}
+		mockPatterns := NewMockPatterns(routerPatterns)
+
+		generator := func(context.Context) (ID, error) { return ID("root-id"), nil }
+		ignore := func(context.Context, string) bool { return false }
+
+		syncer := NewDefaultPageSyncer(PageSyncerConfig{}, mockStore, generator, mockPatterns, ignore)
+
+		// Mock FindByURL returns nil (no root page found)
+		mockStore.On("FindByURL", ctx, site.ID, "/").Return(nil, nil)
+
+		mockStore.On("FindByPatterns", ctx, site.ID, mock.MatchedBy(func(ps []string) bool {
+			return assert.ElementsMatch(t, ps, []string{"/test", PageInternalCreate, PageErrorUnauthorized, PageErrorForbidden, PageErrorNotFound, PageError4xx, PageError5xx})
+		})).Return(iter.Seq2[*Page, error](func(yield func(*Page, error) bool) {}))
+
+		// Mock save for root page (since root is nil, it creates one)
+		mockStore.On("Save", ctx, mock.MatchedBy(func(pages []*Page) bool {
+			return len(pages) == 1
+		})).Return(nil).Once()
+
+		// Mock save for new pages (/test + 6 internal pages = 7 pages)
+		mockStore.On("Save", ctx, mock.MatchedBy(func(pages []*Page) bool {
+			return len(pages) == 7
+		})).Return(nil).Once()
+
+		err := syncer.Sync(ctx, site)
+		assert.NoError(t, err, "Sync should succeed when creating root page")
+
+		mockStore.AssertExpectations(t)
+	})
+
+	t.Run("sync with existing HomeHybridPattern page found", func(t *testing.T) {
+		mockStore := &MockPageStore{}
+		routerPatterns := []string{HomeHybridPattern, "/test"}
+		mockPatterns := NewMockPatterns(routerPatterns)
+
+		generator := func(context.Context) (ID, error) { return ID("id"), nil }
+		ignore := func(context.Context, string) bool { return false }
+
+		syncer := NewDefaultPageSyncer(PageSyncerConfig{}, mockStore, generator, mockPatterns, ignore)
+
+		homeHybridPage := &Page{
+			ID:      ID("home-hybrid-id"),
+			SiteID:  site.ID,
+			Pattern: HomeHybridPattern,
+		}
+
+		mockStore.On("FindByPatterns", ctx, site.ID, mock.MatchedBy(func(ps []string) bool {
+			return assert.ElementsMatch(t, ps, []string{HomeHybridPattern, "/test", PageInternalCreate, PageErrorUnauthorized, PageErrorForbidden, PageErrorNotFound, PageError4xx, PageError5xx})
+		})).Return(iter.Seq2[*Page, error](func(yield func(*Page, error) bool) {
+			yield(homeHybridPage, nil)
+		}))
+
+		// Mock save for new pages (/test + 6 internal pages)
+		mockStore.On("Save", ctx, mock.MatchedBy(func(pages []*Page) bool {
+			return len(pages) == 7
+		})).Return(nil).Once()
+
+		err := syncer.Sync(ctx, site)
+		assert.NoError(t, err, "Sync should succeed when existing home hybrid page is found")
+
+		mockStore.AssertExpectations(t)
+	})
+
+	t.Run("sync with no new pages needed (all exist)", func(t *testing.T) {
+		mockStore := &MockPageStore{}
+		routerPatterns := []string{"/test"}
+		mockPatterns := NewMockPatterns(routerPatterns)
+
+		generator := func(context.Context) (ID, error) { return ID("id"), nil }
+		ignore := func(context.Context, string) bool { return false }
+
+		syncer := NewDefaultPageSyncer(PageSyncerConfig{}, mockStore, generator, mockPatterns, ignore)
+
+		rootPage := &Page{
+			ID:      ID("root-id"),
+			SiteID:  site.ID,
+			Pattern: PageCMS,
+			URL:     "/",
+		}
+
+		testPage := &Page{
+			ID:      ID("test-id"),
+			SiteID:  site.ID,
+			Pattern: "/test",
+		}
+
+		mockStore.On("FindByURL", ctx, site.ID, "/").Return(rootPage, nil)
+
+		mockStore.On("FindByPatterns", ctx, site.ID, mock.MatchedBy(func(ps []string) bool {
+			return assert.ElementsMatch(t, ps, []string{"/test", PageInternalCreate, PageErrorUnauthorized, PageErrorForbidden, PageErrorNotFound, PageError4xx, PageError5xx})
+		})).Return(iter.Seq2[*Page, error](func(yield func(*Page, error) bool) {
+			yield(testPage, nil)
+		}))
+
+		// Mock save for internal pages only (6 pages, since /test exists)
+		mockStore.On("Save", ctx, mock.MatchedBy(func(pages []*Page) bool {
+			return len(pages) == 6
+		})).Return(nil).Once()
+
+		err := syncer.Sync(ctx, site)
+		assert.NoError(t, err, "Sync should succeed when no new pages needed")
+
+		mockStore.AssertExpectations(t)
+	})
+
+	t.Run("sync with custom DefaultPage config", func(t *testing.T) {
+		mockStore := &MockPageStore{}
+		routerPatterns := []string{"/test"}
+		mockPatterns := NewMockPatterns(routerPatterns)
+
+		customTemplate := "custom/template.gohtml"
+		customPosition := 10
+
+		cfg := PageSyncerConfig{}
+		cfg.DefaultPage = &PageConfig{
+			Template: &customTemplate,
+			Position: &customPosition,
+		}
+
+		generator := func(context.Context) (ID, error) { return ID("id"), nil }
+		ignore := func(context.Context, string) bool { return false }
+
+		syncer := NewDefaultPageSyncer(cfg, mockStore, generator, mockPatterns, ignore)
+
+		rootPage := &Page{
+			ID:      ID("root-id"),
+			SiteID:  site.ID,
+			Pattern: PageCMS,
+			URL:     "/",
+		}
+
+		mockStore.On("FindByURL", ctx, site.ID, "/").Return(rootPage, nil)
+
+		mockStore.On("FindByPatterns", ctx, site.ID, mock.MatchedBy(func(ps []string) bool {
+			return assert.ElementsMatch(t, ps, []string{"/test", PageInternalCreate, PageErrorUnauthorized, PageErrorForbidden, PageErrorNotFound, PageError4xx, PageError5xx})
+		})).Return(iter.Seq2[*Page, error](func(yield func(*Page, error) bool) {}))
+
+		mockStore.On("Save", ctx, mock.MatchedBy(func(pages []*Page) bool {
+			return len(pages) == 7
+		})).Return(nil).Once()
+
+		err := syncer.Sync(ctx, site)
+		assert.NoError(t, err, "Sync should succeed with custom default page config")
 
 		mockStore.AssertExpectations(t)
 	})
@@ -611,6 +830,329 @@ func TestDefaultPageSyncer_ErrorHandling(t *testing.T) {
 		assert.Contains(t, patterns, PageError4xx, "Should include internal 4xx error pattern")
 		assert.Contains(t, patterns, PageError5xx, "Should include internal 5xx error pattern")
 		assert.False(t, homeHybrid, "homeHybrid should be false")
+	})
+}
+
+func TestDefaultPageSyncer_newPage(t *testing.T) {
+	site := &Site{
+		ID:   ID("test-site"),
+		Name: "Test Site",
+	}
+
+	t.Run("new page with default config", func(t *testing.T) {
+		mockStore := &MockPageStore{}
+		mockPatterns := NewMockPatterns([]string{})
+		generator := func(context.Context) (ID, error) { return ID("test"), nil }
+
+		syncer := NewDefaultPageSyncer(PageSyncerConfig{}, mockStore, generator, mockPatterns, nil)
+
+		page := syncer.newPage("", "/about", site)
+
+		assert.Equal(t, site.ID, page.SiteID)
+		assert.Equal(t, site.Name+": /about", page.Name)
+		assert.Equal(t, "/about", page.Pattern)
+		assert.NotNil(t, page.Created)
+		assert.NotNil(t, page.Updated)
+		assert.Equal(t, hybridTemplate, page.Template)
+		assert.Equal(t, 1, page.Position)
+		assert.True(t, page.Decorate)
+		assert.Equal(t, Draft, page.Status)
+		assert.Equal(t, Public, page.Visibility)
+	})
+
+	t.Run("new page with custom name", func(t *testing.T) {
+		mockStore := &MockPageStore{}
+		mockPatterns := NewMockPatterns([]string{})
+		generator := func(context.Context) (ID, error) { return ID("test"), nil }
+
+		syncer := NewDefaultPageSyncer(PageSyncerConfig{}, mockStore, generator, mockPatterns, nil)
+
+		page := syncer.newPage("Custom Name", "/custom", site)
+
+		assert.Equal(t, site.Name+": Custom Name", page.Name)
+	})
+
+	t.Run("new page with internal pattern name", func(t *testing.T) {
+		mockStore := &MockPageStore{}
+		mockPatterns := NewMockPatterns([]string{})
+		generator := func(context.Context) (ID, error) { return ID("test"), nil }
+
+		syncer := NewDefaultPageSyncer(PageSyncerConfig{}, mockStore, generator, mockPatterns, nil)
+
+		page := syncer.newPage("", "_page_internal_error", site)
+
+		assert.Equal(t, site.Name+": internal error", page.Name)
+	})
+
+	t.Run("new page with custom config", func(t *testing.T) {
+		mockStore := &MockPageStore{}
+		mockPatterns := NewMockPatterns([]string{})
+		generator := func(context.Context) (ID, error) { return ID("test"), nil }
+
+		customTemplate := "custom/template.gohtml"
+		customPosition := 5
+		customDecorate := false
+		customStatus := Published
+		customVisibility := Private
+		customParentID := ID("parent-id")
+
+		cfg := PageSyncerConfig{}
+		cfg.DefaultPatterns = map[string]*PageConfig{
+			"/custom": {
+				ParentID:   &customParentID,
+				Template:   &customTemplate,
+				Position:   &customPosition,
+				Decorate:   &customDecorate,
+				Status:     &customStatus,
+				Visibility: &customVisibility,
+			},
+		}
+
+		syncer := NewDefaultPageSyncer(cfg, mockStore, generator, mockPatterns, nil)
+
+		page := syncer.newPage("", "/custom", site)
+
+		assert.Equal(t, &customParentID, page.ParentID)
+		assert.Equal(t, customTemplate, page.Template)
+		assert.Equal(t, customPosition, page.Position)
+		assert.Equal(t, customDecorate, page.Decorate)
+		assert.Equal(t, customStatus, page.Status)
+		assert.Equal(t, customVisibility, page.Visibility)
+	})
+
+	t.Run("new page with metadata and meta tags", func(t *testing.T) {
+		mockStore := &MockPageStore{}
+		mockPatterns := NewMockPatterns([]string{})
+		generator := func(context.Context) (ID, error) { return ID("test"), nil }
+
+		customMetaTags := NewMetaTags("custom-charset")
+		customMetadata := NewMetadata(map[string]any{"key": "value"})
+
+		cfg := PageSyncerConfig{}
+		cfg.DefaultPatterns = map[string]*PageConfig{
+			"/custom": {
+				MetaTags: customMetaTags,
+				Metadata: customMetadata,
+			},
+		}
+
+		syncer := NewDefaultPageSyncer(cfg, mockStore, generator, mockPatterns, nil)
+
+		page := syncer.newPage("", "/custom", site)
+
+		assert.Equal(t, customMetaTags, page.MetaTags)
+		assert.Equal(t, customMetadata, page.Metadata)
+	})
+
+	t.Run("new page with custom headers", func(t *testing.T) {
+		mockStore := &MockPageStore{}
+		mockPatterns := NewMockPatterns([]string{})
+		generator := func(context.Context) (ID, error) { return ID("test"), nil }
+
+		customHeaders := map[string][]string{
+			"X-Custom-Header": {"value1", "value2"},
+		}
+
+		cfg := PageSyncerConfig{}
+		cfg.DefaultPatterns = map[string]*PageConfig{
+			"/custom": {
+				Header: customHeaders,
+			},
+		}
+
+		syncer := NewDefaultPageSyncer(cfg, mockStore, generator, mockPatterns, nil)
+
+		page := syncer.newPage("", "/custom", site)
+
+		assert.Equal(t, customHeaders, page.Header)
+	})
+}
+
+func TestPageSyncerConfig_SetDefaults(t *testing.T) {
+	t.Run("SetDefaults with nil DefaultPage", func(t *testing.T) {
+		cfg := PageSyncerConfig{}
+		cfg.SetDefaults()
+
+		assert.NotNil(t, cfg.DefaultPage)
+		assert.NotNil(t, cfg.DefaultPage.Template)
+		assert.NotNil(t, cfg.DefaultPage.Position)
+		assert.NotNil(t, cfg.DefaultPage.Decorate)
+		assert.NotNil(t, cfg.DefaultPage.Status)
+		assert.NotNil(t, cfg.DefaultPage.Visibility)
+		assert.NotNil(t, cfg.DefaultPage.MetaTags)
+		assert.NotNil(t, cfg.DefaultPage.Metadata)
+		assert.NotNil(t, cfg.DefaultPage.Header)
+	})
+
+	t.Run("SetDefaults with existing DefaultPage", func(t *testing.T) {
+		customTemplate := "existing.gohtml"
+		cfg := PageSyncerConfig{
+			DefaultPage: &PageConfig{
+				Template: &customTemplate,
+			},
+		}
+		cfg.SetDefaults()
+
+		assert.Equal(t, customTemplate, *cfg.DefaultPage.Template)
+		assert.NotNil(t, cfg.DefaultPage.Position)
+	})
+
+	t.Run("SetDefaults with nil DefaultPatterns", func(t *testing.T) {
+		cfg := PageSyncerConfig{}
+		cfg.SetDefaults()
+
+		assert.NotNil(t, cfg.DefaultPatterns)
+		assert.NotNil(t, cfg.DefaultPatterns[HomeHybridPattern])
+		assert.NotNil(t, cfg.DefaultPatterns[PageInternalCreate])
+		assert.NotNil(t, cfg.DefaultPatterns[PageErrorUnauthorized])
+		assert.NotNil(t, cfg.DefaultPatterns[PageErrorForbidden])
+		assert.NotNil(t, cfg.DefaultPatterns[PageErrorNotFound])
+		assert.NotNil(t, cfg.DefaultPatterns[PageError4xx])
+		assert.NotNil(t, cfg.DefaultPatterns[PageError5xx])
+	})
+
+	t.Run("SetDefaults with existing DefaultPatterns", func(t *testing.T) {
+		customTemplate := "custom.gohtml"
+		cfg := PageSyncerConfig{
+			DefaultPatterns: map[string]*PageConfig{
+				HomeHybridPattern: {
+					Template: &customTemplate,
+				},
+			},
+		}
+		cfg.SetDefaults()
+
+		assert.Equal(t, customTemplate, *cfg.DefaultPatterns[HomeHybridPattern].Template)
+		assert.NotNil(t, cfg.DefaultPatterns[PageInternalCreate])
+	})
+
+	t.Run("SetDefaults with nil pattern in DefaultPatterns", func(t *testing.T) {
+		cfg := PageSyncerConfig{
+			DefaultPatterns: map[string]*PageConfig{
+				HomeHybridPattern: nil,
+			},
+		}
+		cfg.SetDefaults()
+
+		assert.NotNil(t, cfg.DefaultPatterns[HomeHybridPattern])
+		assert.NotNil(t, cfg.DefaultPatterns[HomeHybridPattern].Template)
+	})
+
+	t.Run("SetDefaults with partial fields set", func(t *testing.T) {
+		customStatus := Published
+		cfg := PageSyncerConfig{
+			DefaultPage: &PageConfig{
+				Status: &customStatus,
+			},
+		}
+		cfg.SetDefaults()
+
+		assert.Equal(t, customStatus, *cfg.DefaultPage.Status)
+		assert.NotNil(t, cfg.DefaultPage.Template)
+		assert.NotNil(t, cfg.DefaultPage.Position)
+		assert.NotNil(t, cfg.DefaultPage.Decorate)
+		assert.NotNil(t, cfg.DefaultPage.Visibility)
+	})
+}
+
+func TestDefaultPageSyncer_setPageConfig(t *testing.T) {
+	t.Run("set page config with all fields", func(t *testing.T) {
+		mockStore := &MockPageStore{}
+		mockPatterns := NewMockPatterns([]string{})
+		generator := func(context.Context) (ID, error) { return ID("test"), nil }
+
+		customParentID := ID("parent-id")
+		customTemplate := "custom/template.gohtml"
+		customPosition := 10
+		customDecorate := false
+		customStatus := Published
+		customVisibility := Private
+		customMetaTags := NewMetaTags("utf-8")
+		customMetadata := NewMetadata(map[string]any{"key": "value"})
+		customHeaders := map[string][]string{"X-Header": {"value"}}
+
+		cfg := PageSyncerConfig{}
+		cfg.DefaultPatterns = map[string]*PageConfig{
+			"/test": {
+				ParentID:   &customParentID,
+				Template:   &customTemplate,
+				Position:   &customPosition,
+				Decorate:   &customDecorate,
+				Status:     &customStatus,
+				Visibility: &customVisibility,
+				MetaTags:   customMetaTags,
+				Metadata:   customMetadata,
+				Header:     customHeaders,
+			},
+		}
+
+		syncer := NewDefaultPageSyncer(cfg, mockStore, generator, mockPatterns, nil)
+
+		page := syncer.newPage("", "/test", &Site{ID: ID("site"), Name: "Site"})
+
+		assert.Equal(t, &customParentID, page.ParentID)
+		assert.Equal(t, customTemplate, page.Template)
+		assert.Equal(t, customPosition, page.Position)
+		assert.Equal(t, customDecorate, page.Decorate)
+		assert.Equal(t, customStatus, page.Status)
+		assert.Equal(t, customVisibility, page.Visibility)
+		assert.Equal(t, customMetaTags, page.MetaTags)
+		assert.Equal(t, customMetadata, page.Metadata)
+		assert.Equal(t, customHeaders, page.Header)
+	})
+
+	t.Run("set page config with nil fields does not override", func(t *testing.T) {
+		mockStore := &MockPageStore{}
+		mockPatterns := NewMockPatterns([]string{})
+		generator := func(context.Context) (ID, error) { return ID("test"), nil }
+
+		site := &Site{ID: ID("site"), Name: "Site"}
+
+		cfg := PageSyncerConfig{}
+		cfg.DefaultPage = &PageConfig{
+			Template:   ref("default.gohtml"),
+			Position:   ref(5),
+			Decorate:   ref(true),
+			Status:     ref(Published),
+			Visibility: ref(Public),
+		}
+		cfg.DefaultPatterns = map[string]*PageConfig{
+			"/test": {}, // All nil
+		}
+
+		syncer := NewDefaultPageSyncer(cfg, mockStore, generator, mockPatterns, nil)
+
+		page := syncer.newPage("", "/test", site)
+
+		assert.Equal(t, "default.gohtml", page.Template)
+		assert.Equal(t, 5, page.Position)
+		assert.True(t, page.Decorate)
+		assert.Equal(t, Published, page.Status)
+		assert.Equal(t, Public, page.Visibility)
+	})
+}
+
+func TestRef(t *testing.T) {
+	t.Run("ref creates pointer to value", func(t *testing.T) {
+		strValue := "test"
+		strPtr := ref(strValue)
+		assert.NotNil(t, strPtr)
+		assert.Equal(t, "test", *strPtr)
+
+		intValue := 42
+		intPtr := ref(intValue)
+		assert.NotNil(t, intPtr)
+		assert.Equal(t, 42, *intPtr)
+
+		boolValue := true
+		boolPtr := ref(boolValue)
+		assert.NotNil(t, boolPtr)
+		assert.True(t, *boolPtr)
+
+		statusValue := Published
+		statusPtr := ref(statusValue)
+		assert.NotNil(t, statusPtr)
+		assert.Equal(t, Published, *statusPtr)
 	})
 }
 
