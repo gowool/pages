@@ -337,7 +337,7 @@ func (s *DefaultPageSyncer) newPage(name, pattern string, site *Site) *Page {
 	}
 
 	s.setPageConfig(p, s.cfg.DefaultPage)
-	if patternPage, ok := s.cfg.DefaultPatterns[pattern]; ok {
+	if patternPage, ok := s.cfg.DefaultPatterns[pattern]; ok && patternPage != nil {
 		s.setPageConfig(p, patternPage)
 	}
 
@@ -348,26 +348,26 @@ func (s *DefaultPageSyncer) setPageConfig(page *Page, config *PageConfig) {
 	if config.ParentID != nil {
 		page.ParentID = config.ParentID
 	}
-	if s.cfg.DefaultPage.Template != nil {
-		page.Template = *s.cfg.DefaultPage.Template
+	if config.Template != nil {
+		page.Template = *config.Template
 	}
-	if s.cfg.DefaultPage.Position != nil {
-		page.Position = *s.cfg.DefaultPage.Position
+	if config.Position != nil {
+		page.Position = *config.Position
 	}
-	if s.cfg.DefaultPage.Decorate != nil {
-		page.Decorate = *s.cfg.DefaultPage.Decorate
+	if config.Decorate != nil {
+		page.Decorate = *config.Decorate
 	}
-	if s.cfg.DefaultPage.Status != nil {
-		page.Status = *s.cfg.DefaultPage.Status
+	if config.Status != nil {
+		page.Status = *config.Status
 	}
-	if s.cfg.DefaultPage.Visibility != nil {
-		page.Visibility = *s.cfg.DefaultPage.Visibility
+	if config.Visibility != nil {
+		page.Visibility = *config.Visibility
 	}
 	if config.MetaTags != nil {
-		page.MetaTags = s.cfg.DefaultPage.MetaTags
+		page.MetaTags = config.MetaTags
 	}
-	if s.cfg.DefaultPage.Metadata != nil {
-		page.Metadata = s.cfg.DefaultPage.Metadata
+	if config.Metadata != nil {
+		page.Metadata = config.Metadata
 	}
 	if config.Header != nil {
 		page.Header = config.Header
