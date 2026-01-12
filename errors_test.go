@@ -87,7 +87,7 @@ func newMockPatternPageManager(page *Page, err error) *MockPageManager {
 // TestErrorRenderer_PanicHandlerNil tests that ErrorRenderer panics when handler is nil
 func TestErrorRenderer_PanicHandlerNil(t *testing.T) {
 	assert.Panics(t, func() {
-		ErrorRenderer[Resolver](nil, &MockPageManager{}, &MockPageAuthorizer{}, nil, slog.Default())
+		ErrorRenderer[Resolver](nil, &MockPageManager{}, nil, &MockPageAuthorizer{}, nil, slog.Default())
 	}, "Expected panic when handler is nil")
 }
 
@@ -95,7 +95,7 @@ func TestErrorRenderer_PanicHandlerNil(t *testing.T) {
 func TestErrorRenderer_PanicManagerNil(t *testing.T) {
 	handler := func(e Resolver) error { return nil }
 	assert.Panics(t, func() {
-		ErrorRenderer[Resolver](handler, nil, &MockPageAuthorizer{}, nil, slog.Default())
+		ErrorRenderer[Resolver](handler, nil, nil, nil, nil, slog.Default())
 	}, "Expected panic when manager is nil")
 }
 
@@ -104,7 +104,7 @@ func TestErrorRenderer_DefaultAuthorizer(t *testing.T) {
 	handler := func(e Resolver) error { return nil }
 	manager := &MockPageManager{}
 
-	renderer := ErrorRenderer[Resolver](handler, manager, nil, nil, slog.Default())
+	renderer := ErrorRenderer[Resolver](handler, manager, nil, nil, nil, nil)
 	assert.NotNil(t, renderer)
 }
 
@@ -114,7 +114,7 @@ func TestErrorRenderer_DefaultPatternFinder(t *testing.T) {
 	manager := &MockPageManager{}
 	authorizer := &MockPageAuthorizer{}
 
-	renderer := ErrorRenderer[Resolver](handler, manager, authorizer, nil, slog.Default())
+	renderer := ErrorRenderer[Resolver](handler, manager, nil, authorizer, nil, slog.Default())
 	assert.NotNil(t, renderer)
 }
 
@@ -124,7 +124,7 @@ func TestErrorRenderer_DefaultLogger(t *testing.T) {
 	manager := &MockPageManager{}
 	authorizer := &MockPageAuthorizer{}
 
-	renderer := ErrorRenderer[Resolver](handler, manager, authorizer, nil, nil)
+	renderer := ErrorRenderer[Resolver](handler, manager, nil, authorizer, nil, nil)
 	assert.NotNil(t, renderer)
 }
 
@@ -134,7 +134,7 @@ func TestErrorRenderer_NonHTMLRequest(t *testing.T) {
 	manager := &MockPageManager{}
 	authorizer := &MockPageAuthorizer{}
 
-	renderer := ErrorRenderer[Resolver](handler, manager, authorizer, nil, slog.Default())
+	renderer := ErrorRenderer[Resolver](handler, manager, nil, authorizer, nil, slog.Default())
 
 	req := httptest.NewRequest("GET", "http://example.com", nil)
 	req.Header.Set(wo.HeaderAccept, "application/json")
@@ -156,7 +156,7 @@ func TestErrorRenderer_NoSite(t *testing.T) {
 	manager := &MockPageManager{}
 	authorizer := &MockPageAuthorizer{}
 
-	renderer := ErrorRenderer[Resolver](handler, manager, authorizer, nil, slog.Default())
+	renderer := ErrorRenderer[Resolver](handler, manager, nil, authorizer, nil, slog.Default())
 
 	req := httptest.NewRequest("GET", "http://example.com", nil)
 	req.Header.Set(wo.HeaderAccept, wo.MIMETextHTML)
@@ -182,7 +182,7 @@ func TestErrorRenderer_Skipper(t *testing.T) {
 		return true
 	}
 
-	renderer := ErrorRenderer[Resolver](handler, manager, authorizer, nil, slog.Default(), skipper)
+	renderer := ErrorRenderer[Resolver](handler, manager, nil, authorizer, nil, slog.Default(), skipper)
 
 	req := httptest.NewRequest("GET", "http://example.com", nil)
 	req.Header.Set(wo.HeaderAccept, wo.MIMETextHTML)
@@ -209,7 +209,7 @@ func TestErrorRenderer_NotFoundWithCreatePermission(t *testing.T) {
 	manager := newMockPatternPageManager(page, nil)
 	authorizer := NewMockPageAuthorizer(Allow, nil)
 
-	renderer := ErrorRenderer[Resolver](handler, manager, authorizer, nil, slog.Default())
+	renderer := ErrorRenderer[Resolver](handler, manager, nil, authorizer, nil, slog.Default())
 
 	req := httptest.NewRequest("GET", "http://example.com", nil)
 	req.Header.Set(wo.HeaderAccept, wo.MIMETextHTML)
@@ -236,7 +236,7 @@ func TestErrorRenderer_DefaultPatternFinder4xx(t *testing.T) {
 	manager := newMockPatternPageManager(page, nil)
 	authorizer := NewMockPageAuthorizer(Deny, nil)
 
-	renderer := ErrorRenderer[Resolver](handler, manager, authorizer, nil, slog.Default())
+	renderer := ErrorRenderer[Resolver](handler, manager, nil, authorizer, nil, slog.Default())
 
 	req := httptest.NewRequest("GET", "http://example.com", nil)
 	req.Header.Set(wo.HeaderAccept, wo.MIMETextHTML)
@@ -263,7 +263,7 @@ func TestErrorRenderer_DefaultPatternFinder5xx(t *testing.T) {
 	manager := newMockPatternPageManager(page, nil)
 	authorizer := NewMockPageAuthorizer(Deny, nil)
 
-	renderer := ErrorRenderer[Resolver](handler, manager, authorizer, nil, slog.Default())
+	renderer := ErrorRenderer[Resolver](handler, manager, nil, authorizer, nil, slog.Default())
 
 	req := httptest.NewRequest("GET", "http://example.com", nil)
 	req.Header.Set(wo.HeaderAccept, wo.MIMETextHTML)
@@ -294,7 +294,7 @@ func TestErrorRenderer_CustomPatternFinder(t *testing.T) {
 		return "custom_error_pattern", nil
 	}
 
-	renderer := ErrorRenderer[Resolver](handler, manager, authorizer, patternFinder, slog.Default())
+	renderer := ErrorRenderer[Resolver](handler, manager, nil, authorizer, patternFinder, slog.Default())
 
 	req := httptest.NewRequest("GET", "http://example.com", nil)
 	req.Header.Set(wo.HeaderAccept, wo.MIMETextHTML)
@@ -325,7 +325,7 @@ func TestErrorRenderer_PatternFinderError(t *testing.T) {
 		return "", errors.New("pattern finder error")
 	}
 
-	renderer := ErrorRenderer[Resolver](handler, manager, authorizer, patternFinder, slog.Default())
+	renderer := ErrorRenderer[Resolver](handler, manager, nil, authorizer, patternFinder, slog.Default())
 
 	req := httptest.NewRequest("GET", "http://example.com", nil)
 	req.Header.Set(wo.HeaderAccept, wo.MIMETextHTML)
@@ -353,7 +353,7 @@ func TestErrorRenderer_ManagerError(t *testing.T) {
 
 	logger := slog.New(slog.NewTextHandler(httptest.NewRecorder(), nil))
 
-	renderer := ErrorRenderer[Resolver](handler, manager, authorizer, nil, logger)
+	renderer := ErrorRenderer[Resolver](handler, manager, nil, authorizer, nil, logger)
 
 	req := httptest.NewRequest("GET", "http://example.com", nil)
 	req.Header.Set(wo.HeaderAccept, wo.MIMETextHTML)
@@ -384,7 +384,7 @@ func TestErrorRenderer_HandlerError(t *testing.T) {
 
 	logger := slog.New(slog.NewTextHandler(httptest.NewRecorder(), nil))
 
-	renderer := ErrorRenderer[Resolver](handler, manager, authorizer, nil, logger)
+	renderer := ErrorRenderer[Resolver](handler, manager, nil, authorizer, nil, logger)
 
 	req := httptest.NewRequest("GET", "http://example.com", nil)
 	req.Header.Set(wo.HeaderAccept, wo.MIMETextHTML)
@@ -416,7 +416,7 @@ func TestErrorRenderer_ChainSkipper(t *testing.T) {
 		return true
 	}
 
-	renderer := ErrorRenderer[Resolver](handler, manager, authorizer, nil, slog.Default(), skipper1, skipper2)
+	renderer := ErrorRenderer[Resolver](handler, manager, nil, authorizer, nil, slog.Default(), skipper1, skipper2)
 
 	req := httptest.NewRequest("GET", "http://example.com", nil)
 	req.Header.Set(wo.HeaderAccept, wo.MIMETextHTML)
@@ -443,7 +443,7 @@ func TestErrorRenderer_UnauthorizedError(t *testing.T) {
 	manager := newMockPatternPageManager(page, nil)
 	authorizer := NewMockPageAuthorizer(Deny, nil)
 
-	renderer := ErrorRenderer[Resolver](handler, manager, authorizer, nil, slog.Default())
+	renderer := ErrorRenderer[Resolver](handler, manager, nil, authorizer, nil, slog.Default())
 
 	req := httptest.NewRequest("GET", "http://example.com", nil)
 	req.Header.Set(wo.HeaderAccept, wo.MIMETextHTML)
@@ -470,7 +470,7 @@ func TestErrorRenderer_ForbiddenError(t *testing.T) {
 	manager := newMockPatternPageManager(page, nil)
 	authorizer := NewMockPageAuthorizer(Deny, nil)
 
-	renderer := ErrorRenderer[Resolver](handler, manager, authorizer, nil, slog.Default())
+	renderer := ErrorRenderer[Resolver](handler, manager, nil, authorizer, nil, slog.Default())
 
 	req := httptest.NewRequest("GET", "http://example.com", nil)
 	req.Header.Set(wo.HeaderAccept, wo.MIMETextHTML)
@@ -497,7 +497,7 @@ func TestErrorRenderer_NotFoundError(t *testing.T) {
 	manager := newMockPatternPageManager(page, nil)
 	authorizer := NewMockPageAuthorizer(Deny, nil)
 
-	renderer := ErrorRenderer[Resolver](handler, manager, authorizer, nil, slog.Default())
+	renderer := ErrorRenderer[Resolver](handler, manager, nil, authorizer, nil, slog.Default())
 
 	req := httptest.NewRequest("GET", "http://example.com", nil)
 	req.Header.Set(wo.HeaderAccept, wo.MIMETextHTML)
@@ -524,7 +524,7 @@ func TestErrorRenderer_Other4xxError(t *testing.T) {
 	manager := newMockPatternPageManager(page, nil)
 	authorizer := NewMockPageAuthorizer(Deny, nil)
 
-	renderer := ErrorRenderer[Resolver](handler, manager, authorizer, nil, slog.Default())
+	renderer := ErrorRenderer[Resolver](handler, manager, nil, authorizer, nil, slog.Default())
 
 	req := httptest.NewRequest("GET", "http://example.com", nil)
 	req.Header.Set(wo.HeaderAccept, wo.MIMETextHTML)
@@ -551,7 +551,7 @@ func TestErrorRenderer_Other5xxError(t *testing.T) {
 	manager := newMockPatternPageManager(page, nil)
 	authorizer := NewMockPageAuthorizer(Deny, nil)
 
-	renderer := ErrorRenderer[Resolver](handler, manager, authorizer, nil, slog.Default())
+	renderer := ErrorRenderer[Resolver](handler, manager, nil, authorizer, nil, slog.Default())
 
 	req := httptest.NewRequest("GET", "http://example.com", nil)
 	req.Header.Set(wo.HeaderAccept, wo.MIMETextHTML)
@@ -582,7 +582,7 @@ func TestErrorRenderer_CustomPatternFinderEmpty(t *testing.T) {
 		return "", nil
 	}
 
-	renderer := ErrorRenderer[Resolver](handler, manager, authorizer, patternFinder, slog.Default())
+	renderer := ErrorRenderer[Resolver](handler, manager, nil, authorizer, patternFinder, slog.Default())
 
 	req := httptest.NewRequest("GET", "http://example.com", nil)
 	req.Header.Set(wo.HeaderAccept, wo.MIMETextHTML)
@@ -609,7 +609,7 @@ func TestErrorRenderer_SetsError(t *testing.T) {
 	manager := newMockPatternPageManager(page, nil)
 	authorizer := NewMockPageAuthorizer(Deny, nil)
 
-	renderer := ErrorRenderer[Resolver](handler, manager, authorizer, nil, slog.Default())
+	renderer := ErrorRenderer[Resolver](handler, manager, nil, authorizer, nil, slog.Default())
 
 	req := httptest.NewRequest("GET", "http://example.com", nil)
 	req.Header.Set(wo.HeaderAccept, wo.MIMETextHTML)
@@ -636,7 +636,7 @@ func TestErrorRenderer_StatusOKTestsDefaultPattern(t *testing.T) {
 	manager := newMockPatternPageManager(page, nil)
 	authorizer := NewMockPageAuthorizer(Deny, nil)
 
-	renderer := ErrorRenderer[Resolver](handler, manager, authorizer, nil, slog.Default())
+	renderer := ErrorRenderer[Resolver](handler, manager, nil, authorizer, nil, slog.Default())
 
 	req := httptest.NewRequest("GET", "http://example.com", nil)
 	req.Header.Set(wo.HeaderAccept, wo.MIMETextHTML)
@@ -663,7 +663,7 @@ func TestErrorRenderer_PartialHTMLAccept(t *testing.T) {
 	manager := newMockPatternPageManager(page, nil)
 	authorizer := NewMockPageAuthorizer(Deny, nil)
 
-	renderer := ErrorRenderer[Resolver](handler, manager, authorizer, nil, slog.Default())
+	renderer := ErrorRenderer[Resolver](handler, manager, nil, authorizer, nil, slog.Default())
 
 	req := httptest.NewRequest("GET", "http://example.com", nil)
 	req.Header.Set(wo.HeaderAccept, "application/json,"+wo.MIMETextHTML)
@@ -694,7 +694,7 @@ func TestErrorRenderer_HandlerSuccess(t *testing.T) {
 	manager := newMockPatternPageManager(page, nil)
 	authorizer := NewMockPageAuthorizer(Deny, nil)
 
-	renderer := ErrorRenderer[Resolver](handler, manager, authorizer, nil, slog.Default())
+	renderer := ErrorRenderer[Resolver](handler, manager, nil, authorizer, nil, slog.Default())
 
 	req := httptest.NewRequest("GET", "http://example.com", nil)
 	req.Header.Set(wo.HeaderAccept, wo.MIMETextHTML)

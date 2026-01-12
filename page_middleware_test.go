@@ -13,14 +13,14 @@ import (
 // TestPageMiddleware_PanicHandlerNil tests that the middleware panics when handler is nil
 func TestPageMiddleware_PanicHandlerNil(t *testing.T) {
 	assert.Panics(t, func() {
-		PageMiddleware[Resolver](nil, &MockPageSelector{}, nil)
+		PageMiddleware[Resolver](nil, &MockPageSelector{}, nil, nil)
 	}, "Expected panic when handler is nil")
 }
 
 // TestPageMiddleware_PanicSelectorNil tests that the middleware panics when selector is nil
 func TestPageMiddleware_PanicSelectorNil(t *testing.T) {
 	assert.Panics(t, func() {
-		PageMiddleware[Resolver](func(resolver Resolver) error { return nil }, nil, nil)
+		PageMiddleware[Resolver](func(resolver Resolver) error { return nil }, nil, nil, nil)
 	}, "Expected panic when selector is nil")
 }
 
@@ -29,7 +29,7 @@ func TestPageMiddleware_DefaultAuthorizer(t *testing.T) {
 	handler := func(resolver Resolver) error { return nil }
 	selector := &MockPageSelector{}
 
-	middleware := PageMiddleware[Resolver](handler, selector, nil)
+	middleware := PageMiddleware[Resolver](handler, selector, nil, nil)
 	assert.NotNil(t, middleware)
 }
 
@@ -48,7 +48,7 @@ func TestPageMiddleware_NoSite(t *testing.T) {
 		return nil
 	}
 
-	middleware := PageMiddleware[Resolver](handler, mockSelector, nil)
+	middleware := PageMiddleware[Resolver](handler, mockSelector, nil, nil)
 
 	err := middleware(event)
 
@@ -75,7 +75,7 @@ func TestPageMiddleware_PageNotFound(t *testing.T) {
 		return nil
 	}
 
-	middleware := PageMiddleware[Resolver](handler, mockSelector, nil)
+	middleware := PageMiddleware[Resolver](handler, mockSelector, nil, nil)
 
 	err := middleware(event)
 
@@ -110,7 +110,7 @@ func TestPageMiddleware_PublishedCMSPage(t *testing.T) {
 		return nil
 	}
 
-	middleware := PageMiddleware[Resolver](handler, mockSelector, nil)
+	middleware := PageMiddleware[Resolver](handler, mockSelector, nil, nil)
 
 	err := middleware(event)
 
@@ -171,7 +171,7 @@ func TestPageMiddleware_HybridPagePattern(t *testing.T) {
 				return nil
 			}
 
-			middleware := PageMiddleware[Resolver](handler, mockSelector, nil)
+			middleware := PageMiddleware[Resolver](handler, mockSelector, nil, nil)
 
 			err := middleware(event)
 
@@ -216,7 +216,7 @@ func TestPageMiddleware_DraftPageUnauthorized(t *testing.T) {
 		return nil
 	}
 
-	middleware := PageMiddleware[Resolver](handler, mockSelector, mockAuthorizer)
+	middleware := PageMiddleware[Resolver](handler, mockSelector, nil, mockAuthorizer)
 
 	err := middleware(event)
 
@@ -253,7 +253,7 @@ func TestPageMiddleware_DraftPageAuthorized(t *testing.T) {
 		return nil
 	}
 
-	middleware := PageMiddleware[Resolver](handler, mockSelector, mockAuthorizer)
+	middleware := PageMiddleware[Resolver](handler, mockSelector, nil, mockAuthorizer)
 
 	err := middleware(event)
 
@@ -289,7 +289,7 @@ func TestPageMiddleware_PrivatePageGuest(t *testing.T) {
 		return nil
 	}
 
-	middleware := PageMiddleware[Resolver](handler, mockSelector, mockAuthorizer)
+	middleware := PageMiddleware[Resolver](handler, mockSelector, nil, mockAuthorizer)
 
 	err := middleware(event)
 
@@ -325,7 +325,7 @@ func TestPageMiddleware_PrivatePageUnauthorized(t *testing.T) {
 		return nil
 	}
 
-	middleware := PageMiddleware[Resolver](handler, mockSelector, mockAuthorizer)
+	middleware := PageMiddleware[Resolver](handler, mockSelector, nil, mockAuthorizer)
 
 	err := middleware(event)
 
@@ -359,7 +359,7 @@ func TestPageMiddleware_UnknownPageStatus(t *testing.T) {
 		return nil
 	}
 
-	middleware := PageMiddleware[Resolver](handler, mockSelector, nil)
+	middleware := PageMiddleware[Resolver](handler, mockSelector, nil, nil)
 
 	err := middleware(event)
 
@@ -404,7 +404,7 @@ func TestPageMiddleware_SkipMiddleware(t *testing.T) {
 	}
 
 	skipper := func(resolver Resolver) bool { return true }
-	middleware := PageMiddleware[Resolver](handler, mockSelector, nil, skipper)
+	middleware := PageMiddleware[Resolver](handler, mockSelector, nil, nil, skipper)
 
 	err := middleware(event)
 
@@ -433,7 +433,7 @@ func TestPageMiddleware_ChainSkipper(t *testing.T) {
 	skipper1 := func(resolver Resolver) bool { return false }
 	skipper2 := func(resolver Resolver) bool { return true }
 
-	middleware := PageMiddleware[Resolver](handler, mockSelector, nil, skipper1, skipper2)
+	middleware := PageMiddleware[Resolver](handler, mockSelector, nil, nil, skipper1, skipper2)
 
 	err := middleware(event)
 
@@ -460,7 +460,7 @@ func TestPageMiddleware_SelectorError(t *testing.T) {
 		return nil
 	}
 
-	middleware := PageMiddleware[Resolver](handler, mockSelector, nil)
+	middleware := PageMiddleware[Resolver](handler, mockSelector, nil, nil)
 
 	err := middleware(event)
 
@@ -497,7 +497,7 @@ func TestPageMiddleware_DraftPageAuthError(t *testing.T) {
 		return nil
 	}
 
-	middleware := PageMiddleware[Resolver](handler, mockSelector, mockAuthorizer)
+	middleware := PageMiddleware[Resolver](handler, mockSelector, nil, mockAuthorizer)
 
 	err := middleware(event)
 
@@ -534,7 +534,7 @@ func TestPageMiddleware_PrivatePageAuthError(t *testing.T) {
 		return nil
 	}
 
-	middleware := PageMiddleware[Resolver](handler, mockSelector, mockAuthorizer)
+	middleware := PageMiddleware[Resolver](handler, mockSelector, nil, mockAuthorizer)
 
 	err := middleware(event)
 
@@ -562,7 +562,7 @@ func TestPageMiddleware_NilPageFromSelector(t *testing.T) {
 		return nil
 	}
 
-	middleware := PageMiddleware[Resolver](handler, mockSelector, nil)
+	middleware := PageMiddleware[Resolver](handler, mockSelector, nil, nil)
 
 	err := middleware(event)
 
@@ -599,7 +599,7 @@ func TestPageMiddleware_PageWithExistingSite(t *testing.T) {
 		return nil
 	}
 
-	middleware := PageMiddleware[Resolver](handler, mockSelector, nil)
+	middleware := PageMiddleware[Resolver](handler, mockSelector, nil, nil)
 
 	err := middleware(event)
 
