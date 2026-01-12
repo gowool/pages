@@ -14,6 +14,349 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
+func TestDefaultErrorPatternFinder(t *testing.T) {
+	tests := []struct {
+		name        string
+		status      int
+		expected    string
+		expectedErr error
+	}{
+		{
+			name:        "unauthorized returns unauthorized pattern",
+			status:      http.StatusUnauthorized,
+			expected:    PageErrorUnauthorized,
+			expectedErr: nil,
+		},
+		{
+			name:        "forbidden returns forbidden pattern",
+			status:      http.StatusForbidden,
+			expected:    PageErrorForbidden,
+			expectedErr: nil,
+		},
+		{
+			name:        "not found returns not found pattern",
+			status:      http.StatusNotFound,
+			expected:    PageErrorNotFound,
+			expectedErr: nil,
+		},
+		{
+			name:        "bad request returns 4xx pattern",
+			status:      http.StatusBadRequest,
+			expected:    PageError4xx,
+			expectedErr: nil,
+		},
+		{
+			name:        "payment required returns 4xx pattern",
+			status:      http.StatusPaymentRequired,
+			expected:    PageError4xx,
+			expectedErr: nil,
+		},
+		{
+			name:        "method not allowed returns 4xx pattern",
+			status:      http.StatusMethodNotAllowed,
+			expected:    PageError4xx,
+			expectedErr: nil,
+		},
+		{
+			name:        "proxy auth required returns 4xx pattern",
+			status:      http.StatusProxyAuthRequired,
+			expected:    PageError4xx,
+			expectedErr: nil,
+		},
+		{
+			name:        "request timeout returns 4xx pattern",
+			status:      http.StatusRequestTimeout,
+			expected:    PageError4xx,
+			expectedErr: nil,
+		},
+		{
+			name:        "conflict returns 4xx pattern",
+			status:      http.StatusConflict,
+			expected:    PageError4xx,
+			expectedErr: nil,
+		},
+		{
+			name:        "gone returns 4xx pattern",
+			status:      http.StatusGone,
+			expected:    PageError4xx,
+			expectedErr: nil,
+		},
+		{
+			name:        "length required returns 4xx pattern",
+			status:      http.StatusLengthRequired,
+			expected:    PageError4xx,
+			expectedErr: nil,
+		},
+		{
+			name:        "precondition failed returns 4xx pattern",
+			status:      http.StatusPreconditionFailed,
+			expected:    PageError4xx,
+			expectedErr: nil,
+		},
+		{
+			name:        "request entity too large returns 4xx pattern",
+			status:      http.StatusRequestEntityTooLarge,
+			expected:    PageError4xx,
+			expectedErr: nil,
+		},
+		{
+			name:        "request URI too long returns 4xx pattern",
+			status:      http.StatusRequestURITooLong,
+			expected:    PageError4xx,
+			expectedErr: nil,
+		},
+		{
+			name:        "unsupported media type returns 4xx pattern",
+			status:      http.StatusUnsupportedMediaType,
+			expected:    PageError4xx,
+			expectedErr: nil,
+		},
+		{
+			name:        "requested range not satisfiable returns 4xx pattern",
+			status:      http.StatusRequestedRangeNotSatisfiable,
+			expected:    PageError4xx,
+			expectedErr: nil,
+		},
+		{
+			name:        "expectation failed returns 4xx pattern",
+			status:      http.StatusExpectationFailed,
+			expected:    PageError4xx,
+			expectedErr: nil,
+		},
+		{
+			name:        "teapot returns 4xx pattern",
+			status:      http.StatusTeapot,
+			expected:    PageError4xx,
+			expectedErr: nil,
+		},
+		{
+			name:        "misdirected request returns 4xx pattern",
+			status:      http.StatusMisdirectedRequest,
+			expected:    PageError4xx,
+			expectedErr: nil,
+		},
+		{
+			name:        "unprocessable entity returns 4xx pattern",
+			status:      http.StatusUnprocessableEntity,
+			expected:    PageError4xx,
+			expectedErr: nil,
+		},
+		{
+			name:        "locked returns 4xx pattern",
+			status:      http.StatusLocked,
+			expected:    PageError4xx,
+			expectedErr: nil,
+		},
+		{
+			name:        "failed dependency returns 4xx pattern",
+			status:      http.StatusFailedDependency,
+			expected:    PageError4xx,
+			expectedErr: nil,
+		},
+		{
+			name:        "too early returns 4xx pattern",
+			status:      http.StatusTooEarly,
+			expected:    PageError4xx,
+			expectedErr: nil,
+		},
+		{
+			name:        "upgrade required returns 4xx pattern",
+			status:      http.StatusUpgradeRequired,
+			expected:    PageError4xx,
+			expectedErr: nil,
+		},
+		{
+			name:        "precondition required returns 4xx pattern",
+			status:      http.StatusPreconditionRequired,
+			expected:    PageError4xx,
+			expectedErr: nil,
+		},
+		{
+			name:        "too many requests returns 4xx pattern",
+			status:      http.StatusTooManyRequests,
+			expected:    PageError4xx,
+			expectedErr: nil,
+		},
+		{
+			name:        "request header fields too large returns 4xx pattern",
+			status:      http.StatusRequestHeaderFieldsTooLarge,
+			expected:    PageError4xx,
+			expectedErr: nil,
+		},
+		{
+			name:        "unavailable for legal reasons returns 4xx pattern",
+			status:      http.StatusUnavailableForLegalReasons,
+			expected:    PageError4xx,
+			expectedErr: nil,
+		},
+		{
+			name:        "internal server error returns 5xx pattern",
+			status:      http.StatusInternalServerError,
+			expected:    PageError5xx,
+			expectedErr: nil,
+		},
+		{
+			name:        "not implemented returns 5xx pattern",
+			status:      http.StatusNotImplemented,
+			expected:    PageError5xx,
+			expectedErr: nil,
+		},
+		{
+			name:        "bad gateway returns 5xx pattern",
+			status:      http.StatusBadGateway,
+			expected:    PageError5xx,
+			expectedErr: nil,
+		},
+		{
+			name:        "service unavailable returns 5xx pattern",
+			status:      http.StatusServiceUnavailable,
+			expected:    PageError5xx,
+			expectedErr: nil,
+		},
+		{
+			name:        "gateway timeout returns 5xx pattern",
+			status:      http.StatusGatewayTimeout,
+			expected:    PageError5xx,
+			expectedErr: nil,
+		},
+		{
+			name:        "HTTP version not supported returns 5xx pattern",
+			status:      http.StatusHTTPVersionNotSupported,
+			expected:    PageError5xx,
+			expectedErr: nil,
+		},
+		{
+			name:        "variant also negotiates returns 5xx pattern",
+			status:      http.StatusVariantAlsoNegotiates,
+			expected:    PageError5xx,
+			expectedErr: nil,
+		},
+		{
+			name:        "insufficient storage returns 5xx pattern",
+			status:      http.StatusInsufficientStorage,
+			expected:    PageError5xx,
+			expectedErr: nil,
+		},
+		{
+			name:        "loop detected returns 5xx pattern",
+			status:      http.StatusLoopDetected,
+			expected:    PageError5xx,
+			expectedErr: nil,
+		},
+		{
+			name:        "not extended returns 5xx pattern",
+			status:      http.StatusNotExtended,
+			expected:    PageError5xx,
+			expectedErr: nil,
+		},
+		{
+			name:        "network authentication required returns 5xx pattern",
+			status:      http.StatusNetworkAuthenticationRequired,
+			expected:    PageError5xx,
+			expectedErr: nil,
+		},
+		{
+			name:        "ok returns 5xx pattern",
+			status:      http.StatusOK,
+			expected:    PageError5xx,
+			expectedErr: nil,
+		},
+		{
+			name:        "created returns 5xx pattern",
+			status:      http.StatusCreated,
+			expected:    PageError5xx,
+			expectedErr: nil,
+		},
+		{
+			name:        "accepted returns 5xx pattern",
+			status:      http.StatusAccepted,
+			expected:    PageError5xx,
+			expectedErr: nil,
+		},
+		{
+			name:        "no content returns 5xx pattern",
+			status:      http.StatusNoContent,
+			expected:    PageError5xx,
+			expectedErr: nil,
+		},
+		{
+			name:        "multiple choices returns 5xx pattern",
+			status:      http.StatusMultipleChoices,
+			expected:    PageError5xx,
+			expectedErr: nil,
+		},
+		{
+			name:        "moved permanently returns 5xx pattern",
+			status:      http.StatusMovedPermanently,
+			expected:    PageError5xx,
+			expectedErr: nil,
+		},
+		{
+			name:        "found returns 5xx pattern",
+			status:      http.StatusFound,
+			expected:    PageError5xx,
+			expectedErr: nil,
+		},
+		{
+			name:        "see other returns 5xx pattern",
+			status:      http.StatusSeeOther,
+			expected:    PageError5xx,
+			expectedErr: nil,
+		},
+		{
+			name:        "not modified returns 5xx pattern",
+			status:      http.StatusNotModified,
+			expected:    PageError5xx,
+			expectedErr: nil,
+		},
+		{
+			name:        "use proxy returns 5xx pattern",
+			status:      http.StatusUseProxy,
+			expected:    PageError5xx,
+			expectedErr: nil,
+		},
+		{
+			name:        "temporary redirect returns 5xx pattern",
+			status:      http.StatusTemporaryRedirect,
+			expected:    PageError5xx,
+			expectedErr: nil,
+		},
+		{
+			name:        "permanent redirect returns 5xx pattern",
+			status:      http.StatusPermanentRedirect,
+			expected:    PageError5xx,
+			expectedErr: nil,
+		},
+		{
+			name:        "zero status returns 5xx pattern",
+			status:      0,
+			expected:    PageError5xx,
+			expectedErr: nil,
+		},
+		{
+			name:        "negative status returns 5xx pattern",
+			status:      -1,
+			expected:    PageError5xx,
+			expectedErr: nil,
+		},
+		{
+			name:        "very high status returns 5xx pattern",
+			status:      999,
+			expected:    PageError5xx,
+			expectedErr: nil,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx := context.Background()
+			result, err := DefaultErrorPatternFinder(ctx, tt.status)
+			assert.Equal(t, tt.expected, result)
+			assert.Equal(t, tt.expectedErr, err)
+		})
+	}
+}
+
 // TestErrorMapper tests the ErrorMapper function with various error types
 func TestErrorMapper(t *testing.T) {
 	tests := []struct {
