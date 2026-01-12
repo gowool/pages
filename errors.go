@@ -45,6 +45,7 @@ func ErrorMapper(err error) *wo.HTTPError {
 func ErrorRenderer[T Resolver](
 	handler func(e T) error,
 	manager PageManager,
+	strategy PageDecoratorStrategy,
 	authorizer PageAuthorizer[T],
 	patternFinder func(ctx context.Context, status int) (string, error),
 	logger *slog.Logger,
@@ -56,6 +57,10 @@ func ErrorRenderer[T Resolver](
 
 	if manager == nil {
 		panic("error renderer: page manager is required")
+	}
+
+	if strategy == nil {
+		strategy = DefaultPageDecoratorStrategy
 	}
 
 	if authorizer == nil {
@@ -104,19 +109,24 @@ func ErrorRenderer[T Resolver](
 			err     error
 		)
 
+		req := e.Request()
+		ctx := req.Context()
+
 		if httpErr.Status == http.StatusNotFound {
-			if d, _ := authorizer.Authorize(e, CreatePage); d == Allow {
-				pattern = PageInternalCreate
+			if ok, err := strategy.IsDecorable(ctx, req.Pattern, req.URL.Path); ok && err == nil {
+				if d, err := authorizer.Authorize(e, CreatePage); d == Allow && err == nil {
+					pattern = PageInternalCreate
+				}
 			}
 		}
 
 		if pattern == "" {
-			if pattern, _ = patternFinder(e.Request().Context(), httpErr.Status); pattern == "" {
+			if pattern, _ = patternFinder(ctx, httpErr.Status); pattern == "" {
 				pattern = PageError5xx
 			}
 		}
 
-		page, err := manager.GetByPattern(e.Request().Context(), e.Site(), pattern)
+		page, err := manager.GetByPattern(ctx, e.Site(), pattern)
 		if err != nil {
 			logger.Error("error renderer: find error page", "error", err, "pattern", pattern)
 			return

@@ -13,6 +13,7 @@ import (
 func PageMiddleware[T Resolver](
 	handler func(e T) error,
 	selector PageSelector,
+	strategy PageDecoratorStrategy,
 	authorizer PageAuthorizer[T],
 	skippers ...middleware.Skipper[T],
 ) func(T) error {
@@ -24,9 +25,18 @@ func PageMiddleware[T Resolver](
 		panic("page middleware: selector is required")
 	}
 
+	if strategy == nil {
+		strategy = DefaultPageDecoratorStrategy
+	}
+
 	if authorizer == nil {
 		authorizer = DenyPageAuthorizer[T]{}
 	}
+
+	skippers = append(skippers, func(e T) bool {
+		ok, _ := strategy.IsDecorable(e.Request().Context(), e.Request().Pattern, e.Request().URL.Path)
+		return !ok
+	})
 
 	skip := middleware.ChainSkipper[T](skippers...)
 

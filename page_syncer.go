@@ -37,8 +37,6 @@ type Patterns interface {
 
 type IDGenerator func(ctx context.Context) (ID, error)
 
-type IgnorePattern func(ctx context.Context, pattern string) bool
-
 type PageConfig struct {
 	ParentID   *ID                 `json:"parentID,omitempty" yaml:"parentID,omitempty"`
 	Template   *string             `json:"template,omitempty" yaml:"template,omitempty"`
@@ -155,7 +153,7 @@ type DefaultPageSyncer struct {
 	patterns  Patterns
 	store     PageStore
 	generator IDGenerator
-	ignore    IgnorePattern
+	strategy  PageDecoratorStrategy
 }
 
 func NewDefaultPageSyncer(
@@ -163,7 +161,7 @@ func NewDefaultPageSyncer(
 	store PageStore,
 	generator IDGenerator,
 	patterns Patterns,
-	ignore IgnorePattern,
+	strategy PageDecoratorStrategy,
 ) *DefaultPageSyncer {
 	if store == nil {
 		panic("page syncer: page store is required")
@@ -177,8 +175,8 @@ func NewDefaultPageSyncer(
 		panic("page syncer: patterns is required")
 	}
 
-	if ignore == nil {
-		ignore = func(_ context.Context, _ string) bool { return false }
+	if strategy == nil {
+		strategy = DefaultPageDecoratorStrategy
 	}
 
 	cfg.SetDefaults()
@@ -188,7 +186,7 @@ func NewDefaultPageSyncer(
 		store:     store,
 		generator: generator,
 		patterns:  patterns,
-		ignore:    ignore,
+		strategy:  strategy,
 	}
 }
 
@@ -287,7 +285,7 @@ func (s *DefaultPageSyncer) getPatterns(ctx context.Context) ([]string, bool) {
 			continue
 		}
 
-		if s.ignore(ctx, pattern) {
+		if ok, _ = s.strategy.IsPatternDecorable(ctx, pattern); !ok {
 			continue
 		}
 
