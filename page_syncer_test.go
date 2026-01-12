@@ -1251,3 +1251,25 @@ func TestDefaultPages(t *testing.T) {
 		assert.False(t, ok, "PageCMSPattern should be removed from DefaultPatterns")
 	})
 }
+
+func TestDefaultPageSyncer_getPatternsIgnoreStrategy(t *testing.T) {
+	ctx := context.Background()
+
+	t.Run("strategy filters patterns", func(t *testing.T) {
+		routerPatterns := []string{
+			"/pattern1",
+			"/pattern2",
+		}
+
+		mockPatterns := NewMockPatterns(routerPatterns)
+		strategy := NewMockPageDecoratorStrategy(false)
+
+		syncer := NewDefaultPageSyncer(PageSyncerConfig{}, &MockPageStore{}, func(ctx context.Context) (ID, error) { return ID("test"), nil }, mockPatterns, strategy)
+
+		patterns, homeHybrid := syncer.getPatterns(ctx)
+
+		assert.Len(t, patterns, 6, "Should have 6 patterns (6 internal)")
+		assert.Contains(t, patterns, PageInternalCreate, "Should include internal create pattern")
+		assert.False(t, homeHybrid, "homeHybrid should be false")
+	})
+}
