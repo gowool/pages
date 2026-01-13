@@ -110,19 +110,19 @@ func PageMiddleware[T Resolver](
 		e.Response().Written = false
 		e.Response().Buffering = false
 
-		httpStatus := e.Response().Status
-		if httpStatus > 0 {
-			e.SetStatus(httpStatus)
-		} else {
-			httpStatus = e.Status()
-		}
-
 		if err != nil {
 			return err
 		}
 
 		decorable := e.IsDecorable()
 		buffer := e.Response().Buffer()
+
+		httpStatus := e.Response().Status
+		if httpStatus > 0 {
+			e.SetStatus(httpStatus)
+		} else {
+			httpStatus = e.Status()
+		}
 
 		e.Response().Status = 0
 

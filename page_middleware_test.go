@@ -2,10 +2,12 @@ package pages
 
 import (
 	"errors"
+	"html/template"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
+	"github.com/gowool/hook"
 	"github.com/gowool/wo"
 	"github.com/stretchr/testify/assert"
 )
@@ -127,13 +129,16 @@ func TestPageMiddleware_HybridPagePattern(t *testing.T) {
 		shouldCallHandler bool
 		decorate          bool
 		buffer            []byte
+		err               error
 	}{
-		{"CMS page", PageCMS, false, true, nil},                     // CMS pages don't call handler
-		{"Internal page", PageInternalCreate, false, true, nil},     // Internal pages don't call handler
-		{"Hybrid page with param", "/blog/{slug}", true, true, nil}, // Hybrid pages call handler
-		{"Static page", "/about", true, true, nil},                  // Static pages are hybrid and call handler
-		{"No decorate page", "/no-decorate", false, false, nil},
-		{"No decorate page with buffer", "/no-decorate-buffer", false, false, []byte("test buffer")},
+		{"CMS page", PageCMS, false, true, nil, nil},                     // CMS pages don't call handler
+		{"Internal page", PageInternalCreate, false, true, nil, nil},     // Internal pages don't call handler
+		{"Hybrid page with param", "/blog/{slug}", true, true, nil, nil}, // Hybrid pages call handler
+		{"Static page", "/about", true, true, nil, nil},                  // Static pages are hybrid and call handler
+		{"No decorate page", "/no-decorate", false, false, nil, nil},
+		{"No decorate page with buffer", "/no-decorate-buffer", false, false, []byte("test buffer"), nil},
+		{"Decorate page with buffer", "/decorate-buffer", true, true, []byte("test buffer"), nil},
+		{"Error page", "/error", false, true, nil, wo.ErrConflict},
 	}
 
 	for _, tt := range tests {
@@ -167,21 +172,36 @@ func TestPageMiddleware_HybridPagePattern(t *testing.T) {
 
 			handler := func(resolver Resolver) error {
 				handlerCalled = true
+				if tt.err != nil {
+					return tt.err
+				}
 				resolver.SetStatus(http.StatusOK)
 				return nil
 			}
 
-			middleware := PageMiddleware[Resolver](handler, mockSelector, nil, nil)
+			h := new(hook.Hook[Resolver])
+			h.BindFunc(PageMiddleware[Resolver](handler, mockSelector, nil, nil))
 
-			err := middleware(event)
+			err := h.Trigger(event, func(Resolver) error {
+				return tt.err
+			})
 
-			assert.NoError(t, err)
+			if tt.err == nil {
+				assert.NoError(t, err)
+			} else {
+				assert.Equal(t, tt.err, err)
+			}
+
 			assert.Equal(t, tt.shouldCallHandler, handlerCalled,
 				"Handler should be called only for hybrid pages with pattern: %s", tt.pattern)
 
 			if tt.shouldCallHandler {
 				// For hybrid pages, the handler should have been called
 				assert.True(t, handlerCalled)
+
+				if page.Decorate && len(tt.buffer) > 0 {
+					assert.Equal(t, template.HTML(tt.buffer), event.Content())
+				}
 			} else {
 				// For non-hybrid pages, the page should be set without calling handler
 				assert.Equal(t, page, event.Page())
