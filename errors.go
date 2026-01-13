@@ -18,21 +18,23 @@ var (
 	ErrUniqueViolation = errors.New("unique violation")
 )
 
-type ErrorPatternFinder func(ctx context.Context, status int) (string, error)
+type ErrorPatternFinderFunc func(ctx context.Context, status int) (string, error)
 
-func DefaultErrorPatternFinder(_ context.Context, status int) (string, error) {
-	switch status {
-	case http.StatusUnauthorized:
-		return PageErrorUnauthorized, nil
-	case http.StatusForbidden:
-		return PageErrorForbidden, nil
-	case http.StatusNotFound:
-		return PageErrorNotFound, nil
-	default:
-		if status >= 400 && status < 500 {
-			return PageError4xx, nil
+func ErrorPatternFinder() ErrorPatternFinderFunc {
+	return func(_ context.Context, status int) (string, error) {
+		switch status {
+		case http.StatusUnauthorized:
+			return PageErrorUnauthorized, nil
+		case http.StatusForbidden:
+			return PageErrorForbidden, nil
+		case http.StatusNotFound:
+			return PageErrorNotFound, nil
+		default:
+			if status >= 400 && status < 500 {
+				return PageError4xx, nil
+			}
+			return PageError5xx, nil
 		}
-		return PageError5xx, nil
 	}
 }
 
@@ -65,7 +67,7 @@ func ErrorRenderer[T Resolver](
 	manager PageManager,
 	strategy PageDecoratorStrategy,
 	authorizer PageAuthorizer[T],
-	patternFinder ErrorPatternFinder,
+	patternFinder ErrorPatternFinderFunc,
 	logger *slog.Logger,
 	skippers ...middleware.Skipper[T],
 ) func(T, *wo.HTTPError) {
@@ -86,7 +88,7 @@ func ErrorRenderer[T Resolver](
 	}
 
 	if patternFinder == nil {
-		patternFinder = DefaultErrorPatternFinder
+		patternFinder = ErrorPatternFinder()
 	}
 
 	if logger == nil {

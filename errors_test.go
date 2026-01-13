@@ -350,7 +350,7 @@ func TestDefaultErrorPatternFinder(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := context.Background()
-			result, err := DefaultErrorPatternFinder(ctx, tt.status)
+			result, err := ErrorPatternFinder()(ctx, tt.status)
 			assert.Equal(t, tt.expected, result)
 			assert.Equal(t, tt.expectedErr, err)
 		})
