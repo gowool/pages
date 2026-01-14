@@ -2,6 +2,7 @@ package pages
 
 import (
 	"bytes"
+	"errors"
 	"html/template"
 	"net/http"
 	"strings"
@@ -10,6 +11,8 @@ import (
 )
 
 var _ Resolver = (*Event)(nil)
+
+var ErrThemeRequired = errors.New("theme required")
 
 const (
 	HeaderXPageDecorable    = "X-Page-Decorable"
@@ -227,6 +230,10 @@ func patternArgs(paramFunc func(string) string, pattern string) (args []any) {
 }
 
 func (e *Event) View(template string, data any) ([]byte, error) {
+	if e.theme == nil {
+		return nil, ErrThemeRequired
+	}
+
 	var buf bytes.Buffer
 	if err := e.theme.Write(e.Context(), &buf, template, data); err != nil {
 		return nil, err

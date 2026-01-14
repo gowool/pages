@@ -671,6 +671,7 @@ func TestEvent_View_Render(t *testing.T) {
 		themeError     error
 		expectedError  bool
 		expectedOutput string
+		viewError      error
 	}{
 		{
 			name:           "successful view rendering",
@@ -684,6 +685,12 @@ func TestEvent_View_Render(t *testing.T) {
 			themeError:    assert.AnError,
 			expectedError: true,
 		},
+		{
+			name:          "view returns error",
+			templateName:  "index.html",
+			expectedError: true,
+			viewError:     ErrThemeRequired,
+		},
 	}
 
 	for _, tt := range tests {
@@ -691,30 +698,40 @@ func TestEvent_View_Render(t *testing.T) {
 			w := httptest.NewRecorder()
 			r := httptest.NewRequest("GET", "/", nil)
 
-			mockTheme := &MockTheme{}
-			if tt.themeError != nil {
-				mockTheme.On("Write", mock.Anything, mock.Anything, tt.templateName, mock.Anything).Return(tt.themeError)
-			} else {
-				mockTheme.On("Write", mock.Anything, mock.Anything, tt.templateName, mock.Anything).Return(nil).Run(func(args mock.Arguments) {
-					writer := args.Get(1).(io.Writer)
-					_, _ = writer.Write([]byte(tt.expectedOutput))
-				})
-			}
-
 			e := &Event{}
-			e.Reset(&wo.Response{ResponseWriter: w}, r, mockTheme)
+
+			var mockTheme *MockTheme
+			if tt.viewError == nil {
+				mockTheme = &MockTheme{}
+				if tt.themeError != nil {
+					mockTheme.On("Write", mock.Anything, mock.Anything, tt.templateName, mock.Anything).Return(tt.themeError)
+				} else {
+					mockTheme.On("Write", mock.Anything, mock.Anything, tt.templateName, mock.Anything).Return(nil).Run(func(args mock.Arguments) {
+						writer := args.Get(1).(io.Writer)
+						_, _ = writer.Write([]byte(tt.expectedOutput))
+					})
+				}
+				e.Reset(&wo.Response{ResponseWriter: w}, r, mockTheme)
+			} else {
+				e.Reset(&wo.Response{ResponseWriter: w}, r, nil)
+			}
 
 			data, err := e.View(tt.templateName, tt.templateData)
 
 			if tt.expectedError {
 				assert.Error(t, err)
 				assert.Nil(t, data)
+				if tt.viewError != nil {
+					assert.ErrorIs(t, err, tt.viewError)
+				}
 			} else {
 				assert.NoError(t, err)
 				assert.Equal(t, tt.expectedOutput, string(data))
 			}
 
-			mockTheme.AssertExpectations(t)
+			if tt.viewError == nil {
+				mockTheme.AssertExpectations(t)
+			}
 		})
 	}
 }
