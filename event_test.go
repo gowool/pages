@@ -801,6 +801,58 @@ func TestEvent_Render_RenderHTML(t *testing.T) {
 }
 
 // Test Event implements Resolver interface
+func TestEvent_SetTheme_Theme(t *testing.T) {
+	tests := []struct {
+		name     string
+		theme    Theme
+		validate func(*testing.T, *Event, Theme)
+	}{
+		{
+			name:  "set mock theme",
+			theme: &MockTheme{},
+			validate: func(t *testing.T, e *Event, expected Theme) {
+				assert.Equal(t, expected, e.Theme())
+			},
+		},
+		{
+			name:  "set nil theme",
+			theme: nil,
+			validate: func(t *testing.T, e *Event, expected Theme) {
+				assert.Nil(t, e.Theme())
+			},
+		},
+		{
+			name:  "set mock page theme",
+			theme: &MockPageTheme{},
+			validate: func(t *testing.T, e *Event, expected Theme) {
+				assert.Equal(t, expected, e.Theme())
+			},
+		},
+		{
+			name:  "set theme and retrieve multiple times",
+			theme: &MockTheme{},
+			validate: func(t *testing.T, e *Event, expected Theme) {
+				assert.Equal(t, expected, e.Theme())
+				assert.Equal(t, expected, e.Theme())
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			w := httptest.NewRecorder()
+			r := httptest.NewRequest("GET", "/", nil)
+			theme := &MockTheme{}
+
+			e := &Event{}
+			e.Reset(&wo.Response{ResponseWriter: w}, r, theme)
+
+			e.SetTheme(tt.theme)
+			tt.validate(t, e, tt.theme)
+		})
+	}
+}
+
 func TestEvent_ResolverImplementation(t *testing.T) {
 	var _ Resolver = (*Event)(nil)
 }

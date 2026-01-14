@@ -69,6 +69,14 @@ func (e *Event) Reset(w *wo.Response, r *http.Request, t Theme) {
 	e.theme = t
 }
 
+func (e *Event) SetTheme(t Theme) {
+	e.theme = t
+}
+
+func (e *Event) Theme() Theme {
+	return e.theme
+}
+
 func (e *Event) IsRoot() bool {
 	return e.Request().URL.RawPath == "/"
 }
