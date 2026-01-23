@@ -145,16 +145,15 @@ func TestPageMiddleware_HybridPagePattern(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			req := httptest.NewRequest("GET", "http://example.com", nil)
 			resp := httptest.NewRecorder()
-			woResp := wo.NewResponse(resp)
-
-			if tt.buffer != nil {
-				woResp.Buffering = true
-				_, _ = woResp.Write(tt.buffer)
-				woResp.Buffering = false
-			}
 
 			event := &Event{}
-			event.Reset(woResp, req, &MockPageTheme{})
+			event.Reset(resp, req, &MockPageTheme{})
+
+			if tt.buffer != nil {
+				wo.MustUnwrapResponse(event.Response()).Buffering = true
+				_, _ = event.Response().Write(tt.buffer)
+				wo.MustUnwrapResponse(event.Response()).Buffering = false
+			}
 
 			site := &Site{ID: "site1"}
 			event.SetSite(site)

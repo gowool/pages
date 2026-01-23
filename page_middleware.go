@@ -103,28 +103,29 @@ func PageMiddleware[T Resolver](
 			e.Response().Header().Set(HeaderXPageNotDecorable, "1")
 		}
 
-		e.Response().Buffering = true
+		wo.MustUnwrapResponse(e.Response()).Buffering = true
 
 		err = e.Next()
 
-		e.Response().Written = false
-		e.Response().Buffering = false
+		resp := wo.MustUnwrapResponse(e.Response())
+		resp.Written = false
+		resp.Buffering = false
 
 		if err != nil {
 			return err
 		}
 
 		decorable := e.IsDecorable()
-		buffer := e.Response().Buffer()
+		buffer := resp.Buffer()
 
-		httpStatus := e.Response().Status
+		httpStatus := resp.Status
 		if httpStatus > 0 {
 			e.SetStatus(httpStatus)
 		} else {
 			httpStatus = e.Status()
 		}
 
-		e.Response().Status = 0
+		resp.Status = 0
 
 		if !decorable {
 			if len(buffer) > 0 {

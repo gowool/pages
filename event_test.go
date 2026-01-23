@@ -109,7 +109,7 @@ func TestEvent_IsRoot(t *testing.T) {
 			theme := &MockTheme{}
 
 			e := &Event{}
-			e.Reset(&wo.Response{ResponseWriter: w}, r, theme)
+			e.Reset(w, r, theme)
 
 			assert.Equal(t, tt.isRoot, e.IsRoot())
 		})
@@ -152,7 +152,7 @@ func TestEvent_SEO(t *testing.T) {
 			theme := &MockTheme{}
 
 			e := &Event{}
-			e.Reset(&wo.Response{ResponseWriter: w}, r, theme)
+			e.Reset(w, r, theme)
 			tt.setup(e)
 
 			seo := e.SEO()
@@ -202,7 +202,7 @@ func TestEvent_Pattern(t *testing.T) {
 			theme := &MockTheme{}
 
 			e := &Event{}
-			e.Reset(&wo.Response{ResponseWriter: w}, r, theme)
+			e.Reset(w, r, theme)
 
 			assert.Equal(t, tt.expected, e.Pattern())
 		})
@@ -234,7 +234,7 @@ func TestEvent_SetGuest_IsGuest(t *testing.T) {
 			theme := &MockTheme{}
 
 			e := &Event{}
-			e.Reset(&wo.Response{ResponseWriter: w}, r, theme)
+			e.Reset(w, r, theme)
 
 			e.SetGuest(tt.auth)
 			assert.Equal(t, tt.expected, e.IsGuest())
@@ -273,7 +273,7 @@ func TestEvent_SetSite_HasSite(t *testing.T) {
 			theme := &MockTheme{}
 
 			e := &Event{}
-			e.Reset(&wo.Response{ResponseWriter: w}, r, theme)
+			e.Reset(w, r, theme)
 
 			e.SetSite(tt.site)
 			assert.Equal(t, tt.expected, e.HasSite())
@@ -335,7 +335,7 @@ func TestEvent_SetPage_HasPage(t *testing.T) {
 			theme := &MockTheme{}
 
 			e := &Event{}
-			e.Reset(&wo.Response{ResponseWriter: w}, r, theme)
+			e.Reset(w, r, theme)
 
 			// Set the site first for the page
 			site := &Site{Host: "example.com"}
@@ -386,7 +386,7 @@ func TestEvent_SetStatus_Status(t *testing.T) {
 			theme := &MockTheme{}
 
 			e := &Event{}
-			e.Reset(&wo.Response{ResponseWriter: w}, r, theme)
+			e.Reset(w, r, theme)
 
 			if tt.status > 0 {
 				e.SetStatus(tt.status)
@@ -427,7 +427,7 @@ func TestEvent_SetError_Error(t *testing.T) {
 			theme := &MockTheme{}
 
 			e := &Event{}
-			e.Reset(&wo.Response{ResponseWriter: w}, r, theme)
+			e.Reset(w, r, theme)
 
 			e.SetError(tt.err)
 			assert.Equal(t, tt.expected, e.Error())
@@ -465,7 +465,7 @@ func TestEvent_SetContent_Content(t *testing.T) {
 			theme := &MockTheme{}
 
 			e := &Event{}
-			e.Reset(&wo.Response{ResponseWriter: w}, r, theme)
+			e.Reset(w, r, theme)
 
 			e.SetContent(tt.content)
 			assert.Equal(t, tt.expected, e.Content())
@@ -476,66 +476,64 @@ func TestEvent_SetContent_Content(t *testing.T) {
 func TestEvent_IsDecorable(t *testing.T) {
 	tests := []struct {
 		name     string
-		setup    func(*httptest.ResponseRecorder, *http.Request)
+		setup    func(*Event)
 		expected bool
 	}{
 		{
 			name: "HTML content with OK status is decorable",
-			setup: func(w *httptest.ResponseRecorder, r *http.Request) {
-				w.Header().Set(wo.HeaderContentType, wo.MIMETextHTML)
-				w.WriteHeader(http.StatusOK)
-				// Ensure it's not an Ajax request
-				r.Header.Del("X-Requested-With")
+			setup: func(e *Event) {
+				e.Response().Header().Set(wo.HeaderContentType, wo.MIMETextHTML)
+				e.Response().WriteHeader(http.StatusOK)
+				e.Request().Header.Del(wo.HeaderXRequestedWith)
 			},
 			expected: true,
 		},
 		{
 			name: "JSON content is not decorable",
-			setup: func(w *httptest.ResponseRecorder, r *http.Request) {
-				w.Header().Set(wo.HeaderContentType, wo.MIMEApplicationJSON)
-				w.WriteHeader(http.StatusOK)
+			setup: func(e *Event) {
+				e.Response().Header().Set(wo.HeaderContentType, wo.MIMEApplicationJSON)
+				e.Response().WriteHeader(http.StatusOK)
 			},
 			expected: false,
 		},
 		{
 			name: "Explicitly not decorable",
-			setup: func(w *httptest.ResponseRecorder, r *http.Request) {
-				w.Header().Set(HeaderXPageNotDecorable, "1")
-				w.WriteHeader(http.StatusOK)
+			setup: func(e *Event) {
+				e.Response().Header().Set(HeaderXPageNotDecorable, "1")
+				e.Response().WriteHeader(http.StatusOK)
 			},
 			expected: false,
 		},
 		{
 			name: "Explicitly decorable",
-			setup: func(w *httptest.ResponseRecorder, r *http.Request) {
-				w.Header().Set(HeaderXPageDecorable, "1")
-				w.WriteHeader(http.StatusOK)
+			setup: func(e *Event) {
+				e.Response().Header().Set(HeaderXPageDecorable, "1")
+				e.Response().WriteHeader(http.StatusOK)
 			},
 			expected: true,
 		},
 		{
 			name: "Non-OK status is not decorable",
-			setup: func(w *httptest.ResponseRecorder, r *http.Request) {
-				w.Header().Set(wo.HeaderContentType, wo.MIMETextHTML)
-				w.WriteHeader(http.StatusNotFound)
+			setup: func(e *Event) {
+				e.Response().Header().Set(wo.HeaderContentType, wo.MIMETextHTML)
+				e.Response().WriteHeader(http.StatusNotFound)
 			},
 			expected: false,
 		},
 		{
 			name: "Ajax request is not decorable",
-			setup: func(w *httptest.ResponseRecorder, r *http.Request) {
-				w.Header().Set(wo.HeaderContentType, wo.MIMETextHTML)
-				w.WriteHeader(http.StatusOK)
-				r.Header.Set("X-Requested-With", "XMLHttpRequest")
+			setup: func(e *Event) {
+				e.Response().Header().Set(wo.HeaderContentType, wo.MIMETextHTML)
+				e.Response().WriteHeader(http.StatusOK)
+				e.Request().Header.Set(wo.HeaderXRequestedWith, wo.XMLHTTPRequest)
 			},
 			expected: false,
 		},
 		{
 			name: "Empty content type with OK status is decorable",
-			setup: func(w *httptest.ResponseRecorder, r *http.Request) {
-				w.WriteHeader(http.StatusOK)
-				// Ensure it's not an Ajax request
-				r.Header.Del("X-Requested-With")
+			setup: func(e *Event) {
+				e.Response().WriteHeader(http.StatusOK)
+				e.Request().Header.Del(wo.HeaderXRequestedWith)
 			},
 			expected: true,
 		},
@@ -547,16 +545,10 @@ func TestEvent_IsDecorable(t *testing.T) {
 			r := httptest.NewRequest("GET", "/", nil)
 			theme := &MockTheme{}
 
-			woResp := &wo.Response{ResponseWriter: w}
 			e := &Event{}
-			e.Reset(woResp, r, theme)
+			e.Reset(w, r, theme)
 
-			tt.setup(w, r)
-
-			// After setup, manually set the status on wo.Response if we wrote to the response
-			if w.Code != 0 {
-				woResp.Status = w.Code
-			}
+			tt.setup(e)
 
 			assert.Equal(t, tt.expected, e.IsDecorable())
 		})
@@ -711,9 +703,9 @@ func TestEvent_View_Render(t *testing.T) {
 						_, _ = writer.Write([]byte(tt.expectedOutput))
 					})
 				}
-				e.Reset(&wo.Response{ResponseWriter: w}, r, mockTheme)
+				e.Reset(w, r, mockTheme)
 			} else {
-				e.Reset(&wo.Response{ResponseWriter: w}, r, nil)
+				e.Reset(w, r, nil)
 			}
 
 			data, err := e.View(tt.templateName, tt.templateData)
@@ -778,7 +770,7 @@ func TestEvent_Render_RenderHTML(t *testing.T) {
 			tt.setupMock(mockTheme)
 
 			e := &Event{}
-			e.Reset(&wo.Response{ResponseWriter: w}, r, mockTheme)
+			e.Reset(w, r, mockTheme)
 
 			var err error
 			if tt.contentType == wo.MIMETextHTMLCharsetUTF8 {
@@ -845,7 +837,7 @@ func TestEvent_SetTheme_Theme(t *testing.T) {
 			theme := &MockTheme{}
 
 			e := &Event{}
-			e.Reset(&wo.Response{ResponseWriter: w}, r, theme)
+			e.Reset(w, r, theme)
 
 			e.SetTheme(tt.theme)
 			tt.validate(t, e, tt.theme)

@@ -63,7 +63,7 @@ type Event struct {
 	theme Theme
 }
 
-func (e *Event) Reset(w *wo.Response, r *http.Request, t Theme) {
+func (e *Event) Reset(w http.ResponseWriter, r *http.Request, t Theme) {
 	e.Event.Reset(w, r)
 	e.SEO().Reset()
 	e.theme = t
@@ -190,7 +190,7 @@ func (e *Event) IsDecorable() bool {
 		return true
 	}
 
-	if e.Response().Status != http.StatusOK {
+	if wo.MustUnwrapResponse(e.Response()).Status != http.StatusOK {
 		return false
 	}
 
