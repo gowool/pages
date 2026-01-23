@@ -7,7 +7,7 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/gosimple/slug v1.15.0
 	github.com/gowool/hook v0.0.0-20251021231216-e5c093228588
-	github.com/gowool/wo v0.0.0-20260123132647-bfec1158adf6
+	github.com/gowool/wo v0.0.0-20260123140557-e88212fffedf
 	github.com/invopop/validation v0.8.0
 	github.com/spf13/cast v1.10.0
 	github.com/stretchr/testify v1.11.1

@@ -16,8 +16,8 @@ github.com/gosimple/unidecode v1.0.1 h1:hZzFTMMqSswvf0LBJZCZgThIZrpDHFXux9KeGmn6
 github.com/gosimple/unidecode v1.0.1/go.mod h1:CP0Cr1Y1kogOtx0bJblKzsVWrqYaqfNOnHzpgWw4Awc=
 github.com/gowool/hook v0.0.0-20251021231216-e5c093228588 h1:FZjP2vLEmAN9X7qPohQlesI2TabeQZg6cFWAJmwsisw=
 github.com/gowool/hook v0.0.0-20251021231216-e5c093228588/go.mod h1:CRvfZcS50rX7gMQfDoXxDlfXVnG4iM3yTCYjjTviDCo=
-github.com/gowool/wo v0.0.0-20260123132647-bfec1158adf6 h1:9GNcEeOjqAnDOxIHY8AsOQBqtAgdTXCs2JKUhSnOwNk=
-github.com/gowool/wo v0.0.0-20260123132647-bfec1158adf6/go.mod h1:A4F/RvmpQR7h8Isf2xqoqDJdJhSM5Vvej4LmqEumFOo=
+github.com/gowool/wo v0.0.0-20260123140557-e88212fffedf h1:GOS4AaQHnOGAM8SZsOSVkU2xUfKYWJ4fhtug9ozBpuE=
+github.com/gowool/wo v0.0.0-20260123140557-e88212fffedf/go.mod h1:A4F/RvmpQR7h8Isf2xqoqDJdJhSM5Vvej4LmqEumFOo=
 github.com/invopop/validation v0.8.0 h1:e5hXHGnONHImgJdonIpNbctg1hlWy1ncaHoVIQ0JWuw=
 github.com/invopop/validation v0.8.0/go.mod h1:nLLeXYPGwUNfdCdJo7/q3yaHO62LSx/3ri7JvgKR9vg=
 github.com/kr/pretty v0.3.1 h1:flRD4NNwYAUpkphVc1HcthR4KEIFJ65n8Mw5qdRn3LE=
