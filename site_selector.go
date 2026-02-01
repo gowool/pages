@@ -52,8 +52,9 @@ func (s *DefaultSiteSelector) Select(r *http.Request) error {
 		r.URL.Path = pathInfo
 	}
 
-	site.Host = r.Host
 	site.Scheme = getScheme(r)
+	site.Host = r.Host
+	site.IsRoot = r.URL.RawPath == "/"
 
 	c.SetSite(site)
 
