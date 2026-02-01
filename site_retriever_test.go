@@ -1,0 +1,664 @@
+package pages
+
+import (
+	"errors"
+	"fmt"
+	"iter"
+	"net/http"
+	"net/http/httptest"
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
+)
+
+// Test helper functions
+func CreateTestSite(name, host, locale string, isDefault bool, countries ...string) *Site {
+	site := NewSite()
+	site.Name = name
+	site.Host = host
+	site.Locale = locale
+	site.IsDefault = isDefault
+	site.Countries = countries
+	site.Status = Published
+	return site
+}
+
+// SitesToIterator converts a slice of sites to an iterator for testing
+func SitesToIterator(sites []*Site, err error) iter.Seq2[*Site, error] {
+	return func(yield func(*Site, error) bool) {
+		if err != nil {
+			yield(nil, err)
+			return
+		}
+		for _, site := range sites {
+			if !yield(site, nil) {
+				break
+			}
+		}
+	}
+}
+
+func CreateTestRequest(method, url string, headers map[string]string) *http.Request {
+	req := httptest.NewRequest(method, url, nil)
+	for key, value := range headers {
+		req.Header.Set(key, value)
+	}
+	return req
+}
+
+func TestNewSiteRetriever(t *testing.T) {
+	t.Run("Valid parameters", func(t *testing.T) {
+		store := &MockSiteStore{}
+		countryFunc := func(r *http.Request) (string, error) { return "US", nil }
+		errorFunc := func(r *http.Request, err error) (*Site, error) { return nil, err }
+
+		retriever := NewDefaultSiteRetriever(store, countryFunc, errorFunc)
+
+		assert.NotNil(t, retriever)
+		// Test that it implements the interface
+		assert.Implements(t, (*SiteRetriever)(nil), retriever)
+	})
+
+	t.Run("Nil store should panic", func(t *testing.T) {
+		assert.Panics(t, func() {
+			NewDefaultSiteRetriever(nil, nil, nil)
+		})
+	})
+
+	t.Run("Nil countryFunc should use default", func(t *testing.T) {
+		store := &MockSiteStore{}
+		retriever := NewDefaultSiteRetriever(store, nil, nil)
+
+		req := CreateTestRequest("GET", "http://example.com", map[string]string{
+			headerCFIPCountry: "US",
+		})
+
+		// Test that the retriever works with default country function
+		testSite := CreateTestSite("Test", "example.com", "en", true)
+		store.On("FindPublished", mock.Anything).Return(SitesToIterator([]*Site{testSite}, nil))
+		site, _, err := retriever.Retrieve(req)
+
+		assert.NoError(t, err)
+		assert.NotNil(t, site)
+		store.AssertExpectations(t)
+	})
+
+	t.Run("Nil errorFunc should use default", func(t *testing.T) {
+		store := &MockSiteStore{}
+		retriever := NewDefaultSiteRetriever(store, nil, nil)
+
+		req := CreateTestRequest("GET", "http://example.com", nil)
+		testErr := errors.New("test error")
+
+		// Test that the retriever returns error directly when no custom error func is provided
+		store.On("FindPublished", mock.Anything).Return(SitesToIterator([]*Site{}, testErr))
+		site, _, err := retriever.Retrieve(req)
+
+		assert.Error(t, err)
+		assert.Equal(t, testErr, err)
+		assert.Nil(t, site)
+		store.AssertExpectations(t)
+	})
+}
+
+func TestDefaultSiteRetriever_Retrieve(t *testing.T) {
+	t.Run("Nil request should panic", func(t *testing.T) {
+		store := &MockSiteStore{}
+		retriever := NewDefaultSiteRetriever(store, nil, nil)
+
+		assert.Panics(t, func() {
+			_, _, _ = retriever.Retrieve(nil)
+		})
+	})
+
+	t.Run("Country function error", func(t *testing.T) {
+		store := &MockSiteStore{}
+		testErr := errors.New("country error")
+		countryFunc := func(r *http.Request) (string, error) { return "", testErr }
+		errorFunc := func(r *http.Request, err error) (*Site, error) {
+			return CreateTestSite("Error Site", "example.com", "en", false), nil
+		}
+
+		retriever := NewDefaultSiteRetriever(store, countryFunc, errorFunc)
+		req := CreateTestRequest("GET", "http://example.com", nil)
+
+		site, _, err := retriever.Retrieve(req)
+
+		assert.NoError(t, err)
+		assert.NotNil(t, site)
+		assert.Equal(t, "Error Site", site.Name)
+	})
+
+	t.Run("Store error", func(t *testing.T) {
+		store := &MockSiteStore{}
+		testErr := errors.New("store error")
+		countryFunc := func(r *http.Request) (string, error) { return "US", nil }
+		errorFunc := func(r *http.Request, err error) (*Site, error) {
+			return CreateTestSite("Error Site", "example.com", "en", false), nil
+		}
+
+		store.On("FindPublished", mock.Anything).Return(SitesToIterator([]*Site{}, testErr))
+
+		retriever := NewDefaultSiteRetriever(store, countryFunc, errorFunc)
+		req := CreateTestRequest("GET", "http://example.com", nil)
+
+		site, _, err := retriever.Retrieve(req)
+
+		assert.NoError(t, err)
+		assert.NotNil(t, site)
+		assert.Equal(t, "Error Site", site.Name)
+
+		store.AssertExpectations(t)
+	})
+
+	t.Run("Successful site selection", func(t *testing.T) {
+		store := &MockSiteStore{}
+		sites := []*Site{
+			CreateTestSite("Default Site", "example.com", "en", true),
+			CreateTestSite("French Site", "example.com", "fr", false),
+			CreateTestSite("US Site", "example.com", "en-US", false, "US"),
+		}
+
+		store.On("FindPublished", mock.Anything).Return(SitesToIterator(sites, nil))
+
+		retriever := NewDefaultSiteRetriever(store, nil, nil)
+		req := CreateTestRequest("GET", "http://example.com", map[string]string{
+			headerAcceptLanguage: "fr-FR,fr;q=0.9,en;q=0.8",
+		})
+
+		site, _, err := retriever.Retrieve(req)
+
+		assert.NoError(t, err)
+		assert.NotNil(t, site)
+		assert.Equal(t, "French Site", site.Name)
+
+		store.AssertExpectations(t)
+	})
+
+	t.Run("Site selection with country", func(t *testing.T) {
+		store := &MockSiteStore{}
+		sites := []*Site{
+			CreateTestSite("Default Site", "example.com", "en", true),
+			CreateTestSite("US Site", "example.com", "en-US", false, "US"),
+			CreateTestSite("French Site", "example.com", "fr", false),
+		}
+
+		store.On("FindPublished", mock.Anything).Return(SitesToIterator(sites, nil))
+
+		countryFunc := func(r *http.Request) (string, error) { return "US", nil }
+		retriever := NewDefaultSiteRetriever(store, countryFunc, nil)
+		req := CreateTestRequest("GET", "http://example.com/test", map[string]string{headerAcceptLanguage: "en-US;q=0.9,en;q=0.8"})
+
+		site, _, err := retriever.Retrieve(req)
+
+		assert.NoError(t, err)
+		assert.NotNil(t, site)
+		assert.Equal(t, "US Site", site.Name)
+
+		store.AssertExpectations(t)
+	})
+
+	t.Run("No matching sites returns error", func(t *testing.T) {
+		store := &MockSiteStore{}
+		sites := []*Site{
+			CreateTestSite("Different Host", "other.com", "en", false),
+		}
+
+		store.On("FindPublished", mock.Anything).Return(SitesToIterator(sites, nil))
+
+		errorFunc := func(r *http.Request, err error) (*Site, error) {
+			return nil, err
+		}
+
+		retriever := NewDefaultSiteRetriever(store, nil, errorFunc)
+		req := CreateTestRequest("GET", "http://example.com", nil)
+
+		site, _, err := retriever.Retrieve(req)
+
+		assert.Error(t, err)
+		assert.Equal(t, ErrSiteNotFound, err)
+		assert.Nil(t, site)
+
+		store.AssertExpectations(t)
+	})
+
+	t.Run("Host matching", func(t *testing.T) {
+		store := &MockSiteStore{}
+		sites := []*Site{
+			CreateTestSite("Correct Host", "example.com", "en", true),
+			CreateTestSite("Wrong Host", "other.com", "en", false),
+		}
+
+		store.On("FindPublished", mock.Anything).Return(SitesToIterator(sites, nil))
+
+		retriever := NewDefaultSiteRetriever(store, nil, nil)
+		req := CreateTestRequest("GET", "http://example.com", nil)
+
+		site, _, err := retriever.Retrieve(req)
+
+		assert.NoError(t, err)
+		assert.NotNil(t, site)
+		assert.Equal(t, "Correct Host", site.Name)
+
+		store.AssertExpectations(t)
+	})
+}
+
+// Integration tests that indirectly test selectedSite functionality
+func TestDefaultSiteRetriever_LanguageMatching(t *testing.T) {
+	t.Run("Language preference matching", func(t *testing.T) {
+		store := &MockSiteStore{}
+
+		englishSite := CreateTestSite("English", "example.com", "en", false)
+		frenchSite := CreateTestSite("French", "example.com", "fr", false)
+		spanishSite := CreateTestSite("Spanish", "example.com", "es", false)
+
+		sites := []*Site{englishSite, frenchSite, spanishSite}
+		store.On("FindPublished", mock.Anything).Return(SitesToIterator(sites, nil))
+
+		retriever := NewDefaultSiteRetriever(store, nil, nil)
+
+		// Test French preference
+		req := CreateTestRequest("GET", "http://example.com", map[string]string{
+			headerAcceptLanguage: "fr-FR,fr;q=0.9,en;q=0.8",
+		})
+
+		site, _, err := retriever.Retrieve(req)
+
+		require.NoError(t, err)
+		assert.Equal(t, "French", site.Name)
+
+		store.AssertExpectations(t)
+	})
+
+	t.Run("Fallback to parent language", func(t *testing.T) {
+		store := &MockSiteStore{}
+
+		englishSite := CreateTestSite("English", "example.com", "en", false)
+
+		sites := []*Site{englishSite}
+		store.On("FindPublished", mock.Anything).Return(SitesToIterator(sites, nil))
+
+		retriever := NewDefaultSiteRetriever(store, nil, nil)
+
+		// Test with en-US which should fallback to en
+		req := CreateTestRequest("GET", "http://example.com", map[string]string{
+			headerAcceptLanguage: "en-US,en;q=0.9",
+		})
+
+		site, _, err := retriever.Retrieve(req)
+
+		require.NoError(t, err)
+		assert.Equal(t, "English", site.Name)
+
+		store.AssertExpectations(t)
+	})
+
+	t.Run("Invalid accept language header", func(t *testing.T) {
+		store := &MockSiteStore{}
+
+		defaultSite := CreateTestSite("Default", "example.com", "en", true)
+
+		sites := []*Site{defaultSite}
+		store.On("FindPublished", mock.Anything).Return(SitesToIterator(sites, nil))
+
+		retriever := NewDefaultSiteRetriever(store, nil, nil)
+
+		// Test with invalid Accept-Language header
+		req := CreateTestRequest("GET", "http://example.com", map[string]string{
+			headerAcceptLanguage: "invalid-language-header",
+		})
+
+		site, _, err := retriever.Retrieve(req)
+
+		require.NoError(t, err)
+		assert.Equal(t, "Default", site.Name)
+
+		store.AssertExpectations(t)
+	})
+}
+
+func TestRegexpPath(t *testing.T) {
+	t.Run("Valid path pattern", func(t *testing.T) {
+		path := "/blog/([a-z0-9-]+)"
+		re, err := regexpPath(path)
+
+		assert.NoError(t, err)
+		assert.NotNil(t, re)
+
+		// Test the compiled regex
+		match, err := re.FindStringMatch("/blog/test-post")
+		assert.NoError(t, err)
+		assert.NotNil(t, match)
+	})
+
+	t.Run("Empty path", func(t *testing.T) {
+		re, err := regexpPath("")
+
+		assert.NoError(t, err)
+		assert.NotNil(t, re)
+	})
+
+	t.Run("Root path", func(t *testing.T) {
+		re, err := regexpPath("/")
+
+		assert.NoError(t, err)
+		assert.NotNil(t, re)
+	})
+
+	t.Run("Invalid regex pattern", func(t *testing.T) {
+		path := "/blog/([a-z0-9-+" // Invalid regex
+		re, err := regexpPath(path)
+
+		assert.Error(t, err)
+		assert.Nil(t, re)
+	})
+
+	t.Run("Cached result", func(t *testing.T) {
+		path := "/test"
+
+		// First call
+		re1, err1 := regexpPath(path)
+		assert.NoError(t, err1)
+		assert.NotNil(t, re1)
+
+		// Second call should return cached result
+		re2, err2 := regexpPath(path)
+		assert.NoError(t, err2)
+		assert.Equal(t, re1, re2)
+	})
+
+	t.Run("Cached error result", func(t *testing.T) {
+		path := "/invalid/([a-z0-9-+"
+
+		// First call should cache error
+		re1, err1 := regexpPath(path)
+		assert.Error(t, err1)
+		assert.Nil(t, re1)
+
+		// Second call should return cached error
+		re2, err2 := regexpPath(path)
+		assert.Error(t, err2)
+		assert.Nil(t, re2)
+	})
+}
+
+func TestMatchRequest(t *testing.T) {
+	t.Run("Empty relative path", func(t *testing.T) {
+		req := CreateTestRequest("GET", "http://example.com/test", nil)
+
+		pathInfo, err := matchRequest(req, "")
+
+		assert.NoError(t, err)
+		assert.Equal(t, "/test", pathInfo)
+	})
+
+	t.Run("Root relative path", func(t *testing.T) {
+		req := CreateTestRequest("GET", "http://example.com/test", nil)
+
+		pathInfo, err := matchRequest(req, "/")
+
+		assert.NoError(t, err)
+		assert.Equal(t, "/test", pathInfo)
+	})
+
+	t.Run("Matching pattern", func(t *testing.T) {
+		req := CreateTestRequest("GET", "http://example.com/blog/test-post", nil)
+
+		pathInfo, err := matchRequest(req, "/blog")
+
+		assert.NoError(t, err)
+		assert.Equal(t, "/test-post", pathInfo)
+	})
+
+	t.Run("Complex matching pattern", func(t *testing.T) {
+		req := CreateTestRequest("GET", "http://example.com/blog/2023/test-post", nil)
+
+		pathInfo, err := matchRequest(req, "/blog/([0-9]{4})")
+
+		assert.NoError(t, err)
+		assert.Equal(t, "2023", pathInfo)
+	})
+
+	t.Run("No match", func(t *testing.T) {
+		req := CreateTestRequest("GET", "http://example.com/other/path", nil)
+
+		pathInfo, err := matchRequest(req, "/blog")
+
+		assert.Error(t, err)
+		assert.Equal(t, "", pathInfo)
+	})
+
+	t.Run("Invalid regex pattern", func(t *testing.T) {
+		req := CreateTestRequest("GET", "http://example.com/test", nil)
+
+		pathInfo, err := matchRequest(req, "/invalid/([a-z0-9-+")
+
+		assert.Error(t, err)
+		assert.Equal(t, "", pathInfo)
+	})
+
+	t.Run("Root path request", func(t *testing.T) {
+		req := CreateTestRequest("GET", "http://example.com/", nil)
+
+		pathInfo, err := matchRequest(req, "/")
+
+		assert.NoError(t, err)
+		assert.Equal(t, "/", pathInfo)
+	})
+}
+
+func TestGetHost(t *testing.T) {
+	t.Run("Host without port", func(t *testing.T) {
+		req := CreateTestRequest("GET", "http://example.com", nil)
+		req.Host = "example.com"
+
+		host := getHost(req)
+		assert.Equal(t, "example.com", host)
+	})
+
+	t.Run("Host with port", func(t *testing.T) {
+		req := CreateTestRequest("GET", "http://example.com", nil)
+		req.Host = "example.com:8080"
+
+		host := getHost(req)
+		assert.Equal(t, "example.com", host)
+	})
+
+	t.Run("IPv6 host with port", func(t *testing.T) {
+		req := CreateTestRequest("GET", "http://[::1]", nil)
+		req.Host = "[::1]:8080"
+
+		host := getHost(req)
+		assert.Equal(t, "::1", host)
+	})
+
+	t.Run("Invalid host format", func(t *testing.T) {
+		req := CreateTestRequest("GET", "http://example.com", nil)
+		req.Host = "invalid-host-format"
+
+		host := getHost(req)
+		assert.Equal(t, "invalid-host-format", host)
+	})
+}
+
+func TestDefaultSiteRetriever_Integration(t *testing.T) {
+	t.Run("Complete site selection workflow", func(t *testing.T) {
+		// Create test sites
+		defaultSite := CreateTestSite("Default", "example.com", "en", true)
+		frenchSite := CreateTestSite("French", "example.com", "fr", false)
+		germanSite := CreateTestSite("German", "example.com", "de", false)
+		usSite := CreateTestSite("US", "example.com", "en-US", false, "US")
+
+		sites := []*Site{defaultSite, frenchSite, germanSite, usSite}
+
+		store := &MockSiteStore{}
+		store.On("FindPublished", mock.Anything).Return(SitesToIterator(sites, nil))
+
+		// Create retriever
+		countryFunc := func(r *http.Request) (string, error) { return "US", nil }
+		retriever := NewDefaultSiteRetriever(store, countryFunc, nil)
+
+		t.Run("French language preference", func(t *testing.T) {
+			req := CreateTestRequest("GET", "http://example.com", map[string]string{
+				headerAcceptLanguage: "fr-FR,fr;q=0.9,en;q=0.8",
+			})
+
+			site, _, err := retriever.Retrieve(req)
+
+			require.NoError(t, err)
+			require.NotNil(t, site)
+			assert.Equal(t, "French", site.Name)
+		})
+
+		t.Run("US country with path", func(t *testing.T) {
+			req := CreateTestRequest("GET", "http://example.com/blog/test", map[string]string{
+				headerAcceptLanguage: "en-US,en;q=0.9",
+			})
+
+			site, pathInfo, err := retriever.Retrieve(req)
+
+			require.NoError(t, err)
+			require.NotNil(t, site)
+			assert.Equal(t, "US", site.Name)
+			assert.Equal(t, "/blog/test", pathInfo)
+		})
+
+		t.Run("Fallback to default", func(t *testing.T) {
+			req := CreateTestRequest("GET", "http://example.com", map[string]string{
+				headerAcceptLanguage: "es-ES,es;q=0.9",
+			})
+
+			site, _, err := retriever.Retrieve(req)
+
+			require.NoError(t, err)
+			require.NotNil(t, site)
+			assert.Equal(t, "Default", site.Name)
+		})
+
+		store.AssertExpectations(t)
+	})
+
+	t.Run("Multi-host environment", func(t *testing.T) {
+		site1 := CreateTestSite("Site1", "site1.com", "en", true)
+		site2 := CreateTestSite("Site2", "site2.com", "fr", true)
+
+		sites := []*Site{site1, site2}
+
+		store := &MockSiteStore{}
+		store.On("FindPublished", mock.Anything).Return(SitesToIterator(sites, nil))
+
+		retriever := NewDefaultSiteRetriever(store, nil, nil)
+
+		// Test site1.com
+		req1 := CreateTestRequest("GET", "http://site1.com", nil)
+		site, _, err := retriever.Retrieve(req1)
+		require.NoError(t, err)
+		assert.Equal(t, "Site1", site.Name)
+
+		// Test site2.com
+		req2 := CreateTestRequest("GET", "http://site2.com", nil)
+		site, _, err = retriever.Retrieve(req2)
+		require.NoError(t, err)
+		assert.Equal(t, "Site2", site.Name)
+
+		store.AssertExpectations(t)
+	})
+}
+
+func TestDefaultSiteRetriever_CountryBasedSelection(t *testing.T) {
+	t.Run("Country filtering for root path", func(t *testing.T) {
+		usSite := CreateTestSite("US Site", "example.com", "en", false, "US")
+		euSite := CreateTestSite("EU Site", "example.com", "en", false, "FR", "DE", "IT")
+		globalSite := CreateTestSite("Global Site", "example.com", "en", true)
+
+		sites := []*Site{usSite, euSite, globalSite}
+
+		store := &MockSiteStore{}
+		store.On("FindPublished", mock.Anything).Return(SitesToIterator(sites, nil))
+
+		// Test US visitor
+		countryFunc := func(r *http.Request) (string, error) { return "US", nil }
+		retriever := NewDefaultSiteRetriever(store, countryFunc, nil)
+
+		req := CreateTestRequest("GET", "http://example.com/", nil)
+		site, _, err := retriever.Retrieve(req)
+
+		require.NoError(t, err)
+		require.NotNil(t, site)
+		// Should have US site and EU site available (both match countries)
+		assert.Contains(t, []*Site{usSite, euSite}, site)
+
+		store.AssertExpectations(t)
+	})
+
+	t.Run("Country restriction with no match", func(t *testing.T) {
+		euOnlySite := CreateTestSite("EU Only", "example.com", "en", false, "FR", "DE")
+		defaultSite := CreateTestSite("Default", "other.com", "en", true) // Different host
+
+		sites := []*Site{euOnlySite, defaultSite}
+
+		store := &MockSiteStore{}
+		store.On("FindPublished", mock.Anything).Return(SitesToIterator(sites, nil))
+
+		countryFunc := func(r *http.Request) (string, error) { return "US", nil }
+		errorFunc := func(r *http.Request, err error) (*Site, error) { return nil, err }
+		retriever := NewDefaultSiteRetriever(store, countryFunc, errorFunc)
+
+		req := CreateTestRequest("GET", "http://example.com/", nil)
+		site, _, err := retriever.Retrieve(req)
+
+		assert.Error(t, err)
+		assert.Equal(t, ErrSiteNotFound, err)
+		assert.Nil(t, site)
+
+		store.AssertExpectations(t)
+	})
+}
+
+// Benchmark tests
+func BenchmarkSiteRetriever_Retrieve(b *testing.B) {
+	sites := make([]*Site, 100)
+	for i := 0; i < 100; i++ {
+		sites[i] = CreateTestSite(
+			fmt.Sprintf("Site %d", i),
+			"example.com",
+			fmt.Sprintf("en-%d", i),
+			i == 0, // First site is default
+		)
+	}
+
+	store := &MockSiteStore{}
+	store.On("FindPublished", mock.Anything).Return(SitesToIterator(sites, nil))
+
+	retriever := NewDefaultSiteRetriever(store, nil, nil)
+	req := CreateTestRequest("GET", "http://example.com", map[string]string{
+		headerAcceptLanguage: "en-US,en;q=0.9",
+	})
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_, _, _ = retriever.Retrieve(req)
+	}
+}
+
+func BenchmarkRegexpPath(b *testing.B) {
+	path := "/blog/([a-z0-9-]+)/([0-9]{4})"
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_, _ = regexpPath(path)
+	}
+}
+
+func BenchmarkMatchRequest(b *testing.B) {
+	req := CreateTestRequest("GET", "http://example.com/blog/test-post/2023", nil)
+	path := "/blog/([a-z0-9-]+)/([0-9]{4})"
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_, _ = matchRequest(req, path)
+	}
+}

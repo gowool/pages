@@ -6,14 +6,15 @@ import (
 	"iter"
 	"maps"
 	"net/http"
+	"regexp"
 	"slices"
 	"strings"
 	"time"
-
-	"github.com/gowool/wo/middleware"
 )
 
 var _ PageSyncer = (*DefaultPageSyncer)(nil)
+
+var methodRe = regexp.MustCompile(`^(\S*)\s+(.*)$`)
 
 const (
 	homeTemplate       = "page/home.gohtml"
@@ -277,7 +278,7 @@ func (s *DefaultPageSyncer) getPatterns(ctx context.Context) ([]string, bool) {
 
 	for pattern := range s.patterns.Patterns() {
 		var ok bool
-		if pattern, ok = middleware.CheckMethod(http.MethodGet, pattern); !ok {
+		if pattern, ok = checkMethod(http.MethodGet, pattern); !ok {
 			continue
 		}
 
@@ -367,4 +368,14 @@ func (s *DefaultPageSyncer) setPageConfig(page *Page, config *PageConfig) {
 
 func ref[T any](v T) *T {
 	return &v
+}
+
+func checkMethod(method, skip string) (string, bool) {
+	if matches := methodRe.FindStringSubmatch(skip); len(matches) > 2 {
+		if matches[1] == method {
+			return matches[2], true
+		}
+		return "", false
+	}
+	return skip, true
 }

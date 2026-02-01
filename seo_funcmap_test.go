@@ -301,7 +301,6 @@ func TestMetaTags(t *testing.T) {
 			seo:  createTestSEOWithMeta(),
 			expectedExact: `<meta charset="UTF-8" />
 <meta name="description" content="Test description" />
-<meta property="og:type" content="website" />
 `,
 		},
 		{
@@ -325,7 +324,6 @@ func TestMetaTags(t *testing.T) {
 				{Type: "name", Name: "keywords", Content: "test"},
 				{Type: "name", Name: "keywords", Content: "keywords"},
 				{Type: "property", Name: "og:title", Content: "Test Title"},
-				{Type: "property", Name: "og:type", Content: "website"},
 				{Type: "http-equiv", Name: "refresh", Content: "30"},
 			},
 		},
@@ -335,7 +333,6 @@ func TestMetaTags(t *testing.T) {
 			expectedMetaTags: []expectedMetaTag{
 				{Type: "charset", Value: "UTF-8"},
 				{Type: "name", Name: "description", Content: `Test & description &quot;with quotes&quot;`},
-				{Type: "property", Name: "og:type", Content: "website"},
 			},
 		},
 		{

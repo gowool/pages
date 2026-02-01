@@ -1,665 +1,472 @@
 package pages
 
 import (
-	"errors"
-	"fmt"
-	"iter"
+	"context"
+	"crypto/tls"
 	"net/http"
-	"net/http/httptest"
+	"net/url"
 	"testing"
 
-	"github.com/gowool/wo"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
 
-// Test helper functions
-func CreateTestSite(name, host, locale string, isDefault bool, countries ...string) *Site {
-	site := NewSite()
-	site.Name = name
-	site.Host = host
-	site.Locale = locale
-	site.IsDefault = isDefault
-	site.Countries = countries
-	site.Status = Published
-	return site
+func TestNewDefaultSiteSelector(t *testing.T) {
+	t.Run("valid retriever", func(t *testing.T) {
+		mockRetriever := &MockSiteRetriever{}
+		selector := NewDefaultSiteSelector(mockRetriever)
+
+		assert.NotNil(t, selector, "Selector should not be nil")
+		assert.Same(t, mockRetriever, selector.retriever, "Retriever should be set")
+	})
+
+	t.Run("nil retriever", func(t *testing.T) {
+		assert.Panics(t, func() {
+			NewDefaultSiteSelector(nil)
+		}, "NewDefaultSiteSelector should panic with nil retriever")
+	})
 }
 
-// SitesToIterator converts a slice of sites to an iterator for testing
-func SitesToIterator(sites []*Site, err error) iter.Seq2[*Site, error] {
-	return func(yield func(*Site, error) bool) {
-		if err != nil {
-			yield(nil, err)
-			return
-		}
-		for _, site := range sites {
-			if !yield(site, nil) {
-				break
-			}
-		}
+func TestDefaultSiteSelector_Select(t *testing.T) {
+	t.Run("context is nil", func(t *testing.T) {
+		mockRetriever := &MockSiteRetriever{}
+		selector := NewDefaultSiteSelector(mockRetriever)
+
+		req := &http.Request{}
+
+		assert.Panics(t, func() {
+			_ = selector.Select(req)
+		}, "Select should panic when context is nil")
+	})
+
+	t.Run("site not found error", func(t *testing.T) {
+		mockRetriever := NewMockSiteRetriever(nil, "", ErrSiteNotFound)
+		selector := NewDefaultSiteSelector(mockRetriever)
+
+		ctx, cancel := NewContext(context.Background())
+		defer cancel()
+
+		req := createTestRequest()
+		req = req.WithContext(ctx)
+
+		err := selector.Select(req)
+
+		assert.Error(t, err, "Select should return error")
+		assert.ErrorIs(t, err, ErrSiteNotFound, "Error should be ErrSiteNotFound")
+	})
+
+	t.Run("site retrieval error", func(t *testing.T) {
+		mockRetriever := NewMockSiteRetriever(nil, "", assert.AnError)
+		selector := NewDefaultSiteSelector(mockRetriever)
+
+		ctx, cancel := NewContext(context.Background())
+		defer cancel()
+
+		req := createTestRequest()
+		req = req.WithContext(ctx)
+
+		err := selector.Select(req)
+
+		assert.Error(t, err, "Select should return error")
+		assert.ErrorIs(t, err, assert.AnError, "Error should wrap assert.AnError")
+		assert.ErrorIs(t, err, ErrSiteNotFound, "Error should wrap ErrSiteNotFound")
+	})
+
+	t.Run("site returned is nil", func(t *testing.T) {
+		mockRetriever := NewMockSiteRetriever(nil, "", nil)
+		selector := NewDefaultSiteSelector(mockRetriever)
+
+		ctx, cancel := NewContext(context.Background())
+		defer cancel()
+
+		req := createTestRequest()
+		req = req.WithContext(ctx)
+
+		err := selector.Select(req)
+
+		assert.Error(t, err, "Select should return error when site is nil")
+		assert.ErrorIs(t, err, ErrSiteNotFound)
+	})
+
+	t.Run("site found without pathInfo", func(t *testing.T) {
+		site := NewSite()
+		site.ID = "site1"
+		site.Host = "localhost"
+
+		mockRetriever := NewMockSiteRetriever(site, "", nil)
+		selector := NewDefaultSiteSelector(mockRetriever)
+
+		ctx, cancel := NewContext(context.Background())
+		c := FromContext(ctx)
+		defer cancel()
+
+		req := createTestRequest()
+		req = req.WithContext(ctx)
+
+		err := selector.Select(req)
+
+		assert.NoError(t, err, "Select should succeed")
+		assert.True(t, c.HasSite(), "Context should have site")
+		assert.Equal(t, site, c.Site(), "Site should be set in context")
+		assert.Equal(t, req.Host, site.Host, "Host should be updated from request")
+		assert.Equal(t, "http", site.Scheme, "Scheme should default to http")
+		assert.Equal(t, "/test/path", req.URL.Path, "Path should not be modified when pathInfo is empty")
+	})
+
+	t.Run("site found with pathInfo", func(t *testing.T) {
+		site := NewSite()
+		site.ID = "site1"
+		site.Host = "localhost"
+
+		pathInfo := "/adjusted/path"
+		mockRetriever := NewMockSiteRetriever(site, pathInfo, nil)
+		selector := NewDefaultSiteSelector(mockRetriever)
+
+		ctx, cancel := NewContext(context.Background())
+		c := FromContext(ctx)
+		defer cancel()
+
+		req := createTestRequest()
+		originalPath := req.URL.Path
+		req = req.WithContext(ctx)
+
+		err := selector.Select(req)
+
+		assert.NoError(t, err, "Select should succeed")
+		assert.Equal(t, pathInfo, req.URL.Path, "Request URL path should be updated")
+		assert.NotEqual(t, originalPath, req.URL.Path, "Path should be different from original")
+		assert.Equal(t, site, c.Site())
+	})
+
+	t.Run("site with nil Host in request", func(t *testing.T) {
+		site := NewSite()
+		site.ID = "site1"
+
+		mockRetriever := NewMockSiteRetriever(site, "", nil)
+		selector := NewDefaultSiteSelector(mockRetriever)
+
+		ctx, cancel := NewContext(context.Background())
+		c := FromContext(ctx)
+		defer cancel()
+
+		req := createTestRequest()
+		req.Host = ""
+		req = req.WithContext(ctx)
+
+		err := selector.Select(req)
+
+		assert.NoError(t, err, "Select should succeed with empty Host")
+		assert.Equal(t, "", site.Host, "Site Host should be set to empty string")
+		assert.Equal(t, site, c.Site())
+	})
+}
+
+func TestDefaultSiteSelector_Select_SchemeDetection(t *testing.T) {
+	t.Run("TLS connection", func(t *testing.T) {
+		site := NewSite()
+		site.ID = "site1"
+
+		mockRetriever := NewMockSiteRetriever(site, "", nil)
+		selector := NewDefaultSiteSelector(mockRetriever)
+
+		ctx, cancel := NewContext(context.Background())
+		defer cancel()
+
+		req := createTestRequest()
+		req.TLS = &tls.ConnectionState{}
+		req = req.WithContext(ctx)
+
+		err := selector.Select(req)
+
+		assert.NoError(t, err)
+		assert.Equal(t, "https", site.Scheme, "Scheme should be https for TLS connection")
+	})
+
+	t.Run("X-Forwarded-Proto header", func(t *testing.T) {
+		site := NewSite()
+		site.ID = "site1"
+
+		mockRetriever := NewMockSiteRetriever(site, "", nil)
+		selector := NewDefaultSiteSelector(mockRetriever)
+
+		ctx, cancel := NewContext(context.Background())
+		defer cancel()
+
+		req := createTestRequest()
+		req.Header.Set(headerXForwardedProto, "https")
+		req = req.WithContext(ctx)
+
+		err := selector.Select(req)
+
+		assert.NoError(t, err)
+		assert.Equal(t, "https", site.Scheme, "Scheme should use X-Forwarded-Proto header")
+	})
+
+	t.Run("X-Forwarded-Protocol header", func(t *testing.T) {
+		site := NewSite()
+		site.ID = "site1"
+
+		mockRetriever := NewMockSiteRetriever(site, "", nil)
+		selector := NewDefaultSiteSelector(mockRetriever)
+
+		ctx, cancel := NewContext(context.Background())
+		defer cancel()
+
+		req := createTestRequest()
+		req.Header.Set(headerXForwardedProtocol, "https")
+		req = req.WithContext(ctx)
+
+		err := selector.Select(req)
+
+		assert.NoError(t, err)
+		assert.Equal(t, "https", site.Scheme, "Scheme should use X-Forwarded-Protocol header")
+	})
+
+	t.Run("X-Forwarded-Ssl header with on", func(t *testing.T) {
+		site := NewSite()
+		site.ID = "site1"
+
+		mockRetriever := NewMockSiteRetriever(site, "", nil)
+		selector := NewDefaultSiteSelector(mockRetriever)
+
+		ctx, cancel := NewContext(context.Background())
+		defer cancel()
+
+		req := createTestRequest()
+		req.Header.Set(headerXForwardedSsl, "on")
+		req = req.WithContext(ctx)
+
+		err := selector.Select(req)
+
+		assert.NoError(t, err)
+		assert.Equal(t, "https", site.Scheme, "Scheme should be https when X-Forwarded-Ssl is on")
+	})
+
+	t.Run("X-Forwarded-Ssl header with off", func(t *testing.T) {
+		site := NewSite()
+		site.ID = "site1"
+
+		mockRetriever := NewMockSiteRetriever(site, "", nil)
+		selector := NewDefaultSiteSelector(mockRetriever)
+
+		ctx, cancel := NewContext(context.Background())
+		defer cancel()
+
+		req := createTestRequest()
+		req.Header.Set(headerXForwardedSsl, "off")
+		req = req.WithContext(ctx)
+
+		err := selector.Select(req)
+
+		assert.NoError(t, err)
+		assert.Equal(t, "http", site.Scheme, "Scheme should be http when X-Forwarded-Ssl is off")
+	})
+
+	t.Run("X-Url-Scheme header", func(t *testing.T) {
+		site := NewSite()
+		site.ID = "site1"
+
+		mockRetriever := NewMockSiteRetriever(site, "", nil)
+		selector := NewDefaultSiteSelector(mockRetriever)
+
+		ctx, cancel := NewContext(context.Background())
+		defer cancel()
+
+		req := createTestRequest()
+		req.Header.Set(headerXUrlScheme, "https")
+		req = req.WithContext(ctx)
+
+		err := selector.Select(req)
+
+		assert.NoError(t, err)
+		assert.Equal(t, "https", site.Scheme, "Scheme should use X-Url-Scheme header")
+	})
+
+	t.Run("default to http", func(t *testing.T) {
+		site := NewSite()
+		site.ID = "site1"
+
+		mockRetriever := NewMockSiteRetriever(site, "", nil)
+		selector := NewDefaultSiteSelector(mockRetriever)
+
+		ctx, cancel := NewContext(context.Background())
+		defer cancel()
+
+		req := createTestRequest()
+		req = req.WithContext(ctx)
+
+		err := selector.Select(req)
+
+		assert.NoError(t, err)
+		assert.Equal(t, "http", site.Scheme, "Scheme should default to http")
+	})
+
+	t.Run("TLS takes precedence over headers", func(t *testing.T) {
+		site := NewSite()
+		site.ID = "site1"
+
+		mockRetriever := NewMockSiteRetriever(site, "", nil)
+		selector := NewDefaultSiteSelector(mockRetriever)
+
+		ctx, cancel := NewContext(context.Background())
+		defer cancel()
+
+		req := createTestRequest()
+		req.TLS = &tls.ConnectionState{}
+		req.Header.Set(headerXForwardedProto, "http")
+		req = req.WithContext(ctx)
+
+		err := selector.Select(req)
+
+		assert.NoError(t, err)
+		assert.Equal(t, "https", site.Scheme, "TLS should take precedence over headers")
+	})
+
+	t.Run("X-Forwarded-Proto takes precedence over X-Url-Scheme", func(t *testing.T) {
+		site := NewSite()
+		site.ID = "site1"
+
+		mockRetriever := NewMockSiteRetriever(site, "", nil)
+		selector := NewDefaultSiteSelector(mockRetriever)
+
+		ctx, cancel := NewContext(context.Background())
+		defer cancel()
+
+		req := createTestRequest()
+		req.Header.Set(headerXForwardedProto, "https")
+		req.Header.Set(headerXUrlScheme, "http")
+		req = req.WithContext(ctx)
+
+		err := selector.Select(req)
+
+		assert.NoError(t, err)
+		assert.Equal(t, "https", site.Scheme, "X-Forwarded-Proto should take precedence")
+	})
+}
+
+func TestGetScheme(t *testing.T) {
+	tests := []struct {
+		name     string
+		setupReq func(*http.Request)
+		want     string
+	}{
+		{
+			name: "TLS connection",
+			setupReq: func(r *http.Request) {
+				r.TLS = &tls.ConnectionState{}
+			},
+			want: "https",
+		},
+		{
+			name: "X-Forwarded-Proto header",
+			setupReq: func(r *http.Request) {
+				r.Header.Set(headerXForwardedProto, "https")
+			},
+			want: "https",
+		},
+		{
+			name: "X-Forwarded-Protocol header",
+			setupReq: func(r *http.Request) {
+				r.Header.Set(headerXForwardedProtocol, "https")
+			},
+			want: "https",
+		},
+		{
+			name: "X-Forwarded-Ssl header with on",
+			setupReq: func(r *http.Request) {
+				r.Header.Set(headerXForwardedSsl, "on")
+			},
+			want: "https",
+		},
+		{
+			name: "X-Forwarded-Ssl header with off",
+			setupReq: func(r *http.Request) {
+				r.Header.Set(headerXForwardedSsl, "off")
+			},
+			want: "http",
+		},
+		{
+			name: "X-Url-Scheme header",
+			setupReq: func(r *http.Request) {
+				r.Header.Set(headerXUrlScheme, "https")
+			},
+			want: "https",
+		},
+		{
+			name:     "default to http",
+			setupReq: func(r *http.Request) {},
+			want:     "http",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			req := createTestRequest()
+			tt.setupReq(req)
+
+			got := getScheme(req)
+
+			assert.Equal(t, tt.want, got, "getScheme should return expected scheme")
+		})
 	}
 }
 
-func CreateTestRequest(method, url string, headers map[string]string) *http.Request {
-	req := httptest.NewRequest(method, url, nil)
-	for key, value := range headers {
-		req.Header.Set(key, value)
-	}
-	return req
-}
+func TestDefaultSiteSelector_Select_Integration(t *testing.T) {
+	t.Run("full flow with proxy headers", func(t *testing.T) {
+		site := NewSite()
+		site.ID = "site1"
+		site.Host = "localhost"
 
-func TestNewSiteSelector(t *testing.T) {
-	t.Run("Valid parameters", func(t *testing.T) {
-		store := &MockSiteStore{}
-		countryFunc := func(r *http.Request) (string, error) { return "US", nil }
-		errorFunc := func(r *http.Request, err error) (*Site, error) { return nil, err }
+		pathInfo := "/api/v1/adjusted"
 
-		selector := NewSiteSelector(store, countryFunc, errorFunc)
+		mockRetriever := NewMockSiteRetriever(site, pathInfo, nil)
+		selector := NewDefaultSiteSelector(mockRetriever)
 
-		assert.NotNil(t, selector)
-		// Test that it implements the interface
-		assert.Implements(t, (*SiteSelector)(nil), selector)
-	})
+		ctx, cancel := NewContext(context.Background())
+		c := FromContext(ctx)
+		defer cancel()
 
-	t.Run("Nil store should panic", func(t *testing.T) {
-		assert.Panics(t, func() {
-			NewSiteSelector(nil, nil, nil)
-		})
-	})
-
-	t.Run("Nil countryFunc should use default", func(t *testing.T) {
-		store := &MockSiteStore{}
-		selector := NewSiteSelector(store, nil, nil)
-
-		req := CreateTestRequest("GET", "http://example.com", map[string]string{
-			wo.HeaderCFIPCountry: "US",
-		})
-
-		// Test that the selector works with default country function
-		testSite := CreateTestSite("Test", "example.com", "en", true)
-		store.On("FindPublished", mock.Anything).Return(SitesToIterator([]*Site{testSite}, nil))
-		site, _, err := selector.Retrieve(req)
-
-		assert.NoError(t, err)
-		assert.NotNil(t, site)
-		store.AssertExpectations(t)
-	})
-
-	t.Run("Nil errorFunc should use default", func(t *testing.T) {
-		store := &MockSiteStore{}
-		selector := NewSiteSelector(store, nil, nil)
-
-		req := CreateTestRequest("GET", "http://example.com", nil)
-		testErr := errors.New("test error")
-
-		// Test that the selector returns error directly when no custom error func is provided
-		store.On("FindPublished", mock.Anything).Return(SitesToIterator([]*Site{}, testErr))
-		site, _, err := selector.Retrieve(req)
-
-		assert.Error(t, err)
-		assert.Equal(t, testErr, err)
-		assert.Nil(t, site)
-		store.AssertExpectations(t)
-	})
-}
-
-func TestDefaultSiteSelector_Retrieve(t *testing.T) {
-	t.Run("Nil request should panic", func(t *testing.T) {
-		store := &MockSiteStore{}
-		selector := NewSiteSelector(store, nil, nil)
-
-		assert.Panics(t, func() {
-			_, _, _ = selector.Retrieve(nil)
-		})
-	})
-
-	t.Run("Country function error", func(t *testing.T) {
-		store := &MockSiteStore{}
-		testErr := errors.New("country error")
-		countryFunc := func(r *http.Request) (string, error) { return "", testErr }
-		errorFunc := func(r *http.Request, err error) (*Site, error) {
-			return CreateTestSite("Error Site", "example.com", "en", false), nil
-		}
-
-		selector := NewSiteSelector(store, countryFunc, errorFunc)
-		req := CreateTestRequest("GET", "http://example.com", nil)
-
-		site, _, err := selector.Retrieve(req)
-
-		assert.NoError(t, err)
-		assert.NotNil(t, site)
-		assert.Equal(t, "Error Site", site.Name)
-	})
-
-	t.Run("Store error", func(t *testing.T) {
-		store := &MockSiteStore{}
-		testErr := errors.New("store error")
-		countryFunc := func(r *http.Request) (string, error) { return "US", nil }
-		errorFunc := func(r *http.Request, err error) (*Site, error) {
-			return CreateTestSite("Error Site", "example.com", "en", false), nil
-		}
-
-		store.On("FindPublished", mock.Anything).Return(SitesToIterator([]*Site{}, testErr))
-
-		selector := NewSiteSelector(store, countryFunc, errorFunc)
-		req := CreateTestRequest("GET", "http://example.com", nil)
-
-		site, _, err := selector.Retrieve(req)
-
-		assert.NoError(t, err)
-		assert.NotNil(t, site)
-		assert.Equal(t, "Error Site", site.Name)
-
-		store.AssertExpectations(t)
-	})
-
-	t.Run("Successful site selection", func(t *testing.T) {
-		store := &MockSiteStore{}
-		sites := []*Site{
-			CreateTestSite("Default Site", "example.com", "en", true),
-			CreateTestSite("French Site", "example.com", "fr", false),
-			CreateTestSite("US Site", "example.com", "en-US", false, "US"),
-		}
-
-		store.On("FindPublished", mock.Anything).Return(SitesToIterator(sites, nil))
-
-		selector := NewSiteSelector(store, nil, nil)
-		req := CreateTestRequest("GET", "http://example.com", map[string]string{
-			wo.HeaderAcceptLanguage: "fr-FR,fr;q=0.9,en;q=0.8",
-		})
-
-		site, _, err := selector.Retrieve(req)
-
-		assert.NoError(t, err)
-		assert.NotNil(t, site)
-		assert.Equal(t, "French Site", site.Name)
-
-		store.AssertExpectations(t)
-	})
-
-	t.Run("Site selection with country", func(t *testing.T) {
-		store := &MockSiteStore{}
-		sites := []*Site{
-			CreateTestSite("Default Site", "example.com", "en", true),
-			CreateTestSite("US Site", "example.com", "en-US", false, "US"),
-			CreateTestSite("French Site", "example.com", "fr", false),
-		}
-
-		store.On("FindPublished", mock.Anything).Return(SitesToIterator(sites, nil))
-
-		countryFunc := func(r *http.Request) (string, error) { return "US", nil }
-		selector := NewSiteSelector(store, countryFunc, nil)
-		req := CreateTestRequest("GET", "http://example.com/test", map[string]string{wo.HeaderAcceptLanguage: "en-US;q=0.9,en;q=0.8"})
-
-		site, _, err := selector.Retrieve(req)
-
-		assert.NoError(t, err)
-		assert.NotNil(t, site)
-		assert.Equal(t, "US Site", site.Name)
-
-		store.AssertExpectations(t)
-	})
-
-	t.Run("No matching sites returns error", func(t *testing.T) {
-		store := &MockSiteStore{}
-		sites := []*Site{
-			CreateTestSite("Different Host", "other.com", "en", false),
-		}
-
-		store.On("FindPublished", mock.Anything).Return(SitesToIterator(sites, nil))
-
-		errorFunc := func(r *http.Request, err error) (*Site, error) {
-			return nil, err
-		}
-
-		selector := NewSiteSelector(store, nil, errorFunc)
-		req := CreateTestRequest("GET", "http://example.com", nil)
-
-		site, _, err := selector.Retrieve(req)
-
-		assert.Error(t, err)
-		assert.Equal(t, ErrSiteNotFound, err)
-		assert.Nil(t, site)
-
-		store.AssertExpectations(t)
-	})
-
-	t.Run("Host matching", func(t *testing.T) {
-		store := &MockSiteStore{}
-		sites := []*Site{
-			CreateTestSite("Correct Host", "example.com", "en", true),
-			CreateTestSite("Wrong Host", "other.com", "en", false),
-		}
-
-		store.On("FindPublished", mock.Anything).Return(SitesToIterator(sites, nil))
-
-		selector := NewSiteSelector(store, nil, nil)
-		req := CreateTestRequest("GET", "http://example.com", nil)
-
-		site, _, err := selector.Retrieve(req)
-
-		assert.NoError(t, err)
-		assert.NotNil(t, site)
-		assert.Equal(t, "Correct Host", site.Name)
-
-		store.AssertExpectations(t)
-	})
-}
-
-// Integration tests that indirectly test selectedSite functionality
-func TestDefaultSiteSelector_LanguageMatching(t *testing.T) {
-	t.Run("Language preference matching", func(t *testing.T) {
-		store := &MockSiteStore{}
-
-		englishSite := CreateTestSite("English", "example.com", "en", false)
-		frenchSite := CreateTestSite("French", "example.com", "fr", false)
-		spanishSite := CreateTestSite("Spanish", "example.com", "es", false)
-
-		sites := []*Site{englishSite, frenchSite, spanishSite}
-		store.On("FindPublished", mock.Anything).Return(SitesToIterator(sites, nil))
-
-		selector := NewSiteSelector(store, nil, nil)
-
-		// Test French preference
-		req := CreateTestRequest("GET", "http://example.com", map[string]string{
-			wo.HeaderAcceptLanguage: "fr-FR,fr;q=0.9,en;q=0.8",
-		})
-
-		site, _, err := selector.Retrieve(req)
-
-		require.NoError(t, err)
-		assert.Equal(t, "French", site.Name)
-
-		store.AssertExpectations(t)
-	})
-
-	t.Run("Fallback to parent language", func(t *testing.T) {
-		store := &MockSiteStore{}
-
-		englishSite := CreateTestSite("English", "example.com", "en", false)
-
-		sites := []*Site{englishSite}
-		store.On("FindPublished", mock.Anything).Return(SitesToIterator(sites, nil))
-
-		selector := NewSiteSelector(store, nil, nil)
-
-		// Test with en-US which should fallback to en
-		req := CreateTestRequest("GET", "http://example.com", map[string]string{
-			wo.HeaderAcceptLanguage: "en-US,en;q=0.9",
-		})
-
-		site, _, err := selector.Retrieve(req)
-
-		require.NoError(t, err)
-		assert.Equal(t, "English", site.Name)
-
-		store.AssertExpectations(t)
-	})
-
-	t.Run("Invalid accept language header", func(t *testing.T) {
-		store := &MockSiteStore{}
-
-		defaultSite := CreateTestSite("Default", "example.com", "en", true)
-
-		sites := []*Site{defaultSite}
-		store.On("FindPublished", mock.Anything).Return(SitesToIterator(sites, nil))
-
-		selector := NewSiteSelector(store, nil, nil)
-
-		// Test with invalid Accept-Language header
-		req := CreateTestRequest("GET", "http://example.com", map[string]string{
-			wo.HeaderAcceptLanguage: "invalid-language-header",
-		})
-
-		site, _, err := selector.Retrieve(req)
-
-		require.NoError(t, err)
-		assert.Equal(t, "Default", site.Name)
-
-		store.AssertExpectations(t)
-	})
-}
-
-func TestRegexpPath(t *testing.T) {
-	t.Run("Valid path pattern", func(t *testing.T) {
-		path := "/blog/([a-z0-9-]+)"
-		re, err := regexpPath(path)
-
-		assert.NoError(t, err)
-		assert.NotNil(t, re)
-
-		// Test the compiled regex
-		match, err := re.FindStringMatch("/blog/test-post")
-		assert.NoError(t, err)
-		assert.NotNil(t, match)
-	})
-
-	t.Run("Empty path", func(t *testing.T) {
-		re, err := regexpPath("")
-
-		assert.NoError(t, err)
-		assert.NotNil(t, re)
-	})
-
-	t.Run("Root path", func(t *testing.T) {
-		re, err := regexpPath("/")
-
-		assert.NoError(t, err)
-		assert.NotNil(t, re)
-	})
-
-	t.Run("Invalid regex pattern", func(t *testing.T) {
-		path := "/blog/([a-z0-9-+" // Invalid regex
-		re, err := regexpPath(path)
-
-		assert.Error(t, err)
-		assert.Nil(t, re)
-	})
-
-	t.Run("Cached result", func(t *testing.T) {
-		path := "/test"
-
-		// First call
-		re1, err1 := regexpPath(path)
-		assert.NoError(t, err1)
-		assert.NotNil(t, re1)
-
-		// Second call should return cached result
-		re2, err2 := regexpPath(path)
-		assert.NoError(t, err2)
-		assert.Equal(t, re1, re2)
-	})
-
-	t.Run("Cached error result", func(t *testing.T) {
-		path := "/invalid/([a-z0-9-+"
-
-		// First call should cache error
-		re1, err1 := regexpPath(path)
-		assert.Error(t, err1)
-		assert.Nil(t, re1)
-
-		// Second call should return cached error
-		re2, err2 := regexpPath(path)
-		assert.Error(t, err2)
-		assert.Nil(t, re2)
-	})
-}
-
-func TestMatchRequest(t *testing.T) {
-	t.Run("Empty relative path", func(t *testing.T) {
-		req := CreateTestRequest("GET", "http://example.com/test", nil)
-
-		pathInfo, err := matchRequest(req, "")
-
-		assert.NoError(t, err)
-		assert.Equal(t, "/test", pathInfo)
-	})
-
-	t.Run("Root relative path", func(t *testing.T) {
-		req := CreateTestRequest("GET", "http://example.com/test", nil)
-
-		pathInfo, err := matchRequest(req, "/")
-
-		assert.NoError(t, err)
-		assert.Equal(t, "/test", pathInfo)
-	})
-
-	t.Run("Matching pattern", func(t *testing.T) {
-		req := CreateTestRequest("GET", "http://example.com/blog/test-post", nil)
-
-		pathInfo, err := matchRequest(req, "/blog")
-
-		assert.NoError(t, err)
-		assert.Equal(t, "/test-post", pathInfo)
-	})
-
-	t.Run("Complex matching pattern", func(t *testing.T) {
-		req := CreateTestRequest("GET", "http://example.com/blog/2023/test-post", nil)
-
-		pathInfo, err := matchRequest(req, "/blog/([0-9]{4})")
-
-		assert.NoError(t, err)
-		assert.Equal(t, "2023", pathInfo)
-	})
-
-	t.Run("No match", func(t *testing.T) {
-		req := CreateTestRequest("GET", "http://example.com/other/path", nil)
-
-		pathInfo, err := matchRequest(req, "/blog")
-
-		assert.Error(t, err)
-		assert.Equal(t, "", pathInfo)
-	})
-
-	t.Run("Invalid regex pattern", func(t *testing.T) {
-		req := CreateTestRequest("GET", "http://example.com/test", nil)
-
-		pathInfo, err := matchRequest(req, "/invalid/([a-z0-9-+")
-
-		assert.Error(t, err)
-		assert.Equal(t, "", pathInfo)
-	})
-
-	t.Run("Root path request", func(t *testing.T) {
-		req := CreateTestRequest("GET", "http://example.com/", nil)
-
-		pathInfo, err := matchRequest(req, "/")
-
-		assert.NoError(t, err)
-		assert.Equal(t, "/", pathInfo)
-	})
-}
-
-func TestGetHost(t *testing.T) {
-	t.Run("Host without port", func(t *testing.T) {
-		req := CreateTestRequest("GET", "http://example.com", nil)
+		req := createTestRequest()
 		req.Host = "example.com"
+		req.Header.Set(headerXForwardedProto, "https")
+		req.Header.Set(headerXForwardedSsl, "on")
+		req = req.WithContext(ctx)
 
-		host := getHost(req)
-		assert.Equal(t, "example.com", host)
+		err := selector.Select(req)
+
+		require.NoError(t, err, "Select should succeed")
+		assert.Equal(t, site, c.Site(), "Site should be set")
+		assert.Equal(t, "example.com", site.Host, "Host should be from request")
+		assert.Equal(t, "https", site.Scheme, "Scheme should be https")
+		assert.Equal(t, pathInfo, req.URL.Path, "Path should be adjusted")
 	})
 
-	t.Run("Host with port", func(t *testing.T) {
-		req := CreateTestRequest("GET", "http://example.com", nil)
-		req.Host = "example.com:8080"
+	t.Run("verify context receives site", func(t *testing.T) {
+		site := NewSite()
+		site.ID = "site1"
 
-		host := getHost(req)
-		assert.Equal(t, "example.com", host)
-	})
+		mockRetriever := NewMockSiteRetriever(site, "", nil)
+		selector := NewDefaultSiteSelector(mockRetriever)
 
-	t.Run("IPv6 host with port", func(t *testing.T) {
-		req := CreateTestRequest("GET", "http://[::1]", nil)
-		req.Host = "[::1]:8080"
+		ctx, cancel := NewContext(context.Background())
+		c := FromContext(ctx)
+		defer cancel()
 
-		host := getHost(req)
-		assert.Equal(t, "::1", host)
-	})
+		req := createTestRequest()
+		req = req.WithContext(ctx)
 
-	t.Run("Invalid host format", func(t *testing.T) {
-		req := CreateTestRequest("GET", "http://example.com", nil)
-		req.Host = "invalid-host-format"
-
-		host := getHost(req)
-		assert.Equal(t, "invalid-host-format", host)
-	})
-}
-
-func TestDefaultSiteSelector_Integration(t *testing.T) {
-	t.Run("Complete site selection workflow", func(t *testing.T) {
-		// Create test sites
-		defaultSite := CreateTestSite("Default", "example.com", "en", true)
-		frenchSite := CreateTestSite("French", "example.com", "fr", false)
-		germanSite := CreateTestSite("German", "example.com", "de", false)
-		usSite := CreateTestSite("US", "example.com", "en-US", false, "US")
-
-		sites := []*Site{defaultSite, frenchSite, germanSite, usSite}
-
-		store := &MockSiteStore{}
-		store.On("FindPublished", mock.Anything).Return(SitesToIterator(sites, nil))
-
-		// Create selector
-		countryFunc := func(r *http.Request) (string, error) { return "US", nil }
-		selector := NewSiteSelector(store, countryFunc, nil)
-
-		t.Run("French language preference", func(t *testing.T) {
-			req := CreateTestRequest("GET", "http://example.com", map[string]string{
-				wo.HeaderAcceptLanguage: "fr-FR,fr;q=0.9,en;q=0.8",
-			})
-
-			site, _, err := selector.Retrieve(req)
-
-			require.NoError(t, err)
-			require.NotNil(t, site)
-			assert.Equal(t, "French", site.Name)
-		})
-
-		t.Run("US country with path", func(t *testing.T) {
-			req := CreateTestRequest("GET", "http://example.com/blog/test", map[string]string{
-				wo.HeaderAcceptLanguage: "en-US,en;q=0.9",
-			})
-
-			site, pathInfo, err := selector.Retrieve(req)
-
-			require.NoError(t, err)
-			require.NotNil(t, site)
-			assert.Equal(t, "US", site.Name)
-			assert.Equal(t, "/blog/test", pathInfo)
-		})
-
-		t.Run("Fallback to default", func(t *testing.T) {
-			req := CreateTestRequest("GET", "http://example.com", map[string]string{
-				wo.HeaderAcceptLanguage: "es-ES,es;q=0.9",
-			})
-
-			site, _, err := selector.Retrieve(req)
-
-			require.NoError(t, err)
-			require.NotNil(t, site)
-			assert.Equal(t, "Default", site.Name)
-		})
-
-		store.AssertExpectations(t)
-	})
-
-	t.Run("Multi-host environment", func(t *testing.T) {
-		site1 := CreateTestSite("Site1", "site1.com", "en", true)
-		site2 := CreateTestSite("Site2", "site2.com", "fr", true)
-
-		sites := []*Site{site1, site2}
-
-		store := &MockSiteStore{}
-		store.On("FindPublished", mock.Anything).Return(SitesToIterator(sites, nil))
-
-		selector := NewSiteSelector(store, nil, nil)
-
-		// Test site1.com
-		req1 := CreateTestRequest("GET", "http://site1.com", nil)
-		site, _, err := selector.Retrieve(req1)
-		require.NoError(t, err)
-		assert.Equal(t, "Site1", site.Name)
-
-		// Test site2.com
-		req2 := CreateTestRequest("GET", "http://site2.com", nil)
-		site, _, err = selector.Retrieve(req2)
-		require.NoError(t, err)
-		assert.Equal(t, "Site2", site.Name)
-
-		store.AssertExpectations(t)
-	})
-}
-
-func TestDefaultSiteSelector_CountryBasedSelection(t *testing.T) {
-	t.Run("Country filtering for root path", func(t *testing.T) {
-		usSite := CreateTestSite("US Site", "example.com", "en", false, "US")
-		euSite := CreateTestSite("EU Site", "example.com", "en", false, "FR", "DE", "IT")
-		globalSite := CreateTestSite("Global Site", "example.com", "en", true)
-
-		sites := []*Site{usSite, euSite, globalSite}
-
-		store := &MockSiteStore{}
-		store.On("FindPublished", mock.Anything).Return(SitesToIterator(sites, nil))
-
-		// Test US visitor
-		countryFunc := func(r *http.Request) (string, error) { return "US", nil }
-		selector := NewSiteSelector(store, countryFunc, nil)
-
-		req := CreateTestRequest("GET", "http://example.com/", nil)
-		site, _, err := selector.Retrieve(req)
+		err := selector.Select(req)
 
 		require.NoError(t, err)
-		require.NotNil(t, site)
-		// Should have US site and EU site available (both match countries)
-		assert.Contains(t, []*Site{usSite, euSite}, site)
-
-		store.AssertExpectations(t)
-	})
-
-	t.Run("Country restriction with no match", func(t *testing.T) {
-		euOnlySite := CreateTestSite("EU Only", "example.com", "en", false, "FR", "DE")
-		defaultSite := CreateTestSite("Default", "other.com", "en", true) // Different host
-
-		sites := []*Site{euOnlySite, defaultSite}
-
-		store := &MockSiteStore{}
-		store.On("FindPublished", mock.Anything).Return(SitesToIterator(sites, nil))
-
-		countryFunc := func(r *http.Request) (string, error) { return "US", nil }
-		errorFunc := func(r *http.Request, err error) (*Site, error) { return nil, err }
-		selector := NewSiteSelector(store, countryFunc, errorFunc)
-
-		req := CreateTestRequest("GET", "http://example.com/", nil)
-		site, _, err := selector.Retrieve(req)
-
-		assert.Error(t, err)
-		assert.Equal(t, ErrSiteNotFound, err)
-		assert.Nil(t, site)
-
-		store.AssertExpectations(t)
+		assert.True(t, c.HasSite())
+		assert.Same(t, site, c.Site())
 	})
 }
 
-// Benchmark tests
-func BenchmarkSiteSelector_Retrieve(b *testing.B) {
-	sites := make([]*Site, 100)
-	for i := 0; i < 100; i++ {
-		sites[i] = CreateTestSite(
-			fmt.Sprintf("Site %d", i),
-			"example.com",
-			fmt.Sprintf("en-%d", i),
-			i == 0, // First site is default
-		)
-	}
-
-	store := &MockSiteStore{}
-	store.On("FindPublished", mock.Anything).Return(SitesToIterator(sites, nil))
-
-	selector := NewSiteSelector(store, nil, nil)
-	req := CreateTestRequest("GET", "http://example.com", map[string]string{
-		wo.HeaderAcceptLanguage: "en-US,en;q=0.9",
-	})
-
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		_, _, _ = selector.Retrieve(req)
-	}
-}
-
-func BenchmarkRegexpPath(b *testing.B) {
-	path := "/blog/([a-z0-9-]+)/([0-9]{4})"
-
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		_, _ = regexpPath(path)
-	}
-}
-
-func BenchmarkMatchRequest(b *testing.B) {
-	req := CreateTestRequest("GET", "http://example.com/blog/test-post/2023", nil)
-	path := "/blog/([a-z0-9-]+)/([0-9]{4})"
-
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		_, _ = matchRequest(req, path)
+func createTestRequest() *http.Request {
+	return &http.Request{
+		URL:    &url.URL{Path: "/test/path"},
+		Host:   "localhost",
+		Header: make(http.Header),
 	}
 }

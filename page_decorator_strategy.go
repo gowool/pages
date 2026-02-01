@@ -19,7 +19,7 @@ type NoopPageDecoratorStrategy struct{}
 
 func (s *NoopPageDecoratorStrategy) IsDecorable(ctx context.Context, pattern, uri string) (bool, error) {
 	ok1, err1 := s.IsPatternDecorable(ctx, pattern)
-	ok2, err2 := s.IsURIDecorable(ctx, pattern)
+	ok2, err2 := s.IsURIDecorable(ctx, uri)
 
 	return ok1 && ok2, errors.Join(err1, err2)
 }

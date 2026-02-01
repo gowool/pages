@@ -74,7 +74,6 @@ func (s *SEO) Reset() {
 		"prefix": "og: https://ogp.me/ns#",
 	}
 	s.metaTags = NewMetaTags(DefaultCharset)
-	s.metaTags.SetProperty("og:type", "website")
 	s.headAttrs = map[string]string{}
 	s.bodyAttrs = map[string]string{}
 	s.langAlternates = map[string]string{}

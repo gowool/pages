@@ -11,7 +11,11 @@ import (
 	"github.com/spf13/cast"
 )
 
-var dynamicPatternChar = '{'
+var (
+	DynamicPatternChars = "{"
+	PageCMSPattern      = "/{_page_cms...}"
+	HomeHybridPattern   = "/{$}"
+)
 
 const (
 	PageCMS               = "_page_cms"
@@ -24,9 +28,6 @@ const (
 	PageErrorNotFound     = PageErrorPrefix + "404"
 	PageError4xx          = PageErrorPrefix + "4xx"
 	PageError5xx          = PageErrorPrefix + "5xx"
-
-	PageCMSPattern    = "/{_page_cms...}"
-	HomeHybridPattern = "/{$}"
 )
 
 type Page struct {
@@ -153,7 +154,7 @@ func (p *Page) IsCMS() bool {
 }
 
 func (p *Page) IsDynamic() bool {
-	return p.IsHybrid() && strings.ContainsRune(p.Pattern, dynamicPatternChar)
+	return p.IsHybrid() && strings.ContainsAny(p.Pattern, DynamicPatternChars)
 }
 
 func (p *Page) SetAlias(alias string) {

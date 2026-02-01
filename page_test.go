@@ -998,5 +998,4 @@ func TestPage_Constants(t *testing.T) {
 	assert.Equal(t, "_page_internal_error_", PageErrorPrefix, "PageErrorPrefix constant should match")
 	assert.Equal(t, "_page_internal_error_4xx", PageError4xx, "PageError4xx constant should match")
 	assert.Equal(t, "_page_internal_error_5xx", PageError5xx, "PageError5xx constant should match")
-	assert.Equal(t, '{', dynamicPatternChar, "dynamicPatternChar should be opening brace")
 }

@@ -112,6 +112,7 @@ golangci-lint run -v --timeout=5m --build-tags=race --output.code-climate.path g
 - Use `iota` for enumerations
 - Implement `String()` method for custom enum types
 - Use `TypeNameFromString()` pattern for string-to-enum conversion
+- Separate const blocks for different constant groups (e.g., link relations, policies)
 
 ### String Building
 - Use `strings.Builder` for concatenating multiple strings
@@ -132,6 +133,22 @@ golangci-lint run -v --timeout=5m --build-tags=race --output.code-climate.path g
 - Use `json:"field,omitempty"` for optional fields
 - Use `json:"field,omitzero"` for zero-value omitempty on time.Time
 - Use both `json` and `yaml` tags for consistency
+
+### Validation
+- Use `github.com/invopop/validation` for struct validation
+- Implement `Validate() error` method on request/response DTOs
+- Use `validation.ValidateStruct()` with field-level rules
+
+### Context
+- Pass `context.Context` as first parameter to store/manager methods
+- Use `context.Background()` for tests when no context is needed
+- Store and retrieve domain objects from context using `FromContext()`
+
+### Logging
+- Use `log/slog` for structured logging
+- Create loggers with `logger.WithGroup("component_name")` for context
+- Use slog.DiscardHandler for nil logger defaults
+- Log errors with context: `logger.Error("message", "key", value)`
 
 ### Visibility
 - Export symbols only when needed by external packages

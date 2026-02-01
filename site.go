@@ -31,9 +31,9 @@ type Site struct {
 	RelativePath string `json:"relativePath,omitempty" yaml:"relativePath,omitempty"`
 	IsDefault    bool   `json:"isDefault,omitempty" yaml:"isDefault,omitempty"`
 
+	IsRoot   bool `json:"-" yaml:"-"`
 	location *time.Location
 	tag      *language.Tag
-	isRoot   bool
 }
 
 func NewSite() *Site {
@@ -66,7 +66,7 @@ func (s *Site) IsLocalhost() bool {
 }
 
 func (s *Site) Home() string {
-	if s.isRoot {
+	if s.IsRoot {
 		return s.Origin()
 	}
 	return s.URL()

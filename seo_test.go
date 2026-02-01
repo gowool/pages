@@ -21,9 +21,6 @@ func TestNewSEO(t *testing.T) {
 	// Check default meta tags
 	assert.NotNil(t, seo.metaTags, "MetaTags should be initialized")
 
-	// Check that the default meta tags have expected og:type
-	assert.Equal(t, []string{"website"}, seo.metaTags.Property["og:type"], "og:type should be website")
-
 	// Check other initializations
 	assert.Nil(t, seo.titles, "titles should be nil initially")
 	assert.Empty(t, seo.siteURL, "siteURL should be empty initially")
@@ -371,10 +368,12 @@ func TestSEO_MergeMetaTags_OriginalNotModified(t *testing.T) {
 func TestSEO_ResetDefaults(t *testing.T) {
 	// Test Reset restores defaults
 	seo := NewSEO()
-	seo.Reset()
-	assert.Empty(t, seo.metaTags.Name, "Reset() should restore default meta tags names")
+	seo.SetOGType("website")
 	assert.Len(t, seo.metaTags.Property, 1, "Reset() should restore default meta tags properties")
 	assert.Equal(t, []string{"website"}, seo.metaTags.Property["og:type"], "Reset() should restore default og:type")
+	seo.Reset()
+	assert.Empty(t, seo.metaTags.Name, "Reset() should restore default meta tags names")
+	assert.Len(t, seo.metaTags.Property, 0, "Reset() should restore default meta tags properties")
 }
 
 func TestSEO_IntegrationExample(t *testing.T) {

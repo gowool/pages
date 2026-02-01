@@ -186,7 +186,7 @@ func TestSite_Home(t *testing.T) {
 			site: &Site{
 				Scheme: "https",
 				Host:   "example.com",
-				isRoot: true,
+				IsRoot: true,
 			},
 			isRoot: true,
 			want:   "https://example.com",
@@ -197,7 +197,7 @@ func TestSite_Home(t *testing.T) {
 				Scheme:       "https",
 				Host:         "example.com",
 				RelativePath: "",
-				isRoot:       false,
+				IsRoot:       false,
 			},
 			isRoot: false,
 			want:   "https://example.com",
@@ -208,7 +208,7 @@ func TestSite_Home(t *testing.T) {
 				Scheme:       "https",
 				Host:         "example.com",
 				RelativePath: "/blog",
-				isRoot:       false,
+				IsRoot:       false,
 			},
 			isRoot: false,
 			want:   "https://example.com/blog",
@@ -217,7 +217,7 @@ func TestSite_Home(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			tt.site.isRoot = tt.isRoot
+			tt.site.IsRoot = tt.isRoot
 			got := tt.site.Home()
 			assert.Equal(t, tt.want, got, "Site.Home() should return the expected value")
 		})
@@ -454,7 +454,7 @@ func TestSite_Copy(t *testing.T) {
 			Status:       Published,
 			Metadata:     NewMetadata(map[string]any{"theme": "dark", "version": 1}),
 			MetaTags:     NewMetaTags("UTF-8"),
-			isRoot:       false,
+			IsRoot:       false,
 		}
 
 		// Add some meta tags
@@ -504,7 +504,7 @@ func TestSite_Copy(t *testing.T) {
 		// Verify cached fields are reset
 		assert.Nil(t, copy.location, "Location cache should be reset")
 		assert.Nil(t, copy.tag, "Tag cache should be reset")
-		assert.False(t, copy.isRoot, "isRoot should be reset to false")
+		assert.False(t, copy.IsRoot, "IsRoot should be reset to false")
 	})
 
 	t.Run("Copy site with nil MetaTags", func(t *testing.T) {
@@ -702,7 +702,7 @@ func BenchmarkSite_Home(b *testing.B) {
 		Scheme:       "https",
 		Host:         "example.com",
 		RelativePath: "/blog",
-		isRoot:       false,
+		IsRoot:       false,
 	}
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {

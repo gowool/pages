@@ -1,6 +1,10 @@
 package pages
 
-import "github.com/stretchr/testify/mock"
+import (
+	"context"
+
+	"github.com/stretchr/testify/mock"
+)
 
 // MockPageAuthorizer implements the PageAuthorizer interface
 type MockPageAuthorizer struct {
@@ -13,8 +17,8 @@ func NewMockPageAuthorizer(decision Decision, err error) *MockPageAuthorizer {
 	return authorizer
 }
 
-func (m *MockPageAuthorizer) Authorize(resolver Resolver, action PageAction) (Decision, error) {
-	args := m.Called(resolver, action)
+func (m *MockPageAuthorizer) Authorize(ctx context.Context, action PageAction) (Decision, error) {
+	args := m.Called(ctx, action)
 	decision, ok := args.Get(0).(Decision)
 	if !ok {
 		return Deny, args.Error(1)
