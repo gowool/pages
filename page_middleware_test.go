@@ -204,8 +204,8 @@ func TestPageMiddleware_Middleware(t *testing.T) {
 
 		next := func(w http.ResponseWriter, r *http.Request) error {
 			w.WriteHeader(http.StatusOK)
-			w.Write([]byte("content"))
-			return nil
+			_, err := w.Write([]byte("content"))
+			return err
 		}
 
 		parentCtx := context.Background()
@@ -240,8 +240,8 @@ func TestPageMiddleware_Middleware(t *testing.T) {
 
 		next := func(w http.ResponseWriter, r *http.Request) error {
 			w.WriteHeader(http.StatusOK)
-			w.Write([]byte("content"))
-			return nil
+			_, err := w.Write([]byte("content"))
+			return err
 		}
 
 		parentCtx := context.Background()
@@ -277,11 +277,9 @@ func TestPageMiddleware_Middleware(t *testing.T) {
 		middleware := NewPageMiddleware(pageHandler, authorizer, strategy, slog.New(slog.DiscardHandler))
 
 		next := func(w http.ResponseWriter, r *http.Request) error {
-			if rw, ok := w.(http.ResponseWriter); ok {
-				rw.WriteHeader(http.StatusOK)
-				rw.Write([]byte("content"))
-			}
-			return nil
+			w.WriteHeader(http.StatusOK)
+			_, err := w.Write([]byte("content"))
+			return err
 		}
 
 		parentCtx := context.Background()
@@ -318,11 +316,9 @@ func TestPageMiddleware_Middleware(t *testing.T) {
 		middleware := NewPageMiddleware(pageHandler, authorizer, strategy, slog.New(slog.DiscardHandler))
 
 		next := func(w http.ResponseWriter, r *http.Request) error {
-			if rw, ok := w.(http.ResponseWriter); ok {
-				rw.WriteHeader(http.StatusOK)
-				rw.Write([]byte("content"))
-			}
-			return nil
+			w.WriteHeader(http.StatusOK)
+			_, err := w.Write([]byte("content"))
+			return err
 		}
 
 		parentCtx := context.Background()
@@ -360,8 +356,8 @@ func TestPageMiddleware_Middleware(t *testing.T) {
 		next := func(w http.ResponseWriter, r *http.Request) error {
 			nextCalled = true
 			w.WriteHeader(http.StatusOK)
-			w.Write([]byte("content"))
-			return nil
+			_, err := w.Write([]byte("content"))
+			return err
 		}
 
 		parentCtx := context.Background()
@@ -397,11 +393,9 @@ func TestPageMiddleware_Middleware(t *testing.T) {
 		middleware := NewPageMiddleware(pageHandler, authorizer, strategy, slog.New(slog.DiscardHandler))
 
 		next := func(w http.ResponseWriter, r *http.Request) error {
-			if rw, ok := w.(http.ResponseWriter); ok {
-				rw.WriteHeader(http.StatusOK)
-				rw.Write([]byte("content"))
-			}
-			return nil
+			w.WriteHeader(http.StatusOK)
+			_, err := w.Write([]byte("content"))
+			return err
 		}
 
 		parentCtx := context.Background()
@@ -439,11 +433,9 @@ func TestPageMiddleware_Middleware(t *testing.T) {
 		middleware := NewPageMiddleware(pageHandler, authorizer, strategy, slog.New(slog.DiscardHandler))
 
 		next := func(w http.ResponseWriter, r *http.Request) error {
-			if rw, ok := w.(http.ResponseWriter); ok {
-				rw.WriteHeader(http.StatusOK)
-				rw.Write([]byte("content"))
-			}
-			return nil
+			w.WriteHeader(http.StatusOK)
+			_, err := w.Write([]byte("content"))
+			return err
 		}
 
 		parentCtx := context.Background()
@@ -477,8 +469,6 @@ func TestPageMiddleware_Middleware(t *testing.T) {
 		middleware := NewPageMiddleware(pageHandler, authorizer, strategy, slog.New(slog.DiscardHandler))
 
 		next := func(w http.ResponseWriter, r *http.Request) error {
-			w.WriteHeader(http.StatusOK)
-			w.Write([]byte("content"))
 			return assert.AnError
 		}
 
@@ -551,11 +541,9 @@ func TestPageMiddleware_Middleware(t *testing.T) {
 		middleware := NewPageMiddleware(pageHandler, authorizer, strategy, slog.New(slog.DiscardHandler))
 
 		next := func(w http.ResponseWriter, r *http.Request) error {
-			if rw, ok := w.(http.ResponseWriter); ok {
-				rw.WriteHeader(http.StatusOK)
-				rw.Write([]byte("content"))
-			}
-			return nil
+			w.WriteHeader(http.StatusOK)
+			_, err := w.Write([]byte("content"))
+			return err
 		}
 
 		parentCtx := context.Background()
@@ -594,11 +582,9 @@ func TestPageMiddleware_Middleware(t *testing.T) {
 		middleware := NewPageMiddleware(pageHandler, authorizer, strategy, slog.New(slog.DiscardHandler))
 
 		next := func(w http.ResponseWriter, r *http.Request) error {
-			if rw, ok := w.(http.ResponseWriter); ok {
-				rw.WriteHeader(http.StatusOK)
-				rw.Write([]byte("decorated content"))
-			}
-			return nil
+			w.WriteHeader(http.StatusOK)
+			_, err := w.Write([]byte("decorated content"))
+			return err
 		}
 
 		parentCtx := context.Background()
@@ -705,11 +691,9 @@ func TestPageMiddleware_Middleware(t *testing.T) {
 		middleware := NewPageMiddleware(pageHandler, authorizer, strategy, slog.New(slog.DiscardHandler))
 
 		next := func(w http.ResponseWriter, r *http.Request) error {
-			if rw, ok := w.(http.ResponseWriter); ok {
-				rw.WriteHeader(http.StatusNotFound)
-				rw.Write([]byte("not found"))
-			}
-			return nil
+			w.WriteHeader(http.StatusNotFound)
+			_, err := w.Write([]byte("not found"))
+			return err
 		}
 
 		parentCtx := context.Background()
@@ -748,11 +732,9 @@ func TestPageMiddleware_Middleware(t *testing.T) {
 		middleware := NewPageMiddleware(pageHandler, authorizer, strategy, slog.New(slog.DiscardHandler))
 
 		next := func(w http.ResponseWriter, r *http.Request) error {
-			if rw, ok := w.(http.ResponseWriter); ok {
-				rw.WriteHeader(http.StatusOK)
-				rw.Write([]byte("content"))
-			}
-			return nil
+			w.WriteHeader(http.StatusOK)
+			_, err := w.Write([]byte("content"))
+			return err
 		}
 
 		parentCtx := context.Background()
@@ -904,7 +886,7 @@ func TestDelayedWriter(t *testing.T) {
 		rw := httptest.NewRecorder()
 
 		w.WriteHeader(http.StatusNotFound)
-		w.Write([]byte("test"))
+		_, _ = w.Write([]byte("test"))
 
 		w.reset(rw)
 

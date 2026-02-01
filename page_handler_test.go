@@ -31,14 +31,14 @@ func TestViewCtx(t *testing.T) {
 	})
 
 	t.Run("PageContext Value returns context value", func(t *testing.T) {
-		key := "testKey"
+		type testKey struct{}
 		value := "testValue"
-		parentCtx := context.WithValue(context.Background(), key, value)
+		parentCtx := context.WithValue(context.Background(), testKey{}, value)
 
 		req := httptest.NewRequest("GET", "/", nil).WithContext(parentCtx)
 		pc := PageContext{Request: req}
 
-		result := pc.Value(key)
+		result := pc.Value(testKey{})
 
 		assert.Equal(t, value, result)
 	})
@@ -433,14 +433,14 @@ type mockTheme struct {
 	data     any
 }
 
-func (m *mockTheme) Write(ctx context.Context, w io.Writer, template string, data any) error {
+func (m *mockTheme) Write(_ context.Context, w io.Writer, template string, data any) error {
 	m.template = template
 	m.data = data
 	if m.err != nil {
 		return m.err
 	}
-	w.Write([]byte(m.content))
-	return nil
+	_, err := w.Write([]byte(m.content))
+	return err
 }
 
 type errorResponseWriter struct {
