@@ -148,33 +148,42 @@ func (s *DefaultSiteRetriever) Retrieve(r *http.Request) (*Site, string, error) 
 }
 
 func (s *DefaultSiteRetriever) candidate(r *http.Request, candidates []candidate, country string) (*Site, string) {
-	var defaultCandidate candidate
-	candidateTags := make(map[language.Tag]candidate)
+	var defaultCountry, defaultNoCountry candidate
+	countryTags, noCountryTags := make(map[language.Tag]candidate), make(map[language.Tag]candidate)
+
 	for _, c := range candidates {
 		if country != "" && len(c.site.Countries) > 0 && !slices.Contains(c.site.Countries, country) {
 			continue
 		}
-		if country != "" {
-			if cTag, ok := candidateTags[c.site.Tag()]; ok && len(cTag.site.Countries) > 0 {
-				continue
-			}
+		if len(c.site.Countries) == 0 {
+			noCountryTags[c.site.Tag()] = c
+			defaultNoCountry = c
+		} else if country != "" {
+			countryTags[c.site.Tag()] = c
+			defaultCountry = c
 		}
-		defaultCandidate = c
-		candidateTags[c.site.Tag()] = c
 	}
 
-	switch len(candidateTags) {
+	switch len(countryTags) {
 	case 1:
-		return defaultCandidate.site, defaultCandidate.path
+		return defaultCountry.site, defaultCountry.path
 	case 0:
-		return nil, ""
+		switch len(noCountryTags) {
+		case 1:
+			return defaultNoCountry.site, defaultNoCountry.path
+		case 0:
+			return nil, ""
+		}
+		return s.language(r, noCountryTags, defaultNoCountry)
 	}
 
+	return s.language(r, countryTags, defaultCountry)
+}
+
+func (s *DefaultSiteRetriever) language(r *http.Request, candidateTags map[language.Tag]candidate, defaultCandidate candidate) (*Site, string) {
 	t, _, err := language.ParseAcceptLanguage(r.Header.Get(headerAcceptLanguage))
 	if err != nil || len(t) == 0 {
-		for _, c := range candidateTags {
-			return c.site, c.path
-		}
+		return defaultCandidate.site, defaultCandidate.path
 	}
 
 	matcher := language.NewMatcher(slices.Collect(maps.Keys(candidateTags)))
