@@ -595,7 +595,7 @@ func TestDefaultSiteRetriever_CountryBasedSelection(t *testing.T) {
 	})
 
 	t.Run("Country restriction with no match", func(t *testing.T) {
-		euOnlySite := CreateTestSite("EU Only", "example.com", "en", false, "FR", "DE")
+		euOnlySite := CreateTestSite("EU Only", "eu-example.com", "en", false, "FR", "DE")
 		defaultSite := CreateTestSite("Default", "other.com", "en", true) // Different host
 
 		sites := []*Site{euOnlySite, defaultSite}

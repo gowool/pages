@@ -2,9 +2,11 @@ package pages
 
 import (
 	"fmt"
+	"maps"
 	"net"
 	"net/http"
 	"slices"
+	"strings"
 	"sync"
 
 	"github.com/dlclark/regexp2"
@@ -39,7 +41,7 @@ func NewDefaultSiteRetriever(
 
 	if countryFunc == nil {
 		countryFunc = func(r *http.Request) (string, error) {
-			return r.Header.Get(headerCFIPCountry), nil
+			return strings.ToUpper(r.Header.Get(headerCFIPCountry)), nil
 		}
 	}
 
@@ -54,6 +56,11 @@ func NewDefaultSiteRetriever(
 		countryFunc: countryFunc,
 		errorFunc:   errorFunc,
 	}
+}
+
+type candidate struct {
+	site *Site
+	path string
 }
 
 func (s *DefaultSiteRetriever) Retrieve(r *http.Request) (*Site, string, error) {
@@ -74,15 +81,12 @@ func (s *DefaultSiteRetriever) Retrieve(r *http.Request) (*Site, string, error) 
 
 	r.URL.RawPath = r.URL.Path
 
-	var (
-		defaultSite *Site
-		countrySite *Site
-		matcherTags []language.Tag
-	)
-
 	host := getHost(r)
-	sites := make(map[language.Tag]*Site)
-	paths := make(map[language.Tag]string)
+
+	localhosts := make([]candidate, 0, 1)
+	defaults := make([]candidate, 0, 1)
+	candidates := make([]candidate, 0, 5)
+	sites := make([]candidate, 0, 10)
 
 	for site, err := range s.store.FindPublished(r.Context()) {
 		if err != nil {
@@ -92,59 +96,98 @@ func (s *DefaultSiteRetriever) Retrieve(r *http.Request) (*Site, string, error) 
 			continue
 		}
 
-		if site.Host != host && !site.IsLocalhost() {
+		if site.IsLocalhost() {
+			localhosts = append(localhosts, candidate{site: site})
+		}
+
+		if site.Host != host {
 			continue
 		}
 
-		if site.IsDefault && (defaultSite == nil || defaultSite.IsLocalhost()) {
-			defaultSite = site
+		sites = append(sites, candidate{site: site})
+
+		if site.IsDefault {
+			defaults = append(defaults, candidate{site: site})
 		}
 
-		var pi string
+		pathInfo, err := matchRequest(r, site.RelativePath)
+		if err != nil {
+			continue
+		}
 
-		if r.URL.RawPath == "/" {
-			if country != "" && len(site.Countries) > 0 && !slices.Contains(site.Countries, country) {
+		candidates = append(candidates, candidate{site: site, path: pathInfo})
+	}
+
+	switch len(candidates) {
+	case 0:
+		if site, pathInfo := s.candidate(r, sites, country); site != nil {
+			return site, pathInfo, nil
+		}
+	case 1:
+		return candidates[0].site, candidates[0].path, nil
+	}
+
+	if site, pathInfo := s.candidate(r, candidates, country); site != nil {
+		return site, pathInfo, nil
+	}
+
+	switch len(defaults) {
+	case 0:
+		if len(localhosts) > 0 {
+			return localhosts[0].site, "", nil
+		}
+		return nil, "", ErrSiteNotFound
+	case 1:
+		return defaults[0].site, "", nil
+	}
+
+	if site, pathInfo := s.candidate(r, defaults, country); site != nil {
+		return site, pathInfo, nil
+	}
+	return defaults[0].site, "", nil
+}
+
+func (s *DefaultSiteRetriever) candidate(r *http.Request, candidates []candidate, country string) (*Site, string) {
+	var defaultCandidate candidate
+	candidateTags := make(map[language.Tag]candidate)
+	for _, c := range candidates {
+		if country != "" && len(c.site.Countries) > 0 && !slices.Contains(c.site.Countries, country) {
+			continue
+		}
+		if country != "" {
+			if cTag, ok := candidateTags[c.site.Tag()]; ok && len(cTag.site.Countries) > 0 {
 				continue
 			}
-		} else {
-			if (countrySite == nil || countrySite.IsLocalhost()) && country != "" && slices.Contains(site.Countries, country) {
-				countrySite = site
-			}
-
-			var err1 error
-			if pi, err1 = matchRequest(r, site.RelativePath); err1 != nil {
-				continue
-			}
 		}
-
-		tag := site.Tag()
-		matcherTags = append(matcherTags, tag)
-
-		if currentSite, ok := sites[tag]; !ok || (country != "" && !slices.Contains(currentSite.Countries, country)) {
-			sites[tag] = site
-			paths[tag] = pi
-		}
+		defaultCandidate = c
+		candidateTags[c.site.Tag()] = c
 	}
 
-	selectedSite, pathInfo := s.selectedSite(r, sites, paths, matcherTags)
+	switch len(candidateTags) {
+	case 1:
+		return defaultCandidate.site, defaultCandidate.path
+	case 0:
+		return nil, ""
+	}
 
-	if selectedSite == nil || selectedSite.IsLocalhost() {
-		if countrySite == nil || countrySite.IsLocalhost() {
-			selectedSite = defaultSite
-		} else {
-			selectedSite = countrySite
+	t, _, err := language.ParseAcceptLanguage(r.Header.Get(headerAcceptLanguage))
+	if err != nil || len(t) == 0 {
+		for _, c := range candidateTags {
+			return c.site, c.path
 		}
 	}
 
-	if selectedSite != nil {
-		return selectedSite, pathInfo, nil
+	matcher := language.NewMatcher(slices.Collect(maps.Keys(candidateTags)))
+	tag, _, _ := matcher.Match(t...)
+
+	for !tag.IsRoot() {
+		if c, ok := candidateTags[tag]; ok {
+			return c.site, c.path
+		}
+		tag = tag.Parent()
 	}
 
-	if site, pathInfo, err := s.resolveError(r, ErrSiteNotFound); site != nil || err != nil {
-		return site, pathInfo, err
-	}
-
-	return nil, "", ErrSiteNotFound
+	return defaultCandidate.site, defaultCandidate.path
 }
 
 func (s *DefaultSiteRetriever) resolveError(r *http.Request, err error) (*Site, string, error) {
@@ -160,33 +203,6 @@ func (s *DefaultSiteRetriever) resolveError(r *http.Request, err error) (*Site, 
 	pathInfo, _ := matchRequest(r, site.RelativePath)
 
 	return site, pathInfo, nil
-}
-
-func (s *DefaultSiteRetriever) selectedSite(
-	r *http.Request,
-	sites map[language.Tag]*Site,
-	paths map[language.Tag]string,
-	matcherTags []language.Tag,
-) (*Site, string) {
-	if len(matcherTags) == 0 {
-		return nil, ""
-	}
-
-	t, _, err := language.ParseAcceptLanguage(r.Header.Get(headerAcceptLanguage))
-	if err != nil || len(t) == 0 {
-		t = []language.Tag{matcherTags[0]}
-	}
-
-	matcher := language.NewMatcher(matcherTags)
-	tag, _, _ := matcher.Match(t...)
-	for !tag.IsRoot() {
-		if site, ok := sites[tag]; ok {
-			return site, paths[tag]
-		}
-		tag = tag.Parent()
-	}
-
-	return nil, ""
 }
 
 const (
