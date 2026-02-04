@@ -116,6 +116,10 @@ type MockPageManager struct {
 	mock.Mock
 }
 
+func NewMockPageManager() *MockPageManager {
+	return &MockPageManager{}
+}
+
 func (m *MockPageManager) GetByID(ctx context.Context, id ID) (*Page, error) {
 	args := m.Called(ctx, id)
 	if page := args.Get(0); page != nil {
@@ -222,6 +226,10 @@ var _ PageAuthorizer = (*MockPageAuthorizer)(nil)
 
 type MockPageAuthorizer struct {
 	mock.Mock
+}
+
+func NewMockPageAuthorizer() *MockPageAuthorizer {
+	return &MockPageAuthorizer{}
 }
 
 func (m *MockPageAuthorizer) Authorize(ctx context.Context, action PageAction) Decision {
