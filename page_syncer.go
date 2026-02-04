@@ -6,15 +6,14 @@ import (
 	"iter"
 	"maps"
 	"net/http"
-	"regexp"
 	"slices"
 	"strings"
 	"time"
+
+	"github.com/gowool/pages/internal"
 )
 
 var _ PageSyncer = (*DefaultPageSyncer)(nil)
-
-var methodRe = regexp.MustCompile(`^(\S*)\s+(.*)$`)
 
 const (
 	homeTemplate       = "page/home.gohtml"
@@ -61,23 +60,23 @@ func (c *PageSyncerConfig) SetDefaults() {
 	}
 
 	if c.DefaultPage.Template == nil {
-		c.DefaultPage.Template = ref(hybridTemplate)
+		c.DefaultPage.Template = internal.Ref(hybridTemplate)
 	}
 
 	if c.DefaultPage.Position == nil {
-		c.DefaultPage.Position = ref(1)
+		c.DefaultPage.Position = internal.Ref(1)
 	}
 
 	if c.DefaultPage.Decorate == nil {
-		c.DefaultPage.Decorate = ref(true)
+		c.DefaultPage.Decorate = internal.Ref(true)
 	}
 
 	if c.DefaultPage.Status == nil {
-		c.DefaultPage.Status = ref(Draft)
+		c.DefaultPage.Status = internal.Ref(Draft)
 	}
 
 	if c.DefaultPage.Visibility == nil {
-		c.DefaultPage.Visibility = ref(Public)
+		c.DefaultPage.Visibility = internal.Ref(Public)
 	}
 
 	if c.DefaultPage.MetaTags == nil {
@@ -100,52 +99,52 @@ func (c *PageSyncerConfig) SetDefaults() {
 		c.DefaultPatterns[HomeHybridPattern] = new(PageConfig)
 	}
 	if c.DefaultPatterns[HomeHybridPattern].Template == nil {
-		c.DefaultPatterns[HomeHybridPattern].Template = ref(homeHybridTemplate)
+		c.DefaultPatterns[HomeHybridPattern].Template = internal.Ref(homeHybridTemplate)
 	}
 	if c.DefaultPatterns[HomeHybridPattern].Position == nil {
-		c.DefaultPatterns[HomeHybridPattern].Position = ref(0)
+		c.DefaultPatterns[HomeHybridPattern].Position = internal.Ref(0)
 	}
 
 	if p, ok := c.DefaultPatterns[PageInternalCreate]; !ok || p == nil {
 		c.DefaultPatterns[PageInternalCreate] = new(PageConfig)
 	}
 	if c.DefaultPatterns[PageInternalCreate].Template == nil {
-		c.DefaultPatterns[PageInternalCreate].Template = ref(createTemplate)
+		c.DefaultPatterns[PageInternalCreate].Template = internal.Ref(createTemplate)
 	}
 
 	if p, ok := c.DefaultPatterns[PageErrorUnauthorized]; !ok || p == nil {
 		c.DefaultPatterns[PageErrorUnauthorized] = new(PageConfig)
 	}
 	if c.DefaultPatterns[PageErrorUnauthorized].Template == nil {
-		c.DefaultPatterns[PageErrorUnauthorized].Template = ref(error401Template)
+		c.DefaultPatterns[PageErrorUnauthorized].Template = internal.Ref(error401Template)
 	}
 
 	if p, ok := c.DefaultPatterns[PageErrorForbidden]; !ok || p == nil {
 		c.DefaultPatterns[PageErrorForbidden] = new(PageConfig)
 	}
 	if c.DefaultPatterns[PageErrorForbidden].Template == nil {
-		c.DefaultPatterns[PageErrorForbidden].Template = ref(error403Template)
+		c.DefaultPatterns[PageErrorForbidden].Template = internal.Ref(error403Template)
 	}
 
 	if p, ok := c.DefaultPatterns[PageErrorNotFound]; !ok || p == nil {
 		c.DefaultPatterns[PageErrorNotFound] = new(PageConfig)
 	}
 	if c.DefaultPatterns[PageErrorNotFound].Template == nil {
-		c.DefaultPatterns[PageErrorNotFound].Template = ref(error404Template)
+		c.DefaultPatterns[PageErrorNotFound].Template = internal.Ref(error404Template)
 	}
 
 	if p, ok := c.DefaultPatterns[PageError4xx]; !ok || p == nil {
 		c.DefaultPatterns[PageError4xx] = new(PageConfig)
 	}
 	if c.DefaultPatterns[PageError4xx].Template == nil {
-		c.DefaultPatterns[PageError4xx].Template = ref(error4xxTemplate)
+		c.DefaultPatterns[PageError4xx].Template = internal.Ref(error4xxTemplate)
 	}
 
 	if p, ok := c.DefaultPatterns[PageError5xx]; !ok || p == nil {
 		c.DefaultPatterns[PageError5xx] = new(PageConfig)
 	}
 	if c.DefaultPatterns[PageError5xx].Template == nil {
-		c.DefaultPatterns[PageError5xx].Template = ref(error5xxTemplate)
+		c.DefaultPatterns[PageError5xx].Template = internal.Ref(error5xxTemplate)
 	}
 }
 
@@ -177,7 +176,7 @@ func NewDefaultPageSyncer(
 	}
 
 	if strategy == nil {
-		strategy = DefaultPageDecoratorStrategy
+		panic("page syncer: decorator strategy is required")
 	}
 
 	cfg.SetDefaults()
@@ -278,7 +277,7 @@ func (s *DefaultPageSyncer) getPatterns(ctx context.Context) ([]string, bool) {
 
 	for pattern := range s.patterns.Patterns() {
 		var ok bool
-		if pattern, ok = checkMethod(http.MethodGet, pattern); !ok {
+		if pattern, ok = internal.CheckMethod(http.MethodGet, pattern); !ok {
 			continue
 		}
 
@@ -286,7 +285,7 @@ func (s *DefaultPageSyncer) getPatterns(ctx context.Context) ([]string, bool) {
 			continue
 		}
 
-		if ok, _ = s.strategy.IsPatternDecorable(ctx, pattern); !ok {
+		if !s.strategy.IsPatternDecorable(ctx, pattern) {
 			continue
 		}
 
@@ -364,18 +363,4 @@ func (s *DefaultPageSyncer) setPageConfig(page *Page, config *PageConfig) {
 	if config.Header != nil {
 		page.Header = config.Header
 	}
-}
-
-func ref[T any](v T) *T {
-	return &v
-}
-
-func checkMethod(method, skip string) (string, bool) {
-	if matches := methodRe.FindStringSubmatch(skip); len(matches) > 2 {
-		if matches[1] == method {
-			return matches[2], true
-		}
-		return "", false
-	}
-	return skip, true
 }

@@ -1,15 +1,12 @@
 package pages
 
 import (
-	"fmt"
 	"maps"
-	"net"
 	"net/http"
 	"slices"
 	"strings"
-	"sync"
 
-	"github.com/dlclark/regexp2"
+	"github.com/gowool/pages/internal"
 	"golang.org/x/text/language"
 )
 
@@ -75,13 +72,7 @@ func (s *DefaultSiteRetriever) Retrieve(r *http.Request) (*Site, string, error) 
 		}
 	}
 
-	if r.URL.Path == "" {
-		r.URL.Path = "/"
-	}
-
-	r.URL.RawPath = r.URL.Path
-
-	host := getHost(r)
+	host := internal.Host(r)
 
 	localhosts := make([]candidate, 0, 1)
 	defaults := make([]candidate, 0, 1)
@@ -110,7 +101,7 @@ func (s *DefaultSiteRetriever) Retrieve(r *http.Request) (*Site, string, error) 
 			defaults = append(defaults, candidate{site: site})
 		}
 
-		pathInfo, err := matchRequest(r, site.RelativePath)
+		pathInfo, err := internal.MatchRequest(r, site.RelativePath)
 		if err != nil {
 			continue
 		}
@@ -209,79 +200,7 @@ func (s *DefaultSiteRetriever) resolveError(r *http.Request, err error) (*Site, 
 		return nil, "", nil
 	}
 
-	pathInfo, _ := matchRequest(r, site.RelativePath)
+	pathInfo, _ := internal.MatchRequest(r, site.RelativePath)
 
 	return site, pathInfo, nil
-}
-
-const (
-	reOptions    = regexp2.IgnoreCase & regexp2.RE2
-	rePathExpr   = "^(%s)(/.*|$)"
-	reNoPathExpr = "^()(/.*|$)"
-)
-
-var (
-	reNoPath = regexp2.MustCompile(reNoPathExpr, reOptions)
-	rePaths  = new(sync.Map)
-)
-
-func regexpPath(path string) (*regexp2.Regexp, error) {
-	if v, ok := rePaths.Load(path); ok {
-		switch v := v.(type) {
-		case *regexp2.Regexp:
-			return v, nil
-		case error:
-			return nil, v
-		}
-	}
-
-	re, err := regexp2.Compile(fmt.Sprintf(rePathExpr, path), reOptions)
-	if err != nil {
-		rePaths.Store(path, err)
-		return nil, err
-	}
-
-	rePaths.Store(path, re)
-	return re, nil
-}
-
-func matchRequest(r *http.Request, relativePath string) (string, error) {
-	var (
-		re    *regexp2.Regexp
-		match *regexp2.Match
-		err   error
-	)
-
-	if relativePath == "" || relativePath == "/" {
-		re = reNoPath
-	} else if re, err = regexpPath(relativePath); err != nil {
-		return "", err
-	}
-
-	if match, err = re.FindStringMatch(r.URL.Path); err != nil {
-		return "", err
-	}
-
-	if match == nil {
-		return "", fmt.Errorf("invalid path %s", r.URL.Path)
-	}
-
-	groups := match.Groups()
-
-	if len(groups) < 3 {
-		return "", fmt.Errorf("invalid match path %s", r.URL.Path)
-	}
-
-	matched := groups[2].String()
-	if matched == "" {
-		return "/", nil
-	}
-	return matched, nil
-}
-
-func getHost(r *http.Request) string {
-	if host, _, err := net.SplitHostPort(r.Host); err == nil {
-		return host
-	}
-	return r.Host
 }

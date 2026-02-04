@@ -47,6 +47,7 @@ func TestNewContext(t *testing.T) {
 		assert.False(t, c.HasSite(), "HasSite should return false")
 		assert.False(t, c.HasPage(), "HasPage should return false")
 		assert.False(t, c.HasError(), "HasError should return false")
+		assert.False(t, c.HasContent(), "HasContent should return false")
 
 		cancel()
 
@@ -105,10 +106,10 @@ func TestContext_Reset(t *testing.T) {
 		assert.False(t, c.Debug(), "Debug should be false after reset")
 		assert.True(t, c.Guest(), "Guest should be true after reset")
 		assert.Equal(t, http.StatusOK, c.Status(), "Status should be OK after reset")
-		assert.Equal(t, template.HTML(""), c.Content(), "Content should be empty after reset")
 		assert.False(t, c.HasSite(), "Site should be nil after reset")
 		assert.False(t, c.HasPage(), "Page should be nil after reset")
 		assert.False(t, c.HasError(), "Error should be nil after reset")
+		assert.False(t, c.HasContent(), "Content should be empty after reset")
 		assert.Equal(t, "", c.SEO().Title(), "SEO should be reset")
 	})
 
@@ -597,6 +598,34 @@ func TestContext_SetContent(t *testing.T) {
 		c.SetContent("")
 
 		assert.Equal(t, template.HTML(""), c.Content())
+	})
+}
+
+func TestContext_HasContent(t *testing.T) {
+	t.Run("Has content when set", func(t *testing.T) {
+		ctx, _ := NewContext(context.Background())
+		c := FromContext(ctx)
+
+		c.SetContent("content")
+
+		assert.True(t, c.HasContent())
+	})
+
+	t.Run("No content when not set", func(t *testing.T) {
+		ctx, _ := NewContext(context.Background())
+		c := FromContext(ctx)
+
+		assert.False(t, c.HasContent())
+	})
+
+	t.Run("No content after empty set", func(t *testing.T) {
+		ctx, _ := NewContext(context.Background())
+		c := FromContext(ctx)
+
+		c.SetContent("content")
+		c.SetContent("")
+
+		assert.False(t, c.HasContent())
 	})
 }
 

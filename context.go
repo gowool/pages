@@ -14,7 +14,7 @@ func FromContext(ctx context.Context) *Context {
 	return c
 }
 
-var pool = &sync.Pool{
+var ctxPool = &sync.Pool{
 	New: func() any {
 		c := new(Context)
 		c.Reset()
@@ -23,11 +23,11 @@ var pool = &sync.Pool{
 }
 
 func NewContext(parent context.Context) (context.Context, context.CancelFunc) {
-	c := pool.Get().(*Context)
+	c := ctxPool.Get().(*Context)
 
 	cancel := func() {
 		c.Reset()
-		pool.Put(c)
+		ctxPool.Put(c)
 	}
 
 	return context.WithValue(parent, contextKey{}, c), cancel
@@ -141,4 +141,8 @@ func (c *Context) Content() template.HTML {
 
 func (c *Context) SetContent(content template.HTML) {
 	c.content = content
+}
+
+func (c *Context) HasContent() bool {
+	return c.content != ""
 }

@@ -42,11 +42,5 @@ func (d Decision) String() string {
 }
 
 type PageAuthorizer interface {
-	Authorize(ctx context.Context, action PageAction) (Decision, error)
-}
-
-type DenyPageAuthorizer struct{}
-
-func (DenyPageAuthorizer) Authorize(context.Context, PageAction) (Decision, error) {
-	return Deny, nil
+	Authorize(ctx context.Context, action PageAction) Decision
 }

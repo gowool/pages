@@ -98,7 +98,7 @@ golangci-lint run -v --timeout=5m --build-tags=race --output.code-climate.path g
 - Name test functions as `TestTypeName_MethodName`
 - Use `github.com/stretchr/testify/assert` for assertions
 - Create mock implementations using `github.com/stretchr/testify/mock`
-- Mock files should be named `*_mock_test.go`
+- Mock files should be in `mock_test.go` file
 - Use `go test -race` to catch data races
 - Test both success and error paths
 
