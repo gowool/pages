@@ -427,3 +427,120 @@ func TestScheme(t *testing.T) {
 		})
 	}
 }
+
+func TestPattern(t *testing.T) {
+	tests := []struct {
+		name    string
+		pattern string
+		want    string
+	}{
+		{
+			name:    "pattern without method",
+			pattern: "/",
+			want:    "/",
+		},
+		{
+			name:    "pattern with GET method",
+			pattern: "GET /",
+			want:    "/",
+		},
+		{
+			name:    "pattern with POST method",
+			pattern: "POST /blog/posts",
+			want:    "/blog/posts",
+		},
+		{
+			name:    "pattern with PUT method",
+			pattern: "PUT /api/users/123",
+			want:    "/api/users/123",
+		},
+		{
+			name:    "pattern with DELETE method",
+			pattern: "DELETE /api/users/123",
+			want:    "/api/users/123",
+		},
+		{
+			name:    "pattern with PATCH method",
+			pattern: "PATCH /api/users/123",
+			want:    "/api/users/123",
+		},
+		{
+			name:    "pattern with HEAD method",
+			pattern: "HEAD /api/health",
+			want:    "/api/health",
+		},
+		{
+			name:    "pattern with OPTIONS method",
+			pattern: "OPTIONS /api/cors",
+			want:    "/api/cors",
+		},
+		{
+			name:    "pattern with dynamic path",
+			pattern: "GET /posts/{id}",
+			want:    "/posts/{id}",
+		},
+		{
+			name:    "pattern with multiple dynamic segments",
+			pattern: "GET /posts/{year}/{month}/{slug}",
+			want:    "/posts/{year}/{month}/{slug}",
+		},
+		{
+			name:    "pattern with rest parameter",
+			pattern: "GET /api/{...rest}",
+			want:    "/api/{...rest}",
+		},
+		{
+			name:    "pattern with lowercase method",
+			pattern: "get /test",
+			want:    "/test",
+		},
+		{
+			name:    "pattern with mixed case method",
+			pattern: "Post /test",
+			want:    "/test",
+		},
+		{
+			name:    "complex api path",
+			pattern: "GET /api/v1/users/{id}/posts/{postId}",
+			want:    "/api/v1/users/{id}/posts/{postId}",
+		},
+		{
+			name:    "pattern with trailing slash",
+			pattern: "GET /blog/posts/",
+			want:    "/blog/posts/",
+		},
+		{
+			name:    "pattern with query parameters in pattern",
+			pattern: "GET /search?q=test",
+			want:    "/search?q=test",
+		},
+		{
+			name:    "empty pattern",
+			pattern: "",
+			want:    "",
+		},
+		{
+			name:    "pattern with only method",
+			pattern: "GET",
+			want:    "GET",
+		},
+		{
+			name:    "pattern with multiple spaces",
+			pattern: "GET  /test/path",
+			want:    " /test/path",
+		},
+		{
+			name:    "pattern with method and space only",
+			pattern: "GET ",
+			want:    "",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			req := &http.Request{Pattern: tt.pattern}
+			got := Pattern(req)
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}
