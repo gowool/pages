@@ -274,3 +274,111 @@ func TestIsDecorable(t *testing.T) {
 		assert.True(t, isDecorable)
 	})
 }
+
+type testUnwrapper struct {
+	http.ResponseWriter
+}
+
+func (w *testUnwrapper) Unwrap() http.ResponseWriter {
+	return w.ResponseWriter
+}
+
+type testStatusCodeUnwrapper struct {
+	http.ResponseWriter
+	status int
+}
+
+func (w *testStatusCodeUnwrapper) StatusCode() int {
+	return w.status
+}
+
+func (w *testStatusCodeUnwrapper) Unwrap() http.ResponseWriter {
+	return w.ResponseWriter
+}
+
+func TestResponseStatus(t *testing.T) {
+	tests := []struct {
+		name     string
+		w        http.ResponseWriter
+		expected int
+	}{
+		{
+			name:     "basic ResponseRecorder",
+			w:        httptest.NewRecorder(),
+			expected: 0,
+		},
+		{
+			name:     "writer with Status() returning Created",
+			w:        &delayedWriter{ResponseWriter: httptest.NewRecorder(), status: http.StatusCreated},
+			expected: http.StatusCreated,
+		},
+		{
+			name:     "writer with Status() returning OK",
+			w:        &delayedWriter{ResponseWriter: httptest.NewRecorder(), status: http.StatusOK},
+			expected: http.StatusOK,
+		},
+		{
+			name:     "writer with Status() returning NotFound",
+			w:        &delayedWriter{ResponseWriter: httptest.NewRecorder(), status: http.StatusNotFound},
+			expected: http.StatusNotFound,
+		},
+		{
+			name:     "writer with Status() returning InternalServerError",
+			w:        &delayedWriter{ResponseWriter: httptest.NewRecorder(), status: http.StatusInternalServerError},
+			expected: http.StatusInternalServerError,
+		},
+		{
+			name:     "writer with StatusCode() returning OK",
+			w:        &testStatusCodeUnwrapper{ResponseWriter: httptest.NewRecorder(), status: http.StatusOK},
+			expected: http.StatusOK,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := ResponseStatus(tt.w)
+			assert.Equal(t, tt.expected, got)
+		})
+	}
+
+	t.Run("unwrapping writer finds Status()", func(t *testing.T) {
+		inner := &delayedWriter{ResponseWriter: httptest.NewRecorder(), status: http.StatusAccepted}
+		wrapper := &testUnwrapper{ResponseWriter: inner}
+
+		got := ResponseStatus(wrapper)
+		assert.Equal(t, http.StatusAccepted, got)
+	})
+
+	t.Run("multiple levels of unwrapping", func(t *testing.T) {
+		inner := &delayedWriter{ResponseWriter: httptest.NewRecorder(), status: http.StatusPartialContent}
+		middle := &testUnwrapper{ResponseWriter: inner}
+		outer := &testUnwrapper{ResponseWriter: middle}
+
+		got := ResponseStatus(outer)
+		assert.Equal(t, http.StatusPartialContent, got)
+	})
+
+	t.Run("no matching interface returns 0", func(t *testing.T) {
+		w := struct {
+			http.ResponseWriter
+		}{
+			ResponseWriter: httptest.NewRecorder(),
+		}
+
+		got := ResponseStatus(w)
+		assert.Equal(t, 0, got)
+	})
+
+	t.Run("Status() takes precedence over unwrapping", func(t *testing.T) {
+		w := &delayedWriter{
+			ResponseWriter: &delayedWriter{
+				ResponseWriter: httptest.NewRecorder(),
+				status:         http.StatusCreated,
+			},
+			status: http.StatusAccepted,
+		}
+
+		got := ResponseStatus(w)
+		assert.Equal(t, http.StatusAccepted, got)
+	})
+}
