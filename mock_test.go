@@ -236,3 +236,18 @@ func (m *MockPageAuthorizer) Authorize(ctx context.Context, action PageAction) D
 	args := m.Called(ctx, action)
 	return args.Get(0).(Decision)
 }
+
+var _ ErrorPattern = (*MockErrorPattern)(nil)
+
+type MockErrorPattern struct {
+	mock.Mock
+}
+
+func (m *MockErrorPattern) Pattern(r *http.Request, status int, err error) string {
+	args := m.Called(r, status, err)
+	return args.String(0)
+}
+
+func NewMockErrorPattern() *MockErrorPattern {
+	return &MockErrorPattern{}
+}
