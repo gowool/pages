@@ -1,0 +1,5 @@
+<!-- main.gohtml -->
+
+{{define "main"}}
+    <h1>{{ternary (empty .Page.Title) .Page.Name .Page.Title}}</h1>
+{{end}}

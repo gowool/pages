@@ -1,0 +1,22 @@
+<!-- main.gohtml -->
+
+{{define "main"}}
+    <h1>Create Page</h1>
+    <form method="POST" action="/_/create">
+        <div>
+            <label for="title">Title</label>
+            <input id="title" type="text" name="title" value="Page Title (Foo)">
+        </div>
+        <div>
+            <label for="template">Template</label>
+            <input id="template" type="text" name="template" value="page/cms.gohtml">
+        </div>
+        <div>
+            <label for="url">URL Path</label>
+            <input id="url" type="text" name="url" value="{{.Request.URL.Path}}" readonly>
+        </div>
+        <div>
+            <input type="submit" value="Create">
+        </div>
+    </form>
+{{end}}

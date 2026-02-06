@@ -3,6 +3,8 @@ package pages
 import (
 	"net/http"
 	"strings"
+
+	"github.com/gowool/r"
 )
 
 const (
@@ -23,27 +25,12 @@ const (
 	MIMETextHTMLCharsetUTF8  = MIMETextHTML + "; charset=UTF-8"
 )
 
-type MiddlewareFunc func(Handler) Handler
-
-type Handler interface {
-	ServeHTTP(http.ResponseWriter, *http.Request) error
-}
-
-type HandlerFunc func(http.ResponseWriter, *http.Request) error
-
-func (f HandlerFunc) ServeHTTP(w http.ResponseWriter, r *http.Request) error {
-	return f(w, r)
-}
-
-type ErrorHandler interface {
-	ServeHTTP(http.ResponseWriter, *http.Request, error)
-}
-
-type ErrorHandlerFunc func(http.ResponseWriter, *http.Request, error)
-
-func (f ErrorHandlerFunc) ServeHTTP(w http.ResponseWriter, r *http.Request, e error) {
-	f(w, r, e)
-}
+type (
+	Handler          = r.Handler
+	HandlerFunc      = r.HandlerFunc
+	ErrorHandler     = r.ErrorHandler
+	ErrorHandlerFunc = r.ErrorHandlerFunc
+)
 
 func Scheme(r *http.Request) string {
 	if r.TLS != nil {

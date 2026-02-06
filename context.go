@@ -76,6 +76,7 @@ func (c *Context) Site() *Site {
 }
 
 func (c *Context) SetSite(site *Site) {
+	c.SEO().Reset()
 	if site != nil {
 		c.SEO().Site(site)
 	}
@@ -91,6 +92,14 @@ func (c *Context) Page() *Page {
 }
 
 func (c *Context) SetPage(page *Page, args ...any) {
+	c.SEO().Reset()
+
+	if page != nil && page.Site != nil {
+		c.SEO().Site(page.Site)
+	} else if c.HasSite() {
+		c.SEO().Site(c.site)
+	}
+
 	if page != nil {
 		if page.Site == nil && c.HasSite() {
 			page.SiteID = c.site.ID

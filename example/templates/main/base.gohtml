@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html {{block "html_attrs" .}}{{html_attrs .SEO}}{{end}}>
+<head {{block "head_attrs" .}}{{head_attrs .SEO}}{{end}}>
+    {{block "head_start" .}}{{end}}
+    {{block "favicons" .}}{{end}}
+    {{lang_alternates .SEO}}
+    {{block "title" .}}{{reverse_title_tag .SEO}}{{end}}
+    {{head_links .SEO}}
+    {{meta_tags .SEO}}
+    {{block "head" .}}{{end}}
+    {{block "head_end" .}}{{end}}
+</head>
+<body {{block "body_attrs" .}}{{body_attrs .SEO}}{{end}}>
+{{block "body_start" .}}{{end}}
+{{block "body" .}}{{end}}
+{{block "body_after" .}}{{end}}
+{{block "body_end" .}}{{end}}
+</body>
+</html>
