@@ -4,26 +4,18 @@ import (
 	"fmt"
 	"net"
 	"net/http"
-	"regexp"
-	"strings"
 	"sync"
 
 	"github.com/dlclark/regexp2"
 )
 
 const (
-	headerXForwardedProto    = "X-Forwarded-Proto"
-	headerXForwardedProtocol = "X-Forwarded-Protocol"
-	headerXForwardedSsl      = "X-Forwarded-Ssl"
-	headerXUrlScheme         = "X-Url-Scheme"
-
 	reOptions    = regexp2.IgnoreCase & regexp2.RE2
 	rePathExpr   = "^(%s)(/.*|$)"
 	reNoPathExpr = "^()(/.*|$)"
 )
 
 var (
-	reMethod = regexp.MustCompile(`^(\S*)\s+(.*)$`)
 	reNoPath = regexp2.MustCompile(reNoPathExpr, reOptions)
 	rePaths  = new(sync.Map)
 )
@@ -33,43 +25,6 @@ func Host(r *http.Request) string {
 		return host
 	}
 	return r.Host
-}
-
-func Scheme(r *http.Request) string {
-	if r.TLS != nil {
-		return "https"
-	}
-	if scheme := r.Header.Get(headerXForwardedProto); scheme != "" {
-		return scheme
-	}
-	if scheme := r.Header.Get(headerXForwardedProtocol); scheme != "" {
-		return scheme
-	}
-	if ssl := r.Header.Get(headerXForwardedSsl); ssl == "on" {
-		return "https"
-	}
-	if scheme := r.Header.Get(headerXUrlScheme); scheme != "" {
-		return scheme
-	}
-	return "http"
-}
-
-func Pattern(r *http.Request) string {
-	pattern := r.Pattern
-	if index := strings.IndexRune(pattern, ' '); index > -1 {
-		pattern = pattern[index+1:]
-	}
-	return pattern
-}
-
-func CheckMethod(method, skip string) (string, bool) {
-	if matches := reMethod.FindStringSubmatch(skip); len(matches) > 2 {
-		if matches[1] == method {
-			return matches[2], true
-		}
-		return "", false
-	}
-	return skip, true
 }
 
 func MatchRequest(r *http.Request, relativePath string) (string, error) {

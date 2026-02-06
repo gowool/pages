@@ -11,8 +11,11 @@ func BytesToString(b []byte) string {
 	return unsafe.String(unsafe.SliceData(b), len(b))
 }
 
+var replacer = strings.NewReplacer("/", " ", "-", " ", "_", " ")
+
 func ToTitle(str string) string {
-	str = strings.TrimLeft(str, "/")
-	str = strings.ReplaceAll(str, "/", " ")
+	str = replacer.Replace(str)
+	str = strings.TrimSpace(str)
+	str = strings.Join(strings.Fields(str), " ")
 	return strings.ToTitle(str)
 }

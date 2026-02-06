@@ -12,6 +12,15 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
+type errorResponseWriter struct {
+	*httptest.ResponseRecorder
+	writeErr error
+}
+
+func (e *errorResponseWriter) Write(data []byte) (int, error) {
+	return 0, e.writeErr
+}
+
 func TestDelayedWriter(t *testing.T) {
 	t.Run("Reset initializes state", func(t *testing.T) {
 		w := &delayedWriter{}

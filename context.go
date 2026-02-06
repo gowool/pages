@@ -14,6 +14,13 @@ func FromContext(ctx context.Context) *Context {
 	return c
 }
 
+func MustContext(ctx context.Context) *Context {
+	if c := FromContext(ctx); c != nil {
+		return c
+	}
+	panic("Pages context is nil, you should use pages.NewContext before pages.MustContext or use pages.FromContext directly.")
+}
+
 var ctxPool = &sync.Pool{
 	New: func() any {
 		c := new(Context)
@@ -34,19 +41,21 @@ func NewContext(parent context.Context) (context.Context, context.CancelFunc) {
 }
 
 type Context struct {
-	seo     *SEO
-	site    *Site
-	page    *Page
-	err     error
-	debug   bool
-	guest   bool
-	status  int
-	content template.HTML
+	seo      *SEO
+	site     *Site
+	page     *Page
+	err      error
+	debug    bool
+	guest    bool
+	status   int
+	content  template.HTML
+	template string
 }
 
 func (c *Context) Reset() {
 	c.SEO().Reset()
 	c.status = http.StatusOK
+	c.template = ""
 	c.content = ""
 	c.debug = false
 	c.guest = true
@@ -125,8 +134,11 @@ func (c *Context) SetGuest(guest bool) {
 }
 
 func (c *Context) Status() int {
-	if c.status == 0 {
+	if c.status <= 0 {
 		return http.StatusOK
+	}
+	if c.HasError() && c.status < http.StatusBadRequest {
+		return http.StatusInternalServerError
 	}
 	return c.status
 }
@@ -145,4 +157,22 @@ func (c *Context) SetContent(content template.HTML) {
 
 func (c *Context) HasContent() bool {
 	return c.content != ""
+}
+
+func (c *Context) Template() string {
+	if c.template != "" {
+		return c.template
+	}
+	if c.HasPage() {
+		return c.page.Template
+	}
+	return ""
+}
+
+func (c *Context) SetTemplate(template string) {
+	c.template = template
+}
+
+func (c *Context) HasTemplate() bool {
+	return c.Template() != ""
 }

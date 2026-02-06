@@ -10,48 +10,56 @@ import (
 	"golang.org/x/text/language"
 )
 
-var _ SiteRetriever = (*DefaultSiteRetriever)(nil)
-
-const (
-	headerAcceptLanguage = "Accept-Language"
-	headerCFIPCountry    = "CF-IPCountry"
-)
+var _ SiteRetriever = (*HTTPSiteRetriever)(nil)
 
 type SiteRetriever interface {
 	Retrieve(r *http.Request) (*Site, string, error)
 }
 
-type DefaultSiteRetriever struct {
+type HTTPSiteRetrieverConfig struct {
+	// CountryFunc determines the country based on the provided
+	// HTTP request and returns it as a string along with any error.
+	CountryFunc func(*http.Request) (string, error)
+
+	// ErrorFunc handles errors by taking an HTTP request and an error,
+	// returning a Site instance or an error.
+	ErrorFunc func(*http.Request, error) (*Site, error)
+}
+
+func (c *HTTPSiteRetrieverConfig) SetDefaults() {
+	if c.CountryFunc == nil {
+		c.CountryFunc = func(r *http.Request) (string, error) {
+			return strings.ToUpper(r.Header.Get(HeaderCFIPCountry)), nil
+		}
+	}
+
+	if c.ErrorFunc == nil {
+		c.ErrorFunc = func(_ *http.Request, err error) (*Site, error) {
+			return nil, err
+		}
+	}
+}
+
+type HTTPSiteRetriever struct {
 	store       SiteStore
 	countryFunc func(*http.Request) (string, error)
 	errorFunc   func(*http.Request, error) (*Site, error)
 }
 
-func NewDefaultSiteRetriever(
-	store SiteStore,
-	countryFunc func(*http.Request) (string, error),
-	errorFunc func(*http.Request, error) (*Site, error),
-) *DefaultSiteRetriever {
+func NewHTTPSiteRetriever(store SiteStore) *HTTPSiteRetriever {
+	return NewHTTPSiteRetrieverWithConfig(store, HTTPSiteRetrieverConfig{})
+}
+
+func NewHTTPSiteRetrieverWithConfig(store SiteStore, config HTTPSiteRetrieverConfig) *HTTPSiteRetriever {
 	if store == nil {
 		panic("site retriever: store is required")
 	}
+	config.SetDefaults()
 
-	if countryFunc == nil {
-		countryFunc = func(r *http.Request) (string, error) {
-			return strings.ToUpper(r.Header.Get(headerCFIPCountry)), nil
-		}
-	}
-
-	if errorFunc == nil {
-		errorFunc = func(_ *http.Request, err error) (*Site, error) {
-			return nil, err
-		}
-	}
-
-	return &DefaultSiteRetriever{
+	return &HTTPSiteRetriever{
 		store:       store,
-		countryFunc: countryFunc,
-		errorFunc:   errorFunc,
+		countryFunc: config.CountryFunc,
+		errorFunc:   config.ErrorFunc,
 	}
 }
 
@@ -60,7 +68,7 @@ type candidate struct {
 	path string
 }
 
-func (s *DefaultSiteRetriever) Retrieve(r *http.Request) (*Site, string, error) {
+func (s *HTTPSiteRetriever) Retrieve(r *http.Request) (*Site, string, error) {
 	if r == nil {
 		panic("site retriever: request is required")
 	}
@@ -138,7 +146,7 @@ func (s *DefaultSiteRetriever) Retrieve(r *http.Request) (*Site, string, error) 
 	return defaults[0].site, "", nil
 }
 
-func (s *DefaultSiteRetriever) candidate(r *http.Request, candidates []candidate, country string) (*Site, string) {
+func (s *HTTPSiteRetriever) candidate(r *http.Request, candidates []candidate, country string) (*Site, string) {
 	var defaultCountry, defaultNoCountry candidate
 	countryTags, noCountryTags := make(map[language.Tag]candidate), make(map[language.Tag]candidate)
 
@@ -171,8 +179,8 @@ func (s *DefaultSiteRetriever) candidate(r *http.Request, candidates []candidate
 	return s.language(r, countryTags, defaultCountry)
 }
 
-func (s *DefaultSiteRetriever) language(r *http.Request, candidateTags map[language.Tag]candidate, defaultCandidate candidate) (*Site, string) {
-	t, _, err := language.ParseAcceptLanguage(r.Header.Get(headerAcceptLanguage))
+func (s *HTTPSiteRetriever) language(r *http.Request, candidateTags map[language.Tag]candidate, defaultCandidate candidate) (*Site, string) {
+	t, _, err := language.ParseAcceptLanguage(r.Header.Get(HeaderAcceptLanguage))
 	if err != nil || len(t) == 0 {
 		return defaultCandidate.site, defaultCandidate.path
 	}
@@ -190,7 +198,7 @@ func (s *DefaultSiteRetriever) language(r *http.Request, candidateTags map[langu
 	return defaultCandidate.site, defaultCandidate.path
 }
 
-func (s *DefaultSiteRetriever) resolveError(r *http.Request, err error) (*Site, string, error) {
+func (s *HTTPSiteRetriever) resolveError(r *http.Request, err error) (*Site, string, error) {
 	site, err := s.errorFunc(r, err)
 	if err != nil {
 		return nil, "", err

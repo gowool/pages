@@ -1,7 +1,7 @@
 package pages
 
 import (
-	"context"
+	"crypto/tls"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -19,101 +19,309 @@ func createRequestWithPattern(pattern, path string) *http.Request {
 	return req
 }
 
-func TestPageCtx(t *testing.T) {
-	t.Run("Returns PageCtxFunc", func(t *testing.T) {
-		viewCtx := PageCtx()
+func TestScheme(t *testing.T) {
+	tests := []struct {
+		name     string
+		setupReq func(*http.Request)
+		want     string
+	}{
+		{
+			name: "TLS connection",
+			setupReq: func(r *http.Request) {
+				r.TLS = &tls.ConnectionState{}
+			},
+			want: "https",
+		},
+		{
+			name: "X-Forwarded-Proto header",
+			setupReq: func(r *http.Request) {
+				r.Header.Set(HeaderXForwardedProto, "https")
+			},
+			want: "https",
+		},
+		{
+			name: "X-Forwarded-Protocol header",
+			setupReq: func(r *http.Request) {
+				r.Header.Set(HeaderXForwardedProtocol, "https")
+			},
+			want: "https",
+		},
+		{
+			name: "X-Forwarded-Ssl header with on",
+			setupReq: func(r *http.Request) {
+				r.Header.Set(HeaderXForwardedSsl, "on")
+			},
+			want: "https",
+		},
+		{
+			name: "X-Forwarded-Ssl header with off",
+			setupReq: func(r *http.Request) {
+				r.Header.Set(HeaderXForwardedSsl, "off")
+			},
+			want: "http",
+		},
+		{
+			name: "X-Url-Scheme header",
+			setupReq: func(r *http.Request) {
+				r.Header.Set(HeaderXUrlScheme, "https")
+			},
+			want: "https",
+		},
+		{
+			name:     "default to http",
+			setupReq: func(r *http.Request) {},
+			want:     "http",
+		},
+	}
 
-		assert.NotNil(t, viewCtx, "PageCtx should return non-nil function")
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			req := &http.Request{
+				URL:    &url.URL{Path: "/test/path"},
+				Host:   "localhost",
+				Header: make(http.Header),
+			}
+			tt.setupReq(req)
 
-		ctx, _ := NewContext(context.Background())
-		c := FromContext(ctx)
-		req := httptest.NewRequest("GET", "/", nil)
+			got := Scheme(req)
 
-		result := viewCtx(req, c)
-
-		pc, ok := result.(PageContext)
-		assert.True(t, ok, "Result should be PageContext")
-		assert.Equal(t, c, pc.Context)
-		assert.Equal(t, req, pc.Request)
-	})
-
-	t.Run("PageContext Value returns context value", func(t *testing.T) {
-		type testKey struct{}
-		value := "testValue"
-		parentCtx := context.WithValue(context.Background(), testKey{}, value)
-
-		req := httptest.NewRequest("GET", "/", nil).WithContext(parentCtx)
-		pc := PageContext{Request: req}
-
-		result := pc.Value(testKey{})
-
-		assert.Equal(t, value, result)
-	})
-
-	t.Run("PageContext Value returns nil for missing key", func(t *testing.T) {
-		req := httptest.NewRequest("GET", "/", nil)
-		pc := PageContext{Request: req}
-
-		result := pc.Value("nonexistent")
-
-		assert.Nil(t, result)
-	})
+			assert.Equal(t, tt.want, got, "Scheme should return expected scheme")
+		})
+	}
 }
 
-func TestErrorPattern(t *testing.T) {
-	finder := ErrorPattern()
+func TestCheckMethod(t *testing.T) {
+	tests := []struct {
+		name         string
+		method       string
+		skip         string
+		expectedPath string
+		expectedOK   bool
+	}{
+		{
+			name:         "no method specified in skip",
+			method:       "GET",
+			skip:         "/api/users",
+			expectedPath: "/api/users",
+			expectedOK:   true,
+		},
+		{
+			name:         "matching method",
+			method:       "GET",
+			skip:         "GET /api/users",
+			expectedPath: "/api/users",
+			expectedOK:   true,
+		},
+		{
+			name:         "non-matching method",
+			method:       "POST",
+			skip:         "GET /api/users",
+			expectedPath: "",
+			expectedOK:   false,
+		},
+		{
+			name:         "case sensitive method matching",
+			method:       "get",
+			skip:         "GET /api/users",
+			expectedPath: "",
+			expectedOK:   false,
+		},
+		{
+			name:         "different matching method",
+			method:       "POST",
+			skip:         "POST /api/users",
+			expectedPath: "/api/users",
+			expectedOK:   true,
+		},
+		{
+			name:         "PUT method matching",
+			method:       "PUT",
+			skip:         "PUT /api/users",
+			expectedPath: "/api/users",
+			expectedOK:   true,
+		},
+		{
+			name:         "DELETE method matching",
+			method:       "DELETE",
+			skip:         "DELETE /api/users",
+			expectedPath: "/api/users",
+			expectedOK:   true,
+		},
+		{
+			name:         "PATCH method matching",
+			method:       "PATCH",
+			skip:         "PATCH /api/users",
+			expectedPath: "/api/users",
+			expectedOK:   true,
+		},
+		{
+			name:         "HEAD method matching",
+			method:       "HEAD",
+			skip:         "HEAD /api/users",
+			expectedPath: "/api/users",
+			expectedOK:   true,
+		},
+		{
+			name:         "OPTIONS method matching",
+			method:       "OPTIONS",
+			skip:         "OPTIONS /api/users",
+			expectedPath: "/api/users",
+			expectedOK:   true,
+		},
+		{
+			name:         "method with empty path",
+			method:       "GET",
+			skip:         "GET ",
+			expectedPath: "",
+			expectedOK:   true,
+		},
+		{
+			name:         "malformed pattern - missing path",
+			method:       "GET",
+			skip:         "GET",
+			expectedPath: "GET",
+			expectedOK:   true,
+		},
+		{
+			name:         "malformed pattern - extra spaces",
+			method:       "GET",
+			skip:         "GET   /api/users",
+			expectedPath: "/api/users",
+			expectedOK:   true,
+		},
+		{
+			name:         "empty skip string",
+			method:       "GET",
+			skip:         "",
+			expectedPath: "",
+			expectedOK:   true,
+		},
+	}
 
-	t.Run("StatusUnauthorized", func(t *testing.T) {
-		pattern := finder(context.Background(), http.StatusUnauthorized)
-		assert.Equal(t, PageErrorUnauthorized, pattern)
-	})
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			path, ok := CheckMethod(tt.method, tt.skip)
+			assert.Equal(t, tt.expectedPath, path)
+			assert.Equal(t, tt.expectedOK, ok)
+		})
+	}
+}
 
-	t.Run("StatusForbidden", func(t *testing.T) {
-		pattern := finder(context.Background(), http.StatusForbidden)
-		assert.Equal(t, PageErrorForbidden, pattern)
-	})
+func TestPattern(t *testing.T) {
+	tests := []struct {
+		name    string
+		pattern string
+		want    string
+	}{
+		{
+			name:    "pattern without method",
+			pattern: "/",
+			want:    "/",
+		},
+		{
+			name:    "pattern with GET method",
+			pattern: "GET /",
+			want:    "/",
+		},
+		{
+			name:    "pattern with POST method",
+			pattern: "POST /blog/posts",
+			want:    "/blog/posts",
+		},
+		{
+			name:    "pattern with PUT method",
+			pattern: "PUT /api/users/123",
+			want:    "/api/users/123",
+		},
+		{
+			name:    "pattern with DELETE method",
+			pattern: "DELETE /api/users/123",
+			want:    "/api/users/123",
+		},
+		{
+			name:    "pattern with PATCH method",
+			pattern: "PATCH /api/users/123",
+			want:    "/api/users/123",
+		},
+		{
+			name:    "pattern with HEAD method",
+			pattern: "HEAD /api/health",
+			want:    "/api/health",
+		},
+		{
+			name:    "pattern with OPTIONS method",
+			pattern: "OPTIONS /api/cors",
+			want:    "/api/cors",
+		},
+		{
+			name:    "pattern with dynamic path",
+			pattern: "GET /posts/{id}",
+			want:    "/posts/{id}",
+		},
+		{
+			name:    "pattern with multiple dynamic segments",
+			pattern: "GET /posts/{year}/{month}/{slug}",
+			want:    "/posts/{year}/{month}/{slug}",
+		},
+		{
+			name:    "pattern with rest parameter",
+			pattern: "GET /api/{...rest}",
+			want:    "/api/{...rest}",
+		},
+		{
+			name:    "pattern with lowercase method",
+			pattern: "get /test",
+			want:    "/test",
+		},
+		{
+			name:    "pattern with mixed case method",
+			pattern: "Post /test",
+			want:    "/test",
+		},
+		{
+			name:    "complex api path",
+			pattern: "GET /api/v1/users/{id}/posts/{postId}",
+			want:    "/api/v1/users/{id}/posts/{postId}",
+		},
+		{
+			name:    "pattern with trailing slash",
+			pattern: "GET /blog/posts/",
+			want:    "/blog/posts/",
+		},
+		{
+			name:    "pattern with query parameters in pattern",
+			pattern: "GET /search?q=test",
+			want:    "/search?q=test",
+		},
+		{
+			name:    "empty pattern",
+			pattern: "",
+			want:    "",
+		},
+		{
+			name:    "pattern with only method",
+			pattern: "GET",
+			want:    "GET",
+		},
+		{
+			name:    "pattern with multiple spaces",
+			pattern: "GET  /test/path",
+			want:    " /test/path",
+		},
+		{
+			name:    "pattern with method and space only",
+			pattern: "GET ",
+			want:    "",
+		},
+	}
 
-	t.Run("StatusNotFound", func(t *testing.T) {
-		pattern := finder(context.Background(), http.StatusNotFound)
-		assert.Equal(t, PageErrorNotFound, pattern)
-	})
-
-	t.Run("4xx status", func(t *testing.T) {
-		pattern := finder(context.Background(), http.StatusBadRequest)
-		assert.Equal(t, PageError4xx, pattern)
-
-		pattern = finder(context.Background(), http.StatusPaymentRequired)
-		assert.Equal(t, PageError4xx, pattern)
-
-		pattern = finder(context.Background(), http.StatusConflict)
-		assert.Equal(t, PageError4xx, pattern)
-	})
-
-	t.Run("5xx status", func(t *testing.T) {
-		pattern := finder(context.Background(), http.StatusInternalServerError)
-		assert.Equal(t, PageError5xx, pattern)
-
-		pattern = finder(context.Background(), http.StatusBadGateway)
-		assert.Equal(t, PageError5xx, pattern)
-
-		pattern = finder(context.Background(), http.StatusServiceUnavailable)
-		assert.Equal(t, PageError5xx, pattern)
-	})
-
-	t.Run("Other 5xx status", func(t *testing.T) {
-		pattern := finder(context.Background(), http.StatusNotImplemented)
-		assert.Equal(t, PageError5xx, pattern)
-	})
-
-	t.Run("2xx status", func(t *testing.T) {
-		pattern := finder(context.Background(), http.StatusOK)
-		assert.Equal(t, PageError5xx, pattern)
-	})
-
-	t.Run("3xx status", func(t *testing.T) {
-		pattern := finder(context.Background(), http.StatusMovedPermanently)
-		assert.Equal(t, PageError5xx, pattern)
-	})
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			req := &http.Request{Pattern: tt.pattern}
+			got := Pattern(req)
+			assert.Equal(t, tt.want, got)
+		})
+	}
 }
 
 func TestPatternArgs(t *testing.T) {
@@ -209,7 +417,7 @@ func TestPatternArgs(t *testing.T) {
 func TestIsDecorable(t *testing.T) {
 	t.Run("Non-HTML content type", func(t *testing.T) {
 		w := &delayedWriter{ResponseWriter: httptest.NewRecorder()}
-		w.Header().Set(headerContentType, "application/json")
+		w.Header().Set(HeaderContentType, "application/json")
 
 		isDecorable := IsDecorable(w, httptest.NewRequest("GET", "/", nil))
 
@@ -219,7 +427,7 @@ func TestIsDecorable(t *testing.T) {
 	t.Run("HTML content type", func(t *testing.T) {
 		w := &delayedWriter{ResponseWriter: httptest.NewRecorder()}
 		w.status = http.StatusOK
-		w.Header().Set(headerContentType, mimeTextHTML)
+		w.Header().Set(HeaderContentType, MIMETextHTML)
 
 		isDecorable := IsDecorable(w, httptest.NewRequest("GET", "/", nil))
 
@@ -257,7 +465,7 @@ func TestIsDecorable(t *testing.T) {
 	t.Run("XMLHttpRequest header set", func(t *testing.T) {
 		w := &delayedWriter{ResponseWriter: httptest.NewRecorder()}
 		req := httptest.NewRequest("GET", "/", nil)
-		req.Header.Set(headerXRequestedWith, xmlHTTPRequest)
+		req.Header.Set(HeaderXRequestedWith, XMLHTTPRequest)
 
 		isDecorable := IsDecorable(w, req)
 

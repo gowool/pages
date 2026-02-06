@@ -13,7 +13,7 @@ import (
 	"github.com/gowool/pages/internal"
 )
 
-func SelectSiteMiddleware(retriever SiteRetriever, skippers ...Skipper) MiddlewareFunc {
+func SelectSiteMiddleware(retriever SiteRetriever, skippers ...Skipper) func(Handler) Handler {
 	if retriever == nil {
 		panic("middleware: select site: retriever is required")
 	}
@@ -43,7 +43,7 @@ func SelectSiteMiddleware(retriever SiteRetriever, skippers ...Skipper) Middlewa
 				return ErrSiteNotFound
 			}
 
-			site.Scheme = internal.Scheme(r)
+			site.Scheme = Scheme(r)
 			site.Host = r.Host
 			site.IsRoot = r.URL.Path == "/"
 
@@ -60,7 +60,7 @@ func SelectSiteMiddleware(retriever SiteRetriever, skippers ...Skipper) Middlewa
 
 type PatternArgsFunc func(*http.Request) []any
 
-func SelectPageMiddleware(manager PageManager, authorizer PageAuthorizer, patternArgs PatternArgsFunc, skippers ...Skipper) MiddlewareFunc {
+func SelectPageMiddleware(manager PageManager, authorizer PageAuthorizer, patternArgs PatternArgsFunc, skippers ...Skipper) func(Handler) Handler {
 	if manager == nil {
 		panic("middleware: select page: manager is required")
 	}
@@ -75,7 +75,7 @@ func SelectPageMiddleware(manager PageManager, authorizer PageAuthorizer, patter
 	skip := ChainSkipper(skippers...)
 
 	findPage := func(r *http.Request, site *Site) (page *Page, err error) {
-		if pattern := internal.Pattern(r); pattern != PageCMSPattern {
+		if pattern := Pattern(r); pattern != PageCMSPattern {
 			page, err = manager.GetByPattern(r.Context(), site, pattern)
 		} else {
 			page, err = manager.GetByURL(r.Context(), site, r.URL.Path)
@@ -154,7 +154,7 @@ func SelectPageMiddleware(manager PageManager, authorizer PageAuthorizer, patter
 	}
 }
 
-func HybridPageMiddleware(pageHandler Handler, logger *slog.Logger, skippers ...Skipper) MiddlewareFunc {
+func HybridPageMiddleware(pageHandler Handler, logger *slog.Logger, skippers ...Skipper) func(Handler) Handler {
 	if pageHandler == nil {
 		panic("middleware: hybrid page: page handler is required")
 	}

@@ -35,8 +35,6 @@ type Patterns interface {
 	Patterns() iter.Seq[string]
 }
 
-type IDGenerator func(ctx context.Context) (ID, error)
-
 type PageConfig struct {
 	ParentID   *ID                 `json:"parentID,omitempty" yaml:"parentID,omitempty"`
 	Template   *string             `json:"template,omitempty" yaml:"template,omitempty"`
@@ -152,23 +150,19 @@ type DefaultPageSyncer struct {
 	cfg       PageSyncerConfig
 	patterns  Patterns
 	store     PageStore
-	generator IDGenerator
 	strategy  PageDecoratorStrategy
+	generator IDGeneratorFunc
 }
 
 func NewDefaultPageSyncer(
 	cfg PageSyncerConfig,
 	store PageStore,
-	generator IDGenerator,
 	patterns Patterns,
 	strategy PageDecoratorStrategy,
+	generator IDGeneratorFunc,
 ) *DefaultPageSyncer {
 	if store == nil {
 		panic("page syncer: page store is required")
-	}
-
-	if generator == nil {
-		panic("page syncer: id generator is required")
 	}
 
 	if patterns == nil {
@@ -177,6 +171,10 @@ func NewDefaultPageSyncer(
 
 	if strategy == nil {
 		panic("page syncer: decorator strategy is required")
+	}
+
+	if generator == nil {
+		generator = IDGenerator()
 	}
 
 	cfg.SetDefaults()
@@ -258,9 +256,10 @@ func (s *DefaultPageSyncer) createRootPage(ctx context.Context, site *Site, home
 		root = s.newPage("Home Hybrid", HomeHybridPattern, site)
 	} else {
 		root = s.newPage("Home", PageCMS, site)
-		root.URL = "/"
+		root.CustomURL = "/"
 		root.Position = 0
 		root.Template = homeTemplate
+		root.FixURL()
 	}
 
 	root.ID = id
@@ -277,7 +276,7 @@ func (s *DefaultPageSyncer) getPatterns(ctx context.Context) ([]string, bool) {
 
 	for pattern := range s.patterns.Patterns() {
 		var ok bool
-		if pattern, ok = internal.CheckMethod(http.MethodGet, pattern); !ok {
+		if pattern, ok = CheckMethod(http.MethodGet, pattern); !ok {
 			continue
 		}
 

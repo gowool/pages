@@ -99,7 +99,7 @@ func (p *Page) AbsURL(args ...any) string {
 
 	if path == "" || path == "/" {
 		if p.Site == nil {
-			return path
+			return "/"
 		}
 		return p.Site.Home()
 	}
@@ -171,6 +171,12 @@ func (p *Page) FixURL() {
 	}
 
 	if p.IsCMS() {
+		if p.CustomURL == "/" && p.Parent == nil {
+			p.URL = "/"
+			p.fixChildren()
+			return
+		}
+
 		if p.Slug == "" && p.Name != "" {
 			p.Slug = slug.Make(p.Name)
 		}
@@ -192,6 +198,10 @@ func (p *Page) FixURL() {
 		}
 	}
 
+	p.fixChildren()
+}
+
+func (p *Page) fixChildren() {
 	for _, child := range p.Children {
 		child.Parent = p
 		child.FixURL()

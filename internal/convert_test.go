@@ -122,7 +122,7 @@ func TestToTitle(t *testing.T) {
 		{
 			name:  "path with kebab-case",
 			input: "/blog/my-post",
-			want:  "BLOG MY-POST",
+			want:  "BLOG MY POST",
 		},
 		{
 			name:  "root path",
@@ -142,12 +142,12 @@ func TestToTitle(t *testing.T) {
 		{
 			name:  "path with consecutive slashes",
 			input: "/blog//posts",
-			want:  "BLOG  POSTS",
+			want:  "BLOG POSTS",
 		},
 		{
 			name:  "path with trailing slash",
 			input: "/blog/posts/",
-			want:  "BLOG POSTS ",
+			want:  "BLOG POSTS",
 		},
 		{
 			name:  "path with numbers",
@@ -167,7 +167,7 @@ func TestToTitle(t *testing.T) {
 		{
 			name:  "path with underscores",
 			input: "/my_blog_posts",
-			want:  "MY_BLOG_POSTS",
+			want:  "MY BLOG POSTS",
 		},
 		{
 			name:  "complex api path",

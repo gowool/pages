@@ -1,18 +1,26 @@
 package pages
 
 import (
-	"context"
 	"net/http"
 	"strings"
-
-	"github.com/gowool/pages/internal"
 )
 
 const (
-	HeaderXPageDecorable    = "X-Page-Decorable"
-	HeaderXPageNotDecorable = "X-Page-Not-Decorable"
-	headerXRequestedWith    = "X-Requested-With"
-	xmlHTTPRequest          = "XMLHttpRequest"
+	HeaderAccept             = "Accept"
+	HeaderAcceptLanguage     = "Accept-Language"
+	HeaderContentType        = "Content-Type"
+	HeaderCFIPCountry        = "CF-IPCountry"
+	HeaderXPageDecorable     = "X-Page-Decorable"
+	HeaderXPageNotDecorable  = "X-Page-Not-Decorable"
+	HeaderXRequestedWith     = "X-Requested-With"
+	HeaderXForwardedProto    = "X-Forwarded-Proto"
+	HeaderXForwardedProtocol = "X-Forwarded-Protocol"
+	HeaderXForwardedSsl      = "X-Forwarded-Ssl"
+	HeaderXUrlScheme         = "X-Url-Scheme"
+	XMLHTTPRequest           = "XMLHttpRequest"
+	MIMEApplicationJSON      = "application/json"
+	MIMETextHTML             = "text/html"
+	MIMETextHTMLCharsetUTF8  = MIMETextHTML + "; charset=UTF-8"
 )
 
 type MiddlewareFunc func(Handler) Handler
@@ -37,42 +45,46 @@ func (f ErrorHandlerFunc) ServeHTTP(w http.ResponseWriter, r *http.Request, e er
 	f(w, r, e)
 }
 
-type PageContext struct {
-	*Context
-	Request *http.Request
-}
-
-func (c PageContext) Value(key any) any {
-	return c.Request.Context().Value(key)
-}
-
-func PageCtx() PageCtxFunc {
-	return func(r *http.Request, c *Context) any {
-		return PageContext{Context: c, Request: r}
+func Scheme(r *http.Request) string {
+	if r.TLS != nil {
+		return "https"
 	}
+	if scheme := r.Header.Get(HeaderXForwardedProto); scheme != "" {
+		return scheme
+	}
+	if scheme := r.Header.Get(HeaderXForwardedProtocol); scheme != "" {
+		return scheme
+	}
+	if ssl := r.Header.Get(HeaderXForwardedSsl); ssl == "on" {
+		return "https"
+	}
+	if scheme := r.Header.Get(HeaderXUrlScheme); scheme != "" {
+		return scheme
+	}
+	return "http"
 }
 
-func ErrorPattern() ErrorPatternFunc {
-	return func(_ context.Context, status int) string {
-		switch status {
-		case http.StatusUnauthorized:
-			return PageErrorUnauthorized
-		case http.StatusForbidden:
-			return PageErrorForbidden
-		case http.StatusNotFound:
-			return PageErrorNotFound
-		default:
-			if status >= 400 && status < 500 {
-				return PageError4xx
-			}
-			return PageError5xx
+func CheckMethod(method, pattern string) (string, bool) {
+	if index := strings.IndexRune(pattern, ' '); index > 0 {
+		if method == pattern[:index] {
+			return strings.TrimSpace(pattern[index+1:]), true
 		}
+		return "", false
 	}
+	return pattern, true
+}
+
+func Pattern(r *http.Request) string {
+	pattern := r.Pattern
+	if index := strings.IndexRune(pattern, ' '); index > -1 {
+		pattern = pattern[index+1:]
+	}
+	return pattern
 }
 
 func PatternArgs() PatternArgsFunc {
 	return func(r *http.Request) (args []any) {
-		pattern := internal.Pattern(r)
+		pattern := Pattern(r)
 
 		n := strings.Count(pattern, "{")
 		if n == 0 {
@@ -107,9 +119,9 @@ func PatternArgs() PatternArgsFunc {
 }
 
 func IsDecorable(w http.ResponseWriter, r *http.Request) bool {
-	contentType := w.Header().Get(headerContentType)
+	contentType := w.Header().Get(HeaderContentType)
 
-	if contentType != "" && !strings.HasPrefix(contentType, mimeTextHTML) {
+	if contentType != "" && !strings.HasPrefix(contentType, MIMETextHTML) {
 		return false
 	}
 
@@ -121,7 +133,7 @@ func IsDecorable(w http.ResponseWriter, r *http.Request) bool {
 		return true
 	}
 
-	if r.Header.Get(headerXRequestedWith) == xmlHTTPRequest {
+	if r.Header.Get(HeaderXRequestedWith) == XMLHTTPRequest {
 		return false
 	}
 
@@ -140,6 +152,34 @@ func ResponseStatus(w http.ResponseWriter) int {
 			continue
 		default:
 			return 0
+		}
+	}
+}
+
+func ResponseSize(w http.ResponseWriter) int64 {
+	for {
+		switch t := w.(type) {
+		case interface{ Size() int64 }:
+			return t.Size()
+		case interface{ Unwrap() http.ResponseWriter }:
+			w = t.Unwrap()
+			continue
+		default:
+			return -1
+		}
+	}
+}
+
+func ResponseCommitted(w http.ResponseWriter) bool {
+	for {
+		switch t := w.(type) {
+		case interface{ Committed() bool }:
+			return t.Committed()
+		case interface{ Unwrap() http.ResponseWriter }:
+			w = t.Unwrap()
+			continue
+		default:
+			return false
 		}
 	}
 }

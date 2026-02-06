@@ -26,7 +26,7 @@ func PrefixPathSkipper(prefixes ...string) Skipper {
 		p := strings.ToLower(r.URL.Path)
 		m := strings.ToLower(r.Method)
 		for _, prefix := range prefixes {
-			if prefix, ok := internal.CheckMethod(m, prefix); ok && strings.HasPrefix(p, prefix) {
+			if prefix, ok := CheckMethod(m, prefix); ok && strings.HasPrefix(p, prefix) {
 				return true
 			}
 		}
@@ -40,7 +40,7 @@ func SuffixPathSkipper(suffixes ...string) Skipper {
 		p := strings.ToLower(r.URL.Path)
 		m := strings.ToLower(r.Method)
 		for _, suffix := range suffixes {
-			if suffix, ok := internal.CheckMethod(m, suffix); ok && strings.HasSuffix(p, suffix) {
+			if suffix, ok := CheckMethod(m, suffix); ok && strings.HasSuffix(p, suffix) {
 				return true
 			}
 		}
@@ -51,7 +51,7 @@ func SuffixPathSkipper(suffixes ...string) Skipper {
 func EqualPathSkipper(paths ...string) Skipper {
 	return func(r *http.Request) bool {
 		for _, path := range paths {
-			if path, ok := internal.CheckMethod(r.Method, path); ok && strings.EqualFold(r.URL.Path, path) {
+			if path, ok := CheckMethod(r.Method, path); ok && strings.EqualFold(r.URL.Path, path) {
 				return true
 			}
 		}
@@ -69,7 +69,7 @@ func PageSkipper(decoratorStrategy PageDecoratorStrategy) Skipper {
 			return true
 		}
 
-		if pattern := internal.Pattern(r); pattern != PageCMSPattern {
+		if pattern := Pattern(r); pattern != PageCMSPattern {
 			return !decoratorStrategy.IsPatternDecorable(r.Context(), pattern)
 		}
 
