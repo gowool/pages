@@ -590,3 +590,205 @@ func TestResponseStatus(t *testing.T) {
 		assert.Equal(t, http.StatusAccepted, got)
 	})
 }
+
+type testSizeWriter struct {
+	http.ResponseWriter
+	size int64
+}
+
+func (w *testSizeWriter) Size() int64 {
+	return w.size
+}
+
+func (w *testSizeWriter) Unwrap() http.ResponseWriter {
+	return w.ResponseWriter
+}
+
+type testCommittedWriter struct {
+	http.ResponseWriter
+	committed bool
+}
+
+func (w *testCommittedWriter) Committed() bool {
+	return w.committed
+}
+
+func (w *testCommittedWriter) Unwrap() http.ResponseWriter {
+	return w.ResponseWriter
+}
+
+func TestResponseSize(t *testing.T) {
+	tests := []struct {
+		name     string
+		w        http.ResponseWriter
+		expected int64
+	}{
+		{
+			name:     "basic ResponseRecorder",
+			w:        httptest.NewRecorder(),
+			expected: -1,
+		},
+		{
+			name:     "writer with Size() returning 0",
+			w:        &testSizeWriter{ResponseWriter: httptest.NewRecorder(), size: 0},
+			expected: 0,
+		},
+		{
+			name:     "writer with Size() returning 100",
+			w:        &testSizeWriter{ResponseWriter: httptest.NewRecorder(), size: 100},
+			expected: 100,
+		},
+		{
+			name:     "writer with Size() returning 1024",
+			w:        &testSizeWriter{ResponseWriter: httptest.NewRecorder(), size: 1024},
+			expected: 1024,
+		},
+		{
+			name:     "writer with Size() returning large value",
+			w:        &testSizeWriter{ResponseWriter: httptest.NewRecorder(), size: 1024000},
+			expected: 1024000,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := ResponseSize(tt.w)
+			assert.Equal(t, tt.expected, got)
+		})
+	}
+
+	t.Run("unwrapping writer finds Size()", func(t *testing.T) {
+		inner := &testSizeWriter{ResponseWriter: httptest.NewRecorder(), size: 512}
+		wrapper := &testUnwrapper{ResponseWriter: inner}
+
+		got := ResponseSize(wrapper)
+		assert.Equal(t, int64(512), got)
+	})
+
+	t.Run("multiple levels of unwrapping", func(t *testing.T) {
+		inner := &testSizeWriter{ResponseWriter: httptest.NewRecorder(), size: 2048}
+		middle := &testUnwrapper{ResponseWriter: inner}
+		outer := &testUnwrapper{ResponseWriter: middle}
+
+		got := ResponseSize(outer)
+		assert.Equal(t, int64(2048), got)
+	})
+
+	t.Run("no matching interface returns -1", func(t *testing.T) {
+		w := struct {
+			http.ResponseWriter
+		}{
+			ResponseWriter: httptest.NewRecorder(),
+		}
+
+		got := ResponseSize(w)
+		assert.Equal(t, int64(-1), got)
+	})
+
+	t.Run("Size() takes precedence over unwrapping", func(t *testing.T) {
+		w := &testSizeWriter{
+			ResponseWriter: &testSizeWriter{
+				ResponseWriter: httptest.NewRecorder(),
+				size:           100,
+			},
+			size: 200,
+		}
+
+		got := ResponseSize(w)
+		assert.Equal(t, int64(200), got)
+	})
+
+	t.Run("zero size is valid", func(t *testing.T) {
+		w := &testSizeWriter{ResponseWriter: httptest.NewRecorder(), size: 0}
+
+		got := ResponseSize(w)
+		assert.Equal(t, int64(0), got)
+	})
+
+	t.Run("negative size returned as-is", func(t *testing.T) {
+		w := &testSizeWriter{ResponseWriter: httptest.NewRecorder(), size: -100}
+
+		got := ResponseSize(w)
+		assert.Equal(t, int64(-100), got)
+	})
+}
+
+func TestResponseCommitted(t *testing.T) {
+	tests := []struct {
+		name     string
+		w        http.ResponseWriter
+		expected bool
+	}{
+		{
+			name:     "basic ResponseRecorder",
+			w:        httptest.NewRecorder(),
+			expected: false,
+		},
+		{
+			name:     "writer with Committed() returning true",
+			w:        &testCommittedWriter{ResponseWriter: httptest.NewRecorder(), committed: true},
+			expected: true,
+		},
+		{
+			name:     "writer with Committed() returning false",
+			w:        &testCommittedWriter{ResponseWriter: httptest.NewRecorder(), committed: false},
+			expected: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := ResponseCommitted(tt.w)
+			assert.Equal(t, tt.expected, got)
+		})
+	}
+
+	t.Run("unwrapping writer finds Committed()", func(t *testing.T) {
+		inner := &testCommittedWriter{ResponseWriter: httptest.NewRecorder(), committed: true}
+		wrapper := &testUnwrapper{ResponseWriter: inner}
+
+		got := ResponseCommitted(wrapper)
+		assert.True(t, got)
+	})
+
+	t.Run("multiple levels of unwrapping", func(t *testing.T) {
+		inner := &testCommittedWriter{ResponseWriter: httptest.NewRecorder(), committed: true}
+		middle := &testUnwrapper{ResponseWriter: inner}
+		outer := &testUnwrapper{ResponseWriter: middle}
+
+		got := ResponseCommitted(outer)
+		assert.True(t, got)
+	})
+
+	t.Run("no matching interface returns false", func(t *testing.T) {
+		w := struct {
+			http.ResponseWriter
+		}{
+			ResponseWriter: httptest.NewRecorder(),
+		}
+
+		got := ResponseCommitted(w)
+		assert.False(t, got)
+	})
+
+	t.Run("Committed() takes precedence over unwrapping", func(t *testing.T) {
+		w := &testCommittedWriter{
+			ResponseWriter: &testCommittedWriter{
+				ResponseWriter: httptest.NewRecorder(),
+				committed:      false,
+			},
+			committed: true,
+		}
+
+		got := ResponseCommitted(w)
+		assert.True(t, got)
+	})
+
+	t.Run("unwrapped writer returns false when not committed", func(t *testing.T) {
+		inner := &testCommittedWriter{ResponseWriter: httptest.NewRecorder(), committed: false}
+		wrapper := &testUnwrapper{ResponseWriter: inner}
+
+		got := ResponseCommitted(wrapper)
+		assert.False(t, got)
+	})
+}
