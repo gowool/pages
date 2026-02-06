@@ -31,7 +31,7 @@ func (e *testContextPatternError) Error() string {
 	return "test error with context"
 }
 
-func (e *testContextPatternError) Pattern(r *http.Request, status int, err error) string {
+func (e *testContextPatternError) Pattern(*http.Request, int, error) string {
 	return e.pattern
 }
 
