@@ -101,10 +101,10 @@ func TestPageHandler(t *testing.T) {
 		site := NewSite()
 		page := NewPage()
 		page.Template = ""
-		c.SetStatus(http.StatusCreated)
 
 		c.SetSite(site)
 		c.SetPage(page)
+		c.SetStatus(http.StatusCreated)
 
 		req := httptest.NewRequest("GET", "/", nil).WithContext(ctx)
 		w := httptest.NewRecorder()
@@ -112,6 +112,30 @@ func TestPageHandler(t *testing.T) {
 		err := handler.ServeHTTP(w, req)
 
 		assert.ErrorIs(t, err, ErrTemplateEmpty)
+	})
+
+	t.Run("writes error output when template is empty", func(t *testing.T) {
+		theme := &MockTheme{content: "test"}
+		handler := NewPageHandler(theme)
+
+		ctx, _ := NewContext(context.Background())
+		c := FromContext(ctx)
+		site := NewSite()
+		page := NewPage()
+		page.Template = ""
+
+		c.SetSite(site)
+		c.SetPage(page)
+		c.SetStatus(http.StatusBadRequest)
+		c.SetError(errors.New("test error"))
+
+		req := httptest.NewRequest("GET", "/", nil).WithContext(ctx)
+		w := httptest.NewRecorder()
+
+		err := handler.ServeHTTP(w, req)
+
+		assert.NoError(t, err)
+		assert.Equal(t, http.StatusBadRequest, w.Code)
 	})
 
 	t.Run("writes template output", func(t *testing.T) {
@@ -185,7 +209,31 @@ func TestPageHandler(t *testing.T) {
 		assert.Contains(t, err.Error(), "write error")
 	})
 
-	t.Run("uses default pageCtx when nil", func(t *testing.T) {
+	t.Run("writes error output when theme write failure", func(t *testing.T) {
+		theme := &MockTheme{err: errors.New("write error")}
+		handler := NewPageHandler(theme)
+
+		ctx, _ := NewContext(context.Background())
+		c := FromContext(ctx)
+		site := NewSite()
+		page := NewPage()
+		page.Template = "test.html"
+
+		c.SetSite(site)
+		c.SetPage(page)
+		c.SetStatus(http.StatusBadRequest)
+		c.SetError(errors.New("test error"))
+
+		req := httptest.NewRequest("GET", "/", nil).WithContext(ctx)
+		w := httptest.NewRecorder()
+
+		err := handler.ServeHTTP(w, req)
+
+		assert.NoError(t, err)
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+	})
+
+	t.Run("uses default TemplateVarsFunc when nil", func(t *testing.T) {
 		theme := &MockTheme{content: "test"}
 		handler := NewPageHandler(theme)
 
@@ -207,7 +255,7 @@ func TestPageHandler(t *testing.T) {
 		assert.Equal(t, "test.html", theme.template)
 	})
 
-	t.Run("uses custom pageCtx", func(t *testing.T) {
+	t.Run("uses custom TemplateVarsFunc", func(t *testing.T) {
 		theme := &MockTheme{content: "test"}
 		customData := "custom context data"
 		handler := NewPageHandlerWithConfig(theme, PageHandlerConfig{

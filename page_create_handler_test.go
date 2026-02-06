@@ -207,6 +207,37 @@ func TestPageCreateHandler(t *testing.T) {
 		assert.ErrorIs(t, err, ErrPageNotFound)
 	})
 
+	t.Run("returns error when generator func failure", func(t *testing.T) {
+		store := &MockPageStore{}
+		authorizer := &MockPageAuthorizer{}
+		authorizer.On("Authorize", mock.Anything, CreatePage).Return(Allow)
+
+		handler := NewPageCreateHandlerWithConfig(store, authorizer, PageCreateHandlerConfig{
+			GeneratorFunc: func(context.Context) (ID, error) {
+				return "", errors.New("generator error")
+			},
+		})
+
+		ctx, _ := NewContext(context.Background())
+		c := FromContext(ctx)
+		site := NewSite()
+		site.ID = "site1"
+		site.Scheme = "http"
+		site.Host = "example.com"
+		c.SetSite(site)
+		c.SetGuest(false)
+
+		body := `{"url":"/test","template":"test.html","title":"Test"}`
+		req := httptest.NewRequest("POST", "/", strings.NewReader(body)).WithContext(ctx)
+		req.Header.Set("Content-Type", "application/json")
+		w := httptest.NewRecorder()
+
+		err := handler.ServeHTTP(w, req)
+
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "generator error")
+	})
+
 	t.Run("handles JSON content type", func(t *testing.T) {
 		store := &MockPageStore{}
 		store.On("Save", mock.Anything, mock.Anything).Return(nil)
