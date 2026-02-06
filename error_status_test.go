@@ -76,8 +76,8 @@ func (e *testContextAwareStatusError) Error() string {
 	return "context aware error"
 }
 
-func (e *testContextAwareStatusError) Status(ctx context.Context, err error) int {
-	if ctx.Value("key") != nil {
+func (e *testContextAwareStatusError) Status(ctx context.Context, _ error) int {
+	if ctx.Value(testContextAwareStatusError{}) != nil {
 		return http.StatusAccepted
 	}
 	return e.code
@@ -304,8 +304,9 @@ func TestErrorStatus(t *testing.T) {
 	})
 
 	t.Run("context is passed to Status(ctx, err) method", func(t *testing.T) {
+		ctx := context.WithValue(context.Background(), testContextAwareStatusError{}, struct{}{})
 		err := &testContextAwareStatusError{code: http.StatusBadRequest}
-		status := ErrorStatus(context.Background(), err)
+		status := ErrorStatus(ctx, err)
 
 		assert.Equal(t, http.StatusAccepted, status)
 	})
