@@ -2,12 +2,12 @@ module github.com/gowool/pages/example
 
 go 1.25
 
-replace github.com/gowool/pages => ..
+replace github.com/gowool/pages => ../
 
 require (
 	github.com/gowool/got v0.0.0-20260205154204-22d894dcd94e
-	github.com/gowool/pages v0.0.0-00010101000000-000000000000
-	github.com/gowool/r v0.0.0-20260206130146-5e19977b973b
+	github.com/gowool/pages v0.0.0-20260204215430-1fa78ee6065a
+	github.com/gowool/r v0.0.0-20260207014642-28816b597fa3
 )
 
 require (

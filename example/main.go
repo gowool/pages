@@ -17,6 +17,9 @@ import (
 var (
 	debug = true
 	guest = false
+
+	publicFS    = os.DirFS("public")
+	templatesFS = os.DirFS("templates")
 )
 
 func main() {
@@ -33,7 +36,7 @@ func main() {
 	pageManager := pages.NewPageManager(pageStore)
 	urlGenerator := pages.NewPageURLGenerator(pageManager)
 
-	theme := newTheme("main", os.DirFS("templates"))
+	theme := newTheme("main", templatesFS)
 	theme.SetParent(newTheme(".", pages.ErrorTemplateFS))
 	theme.SetDebug(debug)
 	theme.AddFuncMap(got.Funcs)
@@ -50,10 +53,11 @@ func main() {
 	})
 
 	pageSkipper := pages.PageSkipper(strategy)
+	faviconSkip := pages.EqualPathSkipper("/favicon.ico")
 
-	selectSite := pages.SelectSiteMiddleware(siteRetriever)
-	selectPage := pages.SelectPageMiddleware(pageManager, authorizer, pages.PatternArgs(), pageSkipper)
-	hybridPage := pages.HybridPageMiddleware(pageHandler, logger, pageSkipper)
+	selectSite := pages.SelectSiteMiddleware(siteRetriever, faviconSkip)
+	selectPage := pages.SelectPageMiddleware(pageManager, authorizer, pages.PatternArgs(), faviconSkip, pageSkipper)
+	hybridPage := pages.HybridPageMiddleware(pageHandler, logger, faviconSkip, pageSkipper)
 
 	errorPattern := pages.NewHTTPErrorPattern(authorizer, strategy)
 	errorHandler := pages.NewHTTPErrorHandlerWithConfig(pageHandler, pageManager, errorPattern, pages.HTTPErrorHandlerConfig{
@@ -76,17 +80,13 @@ func main() {
 
 	router.GET(pages.PageCMSPattern, pageHandler)
 	router.POST("/_/create", pageCreate)
-
-	next, err := router.Build()
-	if err != nil {
-		panic(err)
-	}
+	router.GET("/favicon.ico", r.FileFS(publicFS, "favicon.ico"))
 
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx, cancel := pages.NewContext(r.Context())
 		defer cancel()
 
-		next.ServeHTTP(w, r.WithContext(ctx))
+		router.ServeHTTP(w, r.WithContext(ctx))
 	})
 
 	syncer := pages.NewDefaultPageSyncer(
