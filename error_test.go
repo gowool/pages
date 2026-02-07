@@ -304,8 +304,7 @@ func TestErrorVariableTypes(t *testing.T) {
 	})
 
 	t.Run("RedirectError implements error interface", func(t *testing.T) {
-		var err error
-		err = NewRedirectError("/test", 302)
+		err := NewRedirectError("/test", 302)
 		assert.NotNil(t, err)
 		assert.Equal(t, "[302] /test", err.Error())
 	})
