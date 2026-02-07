@@ -6,12 +6,13 @@ import (
 	"errors"
 	"net/http"
 
+	"github.com/gowool/r"
 	"github.com/invopop/validation"
 )
 
 // ErrorStatus returns an error status code.
 func ErrorStatus(ctx context.Context, err error) int {
-	if errors.Is(err, ErrPageNotFound) || errors.Is(err, sql.ErrNoRows) {
+	if errors.Is(err, ErrPageNotFound) || errors.Is(err, sql.ErrNoRows) || errors.Is(err, r.ErrFileNotFound) {
 		return http.StatusNotFound
 	}
 

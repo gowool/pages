@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"testing"
 
+	"github.com/gowool/r"
 	"github.com/invopop/validation"
 	"github.com/stretchr/testify/assert"
 )
@@ -106,6 +107,13 @@ func TestErrorStatus(t *testing.T) {
 	t.Run("sql.ErrNoRows returns 404", func(t *testing.T) {
 		ctx := context.Background()
 		status := ErrorStatus(ctx, sql.ErrNoRows)
+
+		assert.Equal(t, http.StatusNotFound, status)
+	})
+
+	t.Run("r.ErrFileNotFound returns 404", func(t *testing.T) {
+		ctx := context.Background()
+		status := ErrorStatus(ctx, r.ErrFileNotFound)
 
 		assert.Equal(t, http.StatusNotFound, status)
 	})
