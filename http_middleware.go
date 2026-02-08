@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"sync"
 
+	"github.com/gowool/gor/middleware"
 	"github.com/gowool/pages/internal"
 )
 
@@ -18,7 +19,7 @@ func SelectSiteMiddleware(retriever SiteRetriever, skippers ...Skipper) func(Han
 		panic("middleware: select site: retriever is required")
 	}
 
-	skip := ChainSkipper(skippers...)
+	skip := middleware.ChainSkipper(skippers...)
 
 	return func(next Handler) Handler {
 		return HandlerFunc(func(w http.ResponseWriter, r *http.Request) error {
@@ -26,10 +27,7 @@ func SelectSiteMiddleware(retriever SiteRetriever, skippers ...Skipper) func(Han
 				return next.ServeHTTP(w, r)
 			}
 
-			c := FromContext(r.Context())
-			if c == nil {
-				panic("middleware: select site: context is required")
-			}
+			c := MustContext(r.Context())
 
 			site, pathInfo, err := retriever.Retrieve(r)
 			if err != nil {
@@ -72,7 +70,7 @@ func SelectPageMiddleware(manager PageManager, authorizer PageAuthorizer, patter
 		patternArgs = PatternArgs()
 	}
 
-	skip := ChainSkipper(skippers...)
+	skip := middleware.ChainSkipper(skippers...)
 
 	findPage := func(r *http.Request, site *Site) (page *Page, err error) {
 		if pattern := Pattern(r); pattern != PageCMSPattern {
@@ -166,14 +164,11 @@ func HybridPageMiddleware(pageHandler Handler, logger *slog.Logger, skippers ...
 	logger = logger.WithGroup("hybrid_page")
 
 	skippers = append(skippers, func(r *http.Request) bool {
-		c := FromContext(r.Context())
-		if c == nil {
-			panic("middleware: hybrid page: context is required")
-		}
+		c := MustContext(r.Context())
 		return c.HasPage() && !c.Page().IsHybrid()
 	})
 
-	skip := ChainSkipper(skippers...)
+	skip := middleware.ChainSkipper(skippers...)
 
 	pool := &sync.Pool{
 		New: func() any {
@@ -187,7 +182,7 @@ func HybridPageMiddleware(pageHandler Handler, logger *slog.Logger, skippers ...
 				return next.ServeHTTP(w, r)
 			}
 
-			c := FromContext(r.Context())
+			c := MustContext(r.Context())
 			if !c.HasPage() {
 				return fmt.Errorf("middleware: hybrid page: %w", ErrPageNotFound)
 			}
@@ -209,8 +204,8 @@ func HybridPageMiddleware(pageHandler Handler, logger *slog.Logger, skippers ...
 				return fmt.Errorf("middleware: hybrid page: %w", err)
 			}
 
-			if response.status > 0 {
-				c.SetStatus(response.status)
+			if response.code > 0 {
+				c.SetStatus(response.code)
 			}
 
 			buffer := response.buffer.Bytes()
@@ -235,32 +230,32 @@ func HybridPageMiddleware(pageHandler Handler, logger *slog.Logger, skippers ...
 
 type delayedWriter struct {
 	http.ResponseWriter
-	buffer   bytes.Buffer
-	commited bool
-	status   int
+	buffer    bytes.Buffer
+	committed bool
+	code      int
 }
 
 func (w *delayedWriter) reset(rw http.ResponseWriter) {
 	w.ResponseWriter = rw
 	w.buffer.Reset()
-	w.commited = false
-	w.status = http.StatusOK
+	w.committed = false
+	w.code = http.StatusOK
+}
+
+func (w *delayedWriter) StatusCode() int {
+	return w.code
 }
 
 func (w *delayedWriter) WriteHeader(statusCode int) {
-	w.status = statusCode
-	w.commited = true
+	w.code = statusCode
+	w.committed = true
 }
 
 func (w *delayedWriter) Write(data []byte) (int, error) {
-	if !w.commited {
+	if !w.committed {
 		w.WriteHeader(http.StatusOK)
 	}
 	return w.buffer.Write(data)
-}
-
-func (w *delayedWriter) Status() int {
-	return w.status
 }
 
 func (w *delayedWriter) Unwrap() http.ResponseWriter {

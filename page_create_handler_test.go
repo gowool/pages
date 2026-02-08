@@ -263,13 +263,10 @@ func TestPageCreateHandler(t *testing.T) {
 
 		err := handler.ServeHTTP(w, req)
 
-		assert.NotNil(t, err)
+		assert.Nil(t, err)
 
-		var redirect *RedirectError
-		assert.ErrorAs(t, err, &redirect)
-
-		assert.Equal(t, http.StatusFound, redirect.status)
-		assert.Equal(t, "http://example.com/test", redirect.url)
+		assert.Equal(t, http.StatusFound, w.Code)
+		assert.Equal(t, "http://example.com/test", w.Header().Get("Location"))
 		store.AssertExpectations(t)
 	})
 
@@ -298,13 +295,10 @@ func TestPageCreateHandler(t *testing.T) {
 
 		err := handler.ServeHTTP(w, req)
 
-		assert.NotNil(t, err)
+		assert.Nil(t, err)
 
-		var redirect *RedirectError
-		assert.ErrorAs(t, err, &redirect)
-
-		assert.Equal(t, http.StatusFound, redirect.status)
-		assert.Equal(t, "http://example.com/test", redirect.url)
+		assert.Equal(t, http.StatusFound, w.Code)
+		assert.Equal(t, "http://example.com/test", w.Header().Get("Location"))
 		store.AssertExpectations(t)
 	})
 
@@ -331,13 +325,10 @@ func TestPageCreateHandler(t *testing.T) {
 
 		err := handler.ServeHTTP(w, req)
 
-		assert.NotNil(t, err)
+		assert.Nil(t, err)
 
-		var redirect *RedirectError
-		assert.ErrorAs(t, err, &redirect)
-
-		assert.Equal(t, http.StatusFound, redirect.status)
-		assert.Equal(t, "https://localhost/test", redirect.url)
+		assert.Equal(t, http.StatusFound, w.Code)
+		assert.Equal(t, "https://localhost/test", w.Header().Get("Location"))
 	})
 
 	t.Run("prepends slash to URL if missing", func(t *testing.T) {
@@ -363,13 +354,10 @@ func TestPageCreateHandler(t *testing.T) {
 
 		err := handler.ServeHTTP(w, req)
 
-		assert.NotNil(t, err)
+		assert.Nil(t, err)
 
-		var redirect *RedirectError
-		assert.ErrorAs(t, err, &redirect)
-
-		assert.Equal(t, http.StatusFound, redirect.status)
-		assert.Equal(t, "https://localhost/test", redirect.url)
+		assert.Equal(t, http.StatusFound, w.Code)
+		assert.Equal(t, "https://localhost/test", w.Header().Get("Location"))
 	})
 
 	t.Run("returns error on JSON decode failure", func(t *testing.T) {
@@ -471,13 +459,10 @@ func TestPageCreateHandler(t *testing.T) {
 
 		err := handler.ServeHTTP(w, req)
 
-		assert.NotNil(t, err)
+		assert.Nil(t, err)
 
-		var redirect *RedirectError
-		assert.ErrorAs(t, err, &redirect)
-
-		assert.Equal(t, http.StatusFound, redirect.status)
-		assert.Equal(t, "https://localhost/parent/child", redirect.url)
+		assert.Equal(t, http.StatusFound, w.Code)
+		assert.Equal(t, "https://localhost/parent/child", w.Header().Get("Location"))
 		store.AssertExpectations(t)
 	})
 
@@ -504,13 +489,10 @@ func TestPageCreateHandler(t *testing.T) {
 
 		err := handler.ServeHTTP(w, req)
 
-		assert.NotNil(t, err)
+		assert.Nil(t, err)
 
-		var redirect *RedirectError
-		assert.ErrorAs(t, err, &redirect)
-
-		assert.Equal(t, http.StatusFound, redirect.status)
-		assert.Equal(t, "https://localhost", redirect.url)
+		assert.Equal(t, http.StatusFound, w.Code)
+		assert.Equal(t, "https://localhost", w.Header().Get("Location"))
 		store.AssertExpectations(t)
 	})
 
@@ -602,14 +584,11 @@ func TestPageCreateHandler(t *testing.T) {
 
 		err := handler.ServeHTTP(w, req)
 
-		assert.NotNil(t, err)
+		assert.Nil(t, err)
 		assert.True(t, beforeSaveCalled)
 
-		var redirect *RedirectError
-		assert.ErrorAs(t, err, &redirect)
-
-		assert.Equal(t, http.StatusFound, redirect.status)
-		assert.Equal(t, "https://localhost/test", redirect.url)
+		assert.Equal(t, http.StatusFound, w.Code)
+		assert.Equal(t, "https://localhost/test", w.Header().Get("Location"))
 		store.AssertExpectations(t)
 	})
 }

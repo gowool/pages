@@ -33,17 +33,17 @@ func TestDelayedWriter(t *testing.T) {
 
 		assert.Equal(t, rw, w.ResponseWriter)
 		assert.Equal(t, 0, w.buffer.Len())
-		assert.False(t, w.commited)
-		assert.Equal(t, http.StatusOK, w.status)
+		assert.False(t, w.committed)
+		assert.Equal(t, http.StatusOK, w.code)
 	})
 
-	t.Run("WriteHeader tracks status", func(t *testing.T) {
+	t.Run("WriteHeader tracks code", func(t *testing.T) {
 		w := &delayedWriter{}
 
 		w.WriteHeader(http.StatusCreated)
 
-		assert.Equal(t, http.StatusCreated, w.status)
-		assert.True(t, w.commited)
+		assert.Equal(t, http.StatusCreated, w.code)
+		assert.True(t, w.committed)
 	})
 
 	t.Run("Write buffers data", func(t *testing.T) {
@@ -55,7 +55,7 @@ func TestDelayedWriter(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, len(data), n)
 		assert.Equal(t, "test data", w.buffer.String())
-		assert.True(t, w.commited)
+		assert.True(t, w.committed)
 	})
 
 	t.Run("Write commits if not already committed", func(t *testing.T) {
@@ -65,8 +65,8 @@ func TestDelayedWriter(t *testing.T) {
 
 		assert.NoError(t, err)
 		assert.Equal(t, 4, n)
-		assert.Equal(t, http.StatusOK, w.status)
-		assert.True(t, w.commited)
+		assert.Equal(t, http.StatusOK, w.code)
+		assert.True(t, w.committed)
 	})
 
 	t.Run("Unwrap returns ResponseWriter", func(t *testing.T) {
@@ -1034,7 +1034,7 @@ func TestHybridPageMiddleware(t *testing.T) {
 		assert.Equal(t, "1", w.Header().Get(HeaderXPageNotDecorable))
 	})
 
-	t.Run("status > 0 sets context status", func(t *testing.T) {
+	t.Run("code > 0 sets context code", func(t *testing.T) {
 		pageHandler := HandlerFunc(func(w http.ResponseWriter, r *http.Request) error {
 			return nil
 		})
@@ -1359,7 +1359,7 @@ func TestHybridPageMiddleware(t *testing.T) {
 		assert.Equal(t, "test content", w.Body.String())
 	})
 
-	t.Run("non-OK status writes response", func(t *testing.T) {
+	t.Run("non-OK code writes response", func(t *testing.T) {
 		pageHandler := HandlerFunc(func(w http.ResponseWriter, r *http.Request) error {
 			return nil
 		})

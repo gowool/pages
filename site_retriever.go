@@ -6,6 +6,7 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/gowool/gor"
 	"github.com/gowool/pages/internal"
 	"golang.org/x/text/language"
 )
@@ -29,7 +30,7 @@ type HTTPSiteRetrieverConfig struct {
 func (c *HTTPSiteRetrieverConfig) SetDefaults() {
 	if c.CountryFunc == nil {
 		c.CountryFunc = func(r *http.Request) (string, error) {
-			return strings.ToUpper(r.Header.Get(HeaderCFIPCountry)), nil
+			return strings.ToUpper(r.Header.Get(gor.HeaderCFIPCountry)), nil
 		}
 	}
 
@@ -180,7 +181,7 @@ func (s *HTTPSiteRetriever) candidate(r *http.Request, candidates []candidate, c
 }
 
 func (s *HTTPSiteRetriever) language(r *http.Request, candidateTags map[language.Tag]candidate, defaultCandidate candidate) (*Site, string) {
-	t, _, err := language.ParseAcceptLanguage(r.Header.Get(HeaderAcceptLanguage))
+	t, _, err := language.ParseAcceptLanguage(r.Header.Get(gor.HeaderAcceptLanguage))
 	if err != nil || len(t) == 0 {
 		return defaultCandidate.site, defaultCandidate.path
 	}

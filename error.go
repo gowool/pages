@@ -1,9 +1,6 @@
 package pages
 
-import (
-	"errors"
-	"fmt"
-)
+import "errors"
 
 var (
 	ErrSiteNotFound     = errors.New("site not found")
@@ -13,20 +10,3 @@ var (
 	ErrUniqueViolation  = errors.New("unique violation")
 	ErrTemplateEmpty    = errors.New("template is empty")
 )
-
-type RedirectError struct {
-	url    string
-	status int
-}
-
-func NewRedirectError(url string, status int) *RedirectError {
-	return &RedirectError{url, status}
-}
-
-func (e *RedirectError) Error() string {
-	return fmt.Sprintf("[%d] %s", e.status, e.url)
-}
-
-func (e *RedirectError) Redirect() (string, int) {
-	return e.url, e.status
-}

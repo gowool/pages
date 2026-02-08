@@ -3,24 +3,35 @@ package main
 import (
 	"context"
 	"errors"
+	"flag"
 	"io/fs"
 	"log/slog"
 	"net/http"
 	"os"
+	"slices"
 
+	"github.com/danielgtaylor/huma/v2"
+	"github.com/gowool/gor"
+	"github.com/gowool/gor/adapter"
+	"github.com/gowool/gor/middleware"
 	"github.com/gowool/got"
 	"github.com/gowool/pages"
 	"github.com/gowool/pages/internal"
-	"github.com/gowool/r"
 )
 
 var (
-	debug = true
+	debug = false
 	guest = false
 
 	publicFS    = os.DirFS("public")
 	templatesFS = os.DirFS("templates")
 )
+
+func init() {
+	flag.BoolVar(&debug, "debug", false, "debug mode")
+	flag.BoolVar(&guest, "guest", false, "guest mode")
+	flag.Parse()
+}
 
 func main() {
 	logger := slog.Default()
@@ -53,20 +64,21 @@ func main() {
 	})
 
 	pageSkipper := pages.PageSkipper(strategy)
-	faviconSkip := pages.EqualPathSkipper("/favicon.ico")
+	faviconSkip := middleware.EqualPathSkipper("/favicon.ico")
+	apiSkip := middleware.PrefixPathSkipper("/api")
 
-	selectSite := pages.SelectSiteMiddleware(siteRetriever, faviconSkip)
-	selectPage := pages.SelectPageMiddleware(pageManager, authorizer, pages.PatternArgs(), faviconSkip, pageSkipper)
-	hybridPage := pages.HybridPageMiddleware(pageHandler, logger, faviconSkip, pageSkipper)
+	selectSite := pages.SelectSiteMiddleware(siteRetriever, faviconSkip, apiSkip)
+	selectPage := pages.SelectPageMiddleware(pageManager, authorizer, pages.PatternArgs(), faviconSkip, apiSkip, pageSkipper)
+	hybridPage := pages.HybridPageMiddleware(pageHandler, logger, faviconSkip, apiSkip, pageSkipper)
 
 	errorPattern := pages.NewHTTPErrorPattern(authorizer, strategy)
 	errorHandler := pages.NewHTTPErrorHandlerWithConfig(pageHandler, pageManager, errorPattern, pages.HTTPErrorHandlerConfig{
 		Logger: logger,
 	})
 
-	router := r.NewRouter(errorHandler)
-	router.PreFunc(func(next r.Handler) r.Handler {
-		return r.HandlerFunc(func(w http.ResponseWriter, r *http.Request) error {
+	router := gor.NewRouter(errorHandler)
+	router.PreFunc(func(next gor.Handler) gor.Handler {
+		return gor.HandlerFunc(func(w http.ResponseWriter, r *http.Request) error {
 			c := pages.MustContext(r.Context())
 			c.SetDebug(debug)
 			c.SetGuest(guest)
@@ -74,19 +86,42 @@ func main() {
 			return next.ServeHTTP(w, r)
 		})
 	})
+	router.PreFunc(middleware.RequestLogger(middleware.RequestLoggerConfig{
+		Logger:          logger,
+		ErrorStatusFunc: pages.ErrorStatus,
+	}))
 	router.PreFunc(selectSite)
-	router.UseFunc(selectPage)
-	router.UseFunc(hybridPage)
 
-	router.GET(pages.PageCMSPattern, pageHandler)
-	router.POST("/_/create", pageCreate)
-	router.GET("/favicon.ico", r.FileFS(publicFS, "favicon.ico"))
+	router.GET("/favicon.ico", gor.FileFS(publicFS, "favicon.ico"))
+
+	front := router.Group("")
+	front.UseFunc(selectPage)
+	front.UseFunc(hybridPage)
+
+	front.GET(pages.PageCMSPattern, pageHandler)
+	front.POST("/_/create", pageCreate)
 
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx, cancel := pages.NewContext(r.Context())
 		defer cancel()
 
 		router.ServeHTTP(w, r.WithContext(ctx))
+	})
+
+	humaConfig := huma.DefaultConfig("Wool Pages", "0.0.1")
+	humaConfig.Servers = []*huma.Server{{URL: "/api"}}
+
+	humaAPI := huma.NewAPI(humaConfig, adapter.NewAdapter(&humRouter{
+		Handler:     handler,
+		RouterGroup: router.Group("/api"),
+	}))
+
+	apiV1 := huma.NewGroup(humaAPI, "/v1")
+
+	huma.Get(apiV1, "/patterns", func(ctx context.Context, _ *struct{}) (*humaResponse[[]string], error) {
+		return &humaResponse[[]string]{
+			Body: slices.Collect(router.Patterns()),
+		}, nil
 	})
 
 	syncer := pages.NewDefaultPageSyncer(
@@ -154,4 +189,13 @@ func (PageAuthorizer) Authorize(ctx context.Context, action pages.PageAction) pa
 		return pages.Deny
 	}
 	return pages.Allow
+}
+
+type humRouter struct {
+	http.Handler
+	*gor.RouterGroup
+}
+
+type humaResponse[T any] struct {
+	Body T
 }

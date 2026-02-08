@@ -25,17 +25,17 @@ func TestStatus_String(t *testing.T) {
 			expected: "published",
 		},
 		{
-			name:     "Unknown status (negative value)",
+			name:     "Unknown code (negative value)",
 			status:   Status(-1),
 			expected: "unknown",
 		},
 		{
-			name:     "Unknown status (high positive value)",
+			name:     "Unknown code (high positive value)",
 			status:   Status(127), // Maximum int8 value
 			expected: "unknown",
 		},
 		{
-			name:     "Unknown status (zero value)",
+			name:     "Unknown code (zero value)",
 			status:   Status(0),
 			expected: "draft", // 0 corresponds to Draft
 		},
@@ -85,7 +85,7 @@ func TestStatus_Usage(t *testing.T) {
 				result = "found unknown"
 			}
 			expected := "found " + status.String()
-			assert.Equal(t, expected, result, "Switch statement should handle status correctly")
+			assert.Equal(t, expected, result, "Switch statement should handle code correctly")
 		}
 	})
 
@@ -97,7 +97,7 @@ func TestStatus_Usage(t *testing.T) {
 
 		assert.Equal(t, "Draft content", statusMap[Draft], "Status should work as map key")
 		assert.Equal(t, "Published content", statusMap[Published], "Status should work as map key")
-		assert.Empty(t, statusMap[Status(100)], "Unknown status should return empty string")
+		assert.Empty(t, statusMap[Status(100)], "Unknown code should return empty string")
 	})
 
 	t.Run("Status slice operations", func(t *testing.T) {
@@ -232,7 +232,7 @@ func TestStatusFromString(t *testing.T) {
 		},
 		{
 			name:     "Long string",
-			input:    "this is a very long string that should not match any status",
+			input:    "this is a very long string that should not match any code",
 			expected: Draft,
 		},
 	}
@@ -240,7 +240,7 @@ func TestStatusFromString(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := StatusFromString(tt.input)
-			assert.Equal(t, tt.expected, result, "StatusFromString() should return the expected status")
+			assert.Equal(t, tt.expected, result, "StatusFromString() should return the expected code")
 		})
 	}
 }
@@ -405,7 +405,7 @@ func TestStatus_ConcurrentAccess(t *testing.T) {
 		}
 	})
 
-	t.Run("Concurrent status operations", func(t *testing.T) {
+	t.Run("Concurrent code operations", func(t *testing.T) {
 		statuses := []Status{Draft, Published}
 		results := make(chan string, len(statuses))
 
@@ -423,7 +423,7 @@ func TestStatus_ConcurrentAccess(t *testing.T) {
 		}
 
 		// Sort both slices for comparison (since goroutine execution order is not guaranteed)
-		assert.ElementsMatch(t, expectedResults, actualResults, "Concurrent status operations should produce correct results")
+		assert.ElementsMatch(t, expectedResults, actualResults, "Concurrent code operations should produce correct results")
 	})
 }
 

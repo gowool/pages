@@ -1,12 +1,15 @@
 package pages
 
 import (
-	"context"
 	"embed"
 	"encoding/json"
+	"errors"
 	"log/slog"
 	"net/http"
 	"strings"
+
+	"github.com/gowool/gor"
+	"github.com/gowool/gor/middleware"
 )
 
 var _ ErrorHandler = (*HTTPErrorHandler)(nil)
@@ -14,17 +17,14 @@ var _ ErrorHandler = (*HTTPErrorHandler)(nil)
 //go:embed error.gohtml
 var ErrorTemplateFS embed.FS
 
-// ErrorStatusFunc return an error status code.
-type ErrorStatusFunc func(context.Context, error) int
-
 type HTTPErrorHandlerConfig struct {
 	// FallbackTemplate is a template name for fallback error page.
 	// The fallback template is used when the error page is not found
 	// by pattern, also the Site and Page variables could not be provided.
 	FallbackTemplate string
 
-	// StatusFunc returns an error status code.
-	StatusFunc ErrorStatusFunc
+	// StatusFunc returns an error code code.
+	StatusFunc middleware.ErrorStatusFunc
 
 	// JSONHandler is a handler for JSON error responses.
 	JSONHandler http.Handler
@@ -56,11 +56,11 @@ func (cfg *HTTPErrorHandlerConfig) SetDefaults() {
 func (cfg *HTTPErrorHandlerConfig) jsonHandler(w http.ResponseWriter, r *http.Request) {
 	c := MustContext(r.Context())
 
-	w.Header().Set(HeaderContentType, MIMEApplicationJSON)
+	w.Header().Set(gor.HeaderContentType, gor.MIMEApplicationJSON)
 	w.WriteHeader(c.Status())
 
 	data := map[string]any{
-		"status":  c.Status(),
+		"code":    c.Status(),
 		"message": http.StatusText(c.Status()),
 	}
 
@@ -73,6 +73,11 @@ func (cfg *HTTPErrorHandlerConfig) jsonHandler(w http.ResponseWriter, r *http.Re
 	}
 
 	if c.HasError() {
+		var httpErr *gor.HTTPError
+		if errors.As(c.Error(), &httpErr) && httpErr.Message != "" {
+			data["message"] = httpErr.Message
+		}
+
 		if c.Status() == http.StatusUnprocessableEntity {
 			data["data"] = c.Error()
 		} else if c.Debug() {
@@ -91,7 +96,7 @@ type HTTPErrorHandler struct {
 	pageHandler      Handler
 	manager          PageManager
 	errPattern       ErrorPattern
-	errStatusFunc    ErrorStatusFunc
+	errStatusFunc    middleware.ErrorStatusFunc
 	logger           *slog.Logger
 }
 
@@ -123,12 +128,13 @@ func NewHTTPErrorHandlerWithConfig(pageHandler Handler, manager PageManager, err
 }
 
 func (h *HTTPErrorHandler) ServeHTTP(w http.ResponseWriter, r *http.Request, e error) {
-	ctx := r.Context()
-	status := h.errStatusFunc(ctx, e)
-
-	if h.redirect(w, r, status, e) {
+	if committer := gor.ResponseCommitter(w); committer != nil && committer.Committed() {
+		h.logger.Warn("response is committed, skip error handler", "error", e)
 		return
 	}
+
+	ctx := r.Context()
+	status := h.errStatusFunc(ctx, e)
 
 	c := MustContext(ctx)
 	c.SetError(e)
@@ -136,16 +142,10 @@ func (h *HTTPErrorHandler) ServeHTTP(w http.ResponseWriter, r *http.Request, e e
 	c.SetStatus(status)
 
 	defer h.logger.Error("request failed",
-		slog.Int("status", c.Status()),
+		slog.Int("code", c.Status()),
 		slog.String("method", r.Method),
-		slog.String("protocol", r.Proto),
-		slog.String("host", r.Host),
-		slog.String("pattern", r.Pattern),
-		slog.String("uri", r.RequestURI),
+		slog.Int("status_code", status),
 		slog.String("path", r.URL.Path),
-		slog.String("remote_addr", r.RemoteAddr),
-		slog.String("referer", r.Referer()),
-		slog.String("user_agent", r.UserAgent()),
 		slog.Bool("debug", c.Debug()),
 		slog.Bool("guest", c.Guest()),
 		slog.Any("error", e),
@@ -156,7 +156,7 @@ func (h *HTTPErrorHandler) ServeHTTP(w http.ResponseWriter, r *http.Request, e e
 		return
 	}
 
-	if strings.Contains(r.Header.Get(HeaderAccept), MIMEApplicationJSON) {
+	if strings.Contains(r.Header.Get(gor.HeaderAccept), gor.MIMEApplicationJSON) {
 		h.jsonHandler.ServeHTTP(w, r)
 		return
 	}
@@ -184,41 +184,6 @@ func (h *HTTPErrorHandler) ServeHTTP(w http.ResponseWriter, r *http.Request, e e
 	c.SetPage(page)
 
 	h.serveHTTP(w, r)
-}
-
-func (h *HTTPErrorHandler) redirect(w http.ResponseWriter, r *http.Request, status int, err error) bool {
-	switch status {
-	case http.StatusMovedPermanently, http.StatusFound, http.StatusTemporaryRedirect, http.StatusPermanentRedirect:
-		var uri string
-	Loop:
-		for {
-			switch t := err.(type) {
-			case interface{ Redirect() (string, int) }:
-				uri, _ = t.Redirect()
-				break Loop
-			case interface{ URI() string }:
-				uri = t.URI()
-				break Loop
-			case interface{ URL() string }:
-				uri = t.URL()
-				break Loop
-			case interface{ Unwrap() error }:
-				err = t.Unwrap()
-				continue
-			default:
-				break Loop
-			}
-		}
-		if uri == "" {
-			uri = "/"
-		}
-
-		http.Redirect(w, r, uri, status)
-
-		return true
-	default:
-		return false
-	}
 }
 
 func (h *HTTPErrorHandler) serveHTTP(w http.ResponseWriter, r *http.Request) {

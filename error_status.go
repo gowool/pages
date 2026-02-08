@@ -6,13 +6,17 @@ import (
 	"errors"
 	"net/http"
 
-	"github.com/gowool/r"
+	"github.com/gowool/gor"
 	"github.com/invopop/validation"
 )
 
-// ErrorStatus returns an error status code.
-func ErrorStatus(ctx context.Context, err error) int {
-	if errors.Is(err, ErrPageNotFound) || errors.Is(err, sql.ErrNoRows) || errors.Is(err, r.ErrFileNotFound) {
+// ErrorStatus returns an error code code.
+func ErrorStatus(_ context.Context, err error) int {
+	if err == nil {
+		return http.StatusInternalServerError
+	}
+
+	if errors.Is(err, ErrPageNotFound) || errors.Is(err, sql.ErrNoRows) || errors.Is(err, gor.ErrFileNotFound) {
 		return http.StatusNotFound
 	}
 
@@ -33,25 +37,5 @@ func ErrorStatus(ctx context.Context, err error) int {
 		return http.StatusUnprocessableEntity
 	}
 
-	e := err
-	for {
-		switch t := e.(type) {
-		case interface{ StatusCode() int }:
-			return t.StatusCode()
-		case interface{ Status() int }:
-			return t.Status()
-		case interface {
-			Status(context.Context, error) int
-		}:
-			return t.Status(ctx, err)
-		case interface{ Redirect() (string, int) }:
-			_, status := t.Redirect()
-			return status
-		case interface{ Unwrap() error }:
-			e = t.Unwrap()
-			continue
-		default:
-			return http.StatusInternalServerError
-		}
-	}
+	return gor.HTTPErrorStatusCode(err)
 }

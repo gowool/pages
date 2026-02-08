@@ -100,7 +100,7 @@ func TestLocalhostSiteStore_FindPublished(t *testing.T) {
 		// Both sites should have same basic properties (but are different instances)
 		assert.Equal(t, site1.Name, site2.Name, "Both sites should have same name")
 		assert.Equal(t, site1.Host, site2.Host, "Both sites should have same host")
-		assert.Equal(t, site1.Status, site2.Status, "Both sites should have same status")
+		assert.Equal(t, site1.Status, site2.Status, "Both sites should have same code")
 		assert.NotSame(t, site1, site2, "Sites should be different instances")
 	})
 

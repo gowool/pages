@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/gowool/r"
+	"github.com/gowool/gor"
 	"github.com/invopop/validation"
 	"github.com/stretchr/testify/assert"
 )
@@ -17,34 +17,10 @@ type testStatusCodeError struct {
 }
 
 func (e *testStatusCodeError) Error() string {
-	return "test status code error"
+	return "test code code error"
 }
 
 func (e *testStatusCodeError) StatusCode() int {
-	return e.code
-}
-
-type testStatusError struct {
-	code int
-}
-
-func (e *testStatusError) Error() string {
-	return "test status error"
-}
-
-func (e *testStatusError) Status() int {
-	return e.code
-}
-
-type testContextStatusError struct {
-	code int
-}
-
-func (e *testContextStatusError) Error() string {
-	return "test context status error"
-}
-
-func (e *testContextStatusError) Status(context.Context, error) int {
 	return e.code
 }
 
@@ -58,42 +34,6 @@ func (e *testStatusWrapper) Error() string {
 
 func (e *testStatusWrapper) Unwrap() error {
 	return e.base
-}
-
-type testBothStatusError struct {
-	testStatusCodeError
-	testStatusError
-}
-
-func (e *testBothStatusError) Error() string {
-	return e.testStatusCodeError.Error()
-}
-
-type testContextAwareStatusError struct {
-	code int
-}
-
-func (e *testContextAwareStatusError) Error() string {
-	return "context aware error"
-}
-
-func (e *testContextAwareStatusError) Status(ctx context.Context, _ error) int {
-	if ctx.Value(testContextAwareStatusError{}) != nil {
-		return http.StatusAccepted
-	}
-	return e.code
-}
-
-type testSimpleStatus struct {
-	code int
-}
-
-func (e *testSimpleStatus) Error() string {
-	return "simple status"
-}
-
-func (e *testSimpleStatus) Status() int {
-	return e.code
 }
 
 func TestErrorStatus(t *testing.T) {
@@ -111,9 +51,9 @@ func TestErrorStatus(t *testing.T) {
 		assert.Equal(t, http.StatusNotFound, status)
 	})
 
-	t.Run("r.ErrFileNotFound returns 404", func(t *testing.T) {
+	t.Run("gor.ErrFileNotFound returns 404", func(t *testing.T) {
 		ctx := context.Background()
-		status := ErrorStatus(ctx, r.ErrFileNotFound)
+		status := ErrorStatus(ctx, gor.ErrFileNotFound)
 
 		assert.Equal(t, http.StatusNotFound, status)
 	})
@@ -165,67 +105,9 @@ func TestErrorStatus(t *testing.T) {
 		assert.Equal(t, http.StatusBadRequest, status)
 	})
 
-	t.Run("error with Status() method", func(t *testing.T) {
-		ctx := context.Background()
-		err := &testStatusError{code: http.StatusBadRequest}
-		status := ErrorStatus(ctx, err)
-
-		assert.Equal(t, http.StatusBadRequest, status)
-	})
-
-	t.Run("error with Status(ctx, err) method", func(t *testing.T) {
-		ctx := context.Background()
-		err := &testContextStatusError{code: http.StatusBadRequest}
-		status := ErrorStatus(ctx, err)
-
-		assert.Equal(t, http.StatusBadRequest, status)
-	})
-
-	t.Run("RedirectError returns redirect status", func(t *testing.T) {
-		ctx := context.Background()
-		err := NewRedirectError("/new-location", http.StatusFound)
-		status := ErrorStatus(ctx, err)
-
-		assert.Equal(t, http.StatusFound, status)
-	})
-
-	t.Run("RedirectError with 301 status", func(t *testing.T) {
-		ctx := context.Background()
-		err := NewRedirectError("/permanent", http.StatusMovedPermanently)
-		status := ErrorStatus(ctx, err)
-
-		assert.Equal(t, http.StatusMovedPermanently, status)
-	})
-
-	t.Run("RedirectError with 307 status", func(t *testing.T) {
-		ctx := context.Background()
-		err := NewRedirectError("/temporary", http.StatusTemporaryRedirect)
-		status := ErrorStatus(ctx, err)
-
-		assert.Equal(t, http.StatusTemporaryRedirect, status)
-	})
-
 	t.Run("unwraps error chain to find StatusCode()", func(t *testing.T) {
 		ctx := context.Background()
 		innerErr := &testStatusCodeError{code: http.StatusBadGateway}
-		err := &testStatusWrapper{base: innerErr}
-		status := ErrorStatus(ctx, err)
-
-		assert.Equal(t, http.StatusBadGateway, status)
-	})
-
-	t.Run("unwraps error chain to find Status()", func(t *testing.T) {
-		ctx := context.Background()
-		innerErr := &testStatusError{code: http.StatusBadGateway}
-		err := &testStatusWrapper{base: innerErr}
-		status := ErrorStatus(ctx, err)
-
-		assert.Equal(t, http.StatusBadGateway, status)
-	})
-
-	t.Run("unwraps error chain to find Status(ctx, err)", func(t *testing.T) {
-		ctx := context.Background()
-		innerErr := &testContextStatusError{code: http.StatusBadGateway}
 		err := &testStatusWrapper{base: innerErr}
 		status := ErrorStatus(ctx, err)
 
@@ -240,25 +122,6 @@ func TestErrorStatus(t *testing.T) {
 		status := ErrorStatus(ctx, level1)
 
 		assert.Equal(t, http.StatusServiceUnavailable, status)
-	})
-
-	t.Run("StatusCode() takes precedence over Status()", func(t *testing.T) {
-		ctx := context.Background()
-		err := &testBothStatusError{
-			testStatusCodeError: testStatusCodeError{code: http.StatusTeapot},
-			testStatusError:     testStatusError{code: http.StatusBadRequest},
-		}
-		status := ErrorStatus(ctx, err)
-
-		assert.Equal(t, http.StatusTeapot, status)
-	})
-
-	t.Run("simple Status() method", func(t *testing.T) {
-		ctx := context.Background()
-		err := &testSimpleStatus{code: http.StatusTeapot}
-		status := ErrorStatus(ctx, err)
-
-		assert.Equal(t, http.StatusTeapot, status)
 	})
 
 	t.Run("ErrPageNotFound in wrapped error", func(t *testing.T) {
@@ -311,23 +174,6 @@ func TestErrorStatus(t *testing.T) {
 		assert.Equal(t, status1, status2)
 	})
 
-	t.Run("context is passed to Status(ctx, err) method", func(t *testing.T) {
-		ctx := context.WithValue(context.Background(), testContextAwareStatusError{}, struct{}{})
-		err := &testContextAwareStatusError{code: http.StatusBadRequest}
-		status := ErrorStatus(ctx, err)
-
-		assert.Equal(t, http.StatusAccepted, status)
-	})
-
-	t.Run("wrapped RedirectError", func(t *testing.T) {
-		ctx := context.Background()
-		redirectErr := NewRedirectError("/moved", http.StatusMovedPermanently)
-		err := &testStatusWrapper{base: redirectErr}
-		status := ErrorStatus(ctx, err)
-
-		assert.Equal(t, http.StatusMovedPermanently, status)
-	})
-
 	t.Run("wrapped validation errors", func(t *testing.T) {
 		ctx := context.Background()
 		validErr := validation.Errors{
@@ -348,7 +194,7 @@ func TestErrorStatus(t *testing.T) {
 		assert.Equal(t, http.StatusNotFound, status)
 	})
 
-	t.Run("wrapped error with no status methods returns 500", func(t *testing.T) {
+	t.Run("wrapped error with no code methods returns 500", func(t *testing.T) {
 		ctx := context.Background()
 		innerErr := errors.New("inner error")
 		err := &testStatusWrapper{base: innerErr}
@@ -386,16 +232,17 @@ func TestErrorStatus_AllStatusCodeMethods(t *testing.T) {
 
 func TestErrorStatus_InterfaceStatusMethods(t *testing.T) {
 	tests := []struct {
-		name string
-		code int
+		name     string
+		code     int
+		expected int
 	}{
-		{"Status 200", http.StatusOK},
-		{"Status 201", http.StatusCreated},
-		{"Status 400", http.StatusBadRequest},
-		{"Status 404", http.StatusNotFound},
-		{"Status 500", http.StatusInternalServerError},
-		{"Status 503", http.StatusServiceUnavailable},
-		{"Status 418", http.StatusTeapot},
+		{"Status 200", http.StatusOK, http.StatusInternalServerError},
+		{"Status 201", http.StatusCreated, http.StatusInternalServerError},
+		{"Status 400", http.StatusBadRequest, http.StatusBadRequest},
+		{"Status 404", http.StatusNotFound, http.StatusNotFound},
+		{"Status 500", http.StatusInternalServerError, http.StatusInternalServerError},
+		{"Status 503", http.StatusServiceUnavailable, http.StatusServiceUnavailable},
+		{"Status 418", http.StatusTeapot, http.StatusTeapot},
 	}
 
 	ctx := context.Background()
@@ -405,27 +252,7 @@ func TestErrorStatus_InterfaceStatusMethods(t *testing.T) {
 			t.Run(tt.name, func(t *testing.T) {
 				err := &testStatusCodeError{code: tt.code}
 				got := ErrorStatus(ctx, err)
-				assert.Equal(t, tt.code, got)
-			})
-		}
-	})
-
-	t.Run("Status() method", func(t *testing.T) {
-		for _, tt := range tests {
-			t.Run(tt.name, func(t *testing.T) {
-				err := &testStatusError{code: tt.code}
-				got := ErrorStatus(ctx, err)
-				assert.Equal(t, tt.code, got)
-			})
-		}
-	})
-
-	t.Run("Status(ctx, err) method", func(t *testing.T) {
-		for _, tt := range tests {
-			t.Run(tt.name, func(t *testing.T) {
-				err := &testContextStatusError{code: tt.code}
-				got := ErrorStatus(ctx, err)
-				assert.Equal(t, tt.code, got)
+				assert.Equal(t, tt.expected, got)
 			})
 		}
 	})
@@ -451,30 +278,6 @@ func TestErrorStatus_PredefinedErrorsTakePrecedence(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			got := ErrorStatus(ctx, tt.err)
 			assert.Equal(t, tt.want, got)
-		})
-	}
-}
-
-func TestErrorStatus_RedirectErrorStatuses(t *testing.T) {
-	tests := []struct {
-		name   string
-		url    string
-		status int
-	}{
-		{"301 Moved Permanently", "/permanent", http.StatusMovedPermanently},
-		{"302 Found", "/temporary", http.StatusFound},
-		{"303 See Other", "/other", http.StatusSeeOther},
-		{"307 Temporary Redirect", "/temp-redirect", http.StatusTemporaryRedirect},
-		{"308 Permanent Redirect", "/perm-redirect", http.StatusPermanentRedirect},
-	}
-
-	ctx := context.Background()
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			err := NewRedirectError(tt.url, tt.status)
-			got := ErrorStatus(ctx, err)
-			assert.Equal(t, tt.status, got)
 		})
 	}
 }

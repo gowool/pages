@@ -5,39 +5,15 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
+	"github.com/gowool/gor"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
-
-type testRedirectURIErr struct {
-	uri string
-}
-
-func (e *testRedirectURIErr) Error() string {
-	return "test redirect uri error: " + e.uri
-}
-
-func (e *testRedirectURIErr) URI() string {
-	return e.uri
-}
-
-type testRedirectURLErr struct {
-	url string
-}
-
-func (e *testRedirectURLErr) Error() string {
-	return "test redirect url error: " + e.url
-}
-
-func (e *testRedirectURLErr) URL() string {
-	return e.url
-}
 
 func TestHTTPErrorHandlerConfig_SetDefaults(t *testing.T) {
 	t.Run("sets default values for all fields", func(t *testing.T) {
@@ -95,7 +71,7 @@ func TestHTTPErrorHandlerConfig_SetDefaults(t *testing.T) {
 }
 
 func TestHTTPErrorHandlerConfig_jsonHandler(t *testing.T) {
-	t.Run("returns JSON response with status", func(t *testing.T) {
+	t.Run("returns JSON response with code", func(t *testing.T) {
 		cfg := HTTPErrorHandlerConfig{}
 		cfg.SetDefaults()
 
@@ -112,12 +88,12 @@ func TestHTTPErrorHandlerConfig_jsonHandler(t *testing.T) {
 		cfg.jsonHandler(w, req)
 
 		assert.Equal(t, http.StatusNotFound, w.Code)
-		assert.Equal(t, MIMEApplicationJSON, w.Header().Get(HeaderContentType))
+		assert.Equal(t, gor.MIMEApplicationJSON, w.Header().Get(gor.HeaderContentType))
 
 		var data map[string]any
 		err := json.Unmarshal(w.Body.Bytes(), &data)
 		assert.NoError(t, err)
-		assert.Equal(t, float64(http.StatusNotFound), data["status"])
+		assert.Equal(t, float64(http.StatusNotFound), data["code"])
 		assert.Equal(t, "Not Found", data["message"])
 	})
 
@@ -145,7 +121,7 @@ func TestHTTPErrorHandlerConfig_jsonHandler(t *testing.T) {
 		assert.Equal(t, "Test Site", siteData["name"])
 	})
 
-	t.Run("includes error data for 422 status", func(t *testing.T) {
+	t.Run("includes error data for 422 code", func(t *testing.T) {
 		cfg := HTTPErrorHandlerConfig{}
 		cfg.SetDefaults()
 
@@ -324,89 +300,6 @@ func TestNewHTTPErrorHandlerWithConfig(t *testing.T) {
 	})
 }
 
-func TestHTTPErrorHandler_redirect(t *testing.T) {
-	tests := []struct {
-		name       string
-		err        error
-		wantURL    string
-		wantStatus int
-	}{
-		{
-			name:       "redirects for 301 status",
-			err:        NewRedirectError("/new-location", http.StatusMovedPermanently),
-			wantURL:    "/new-location",
-			wantStatus: http.StatusMovedPermanently,
-		},
-		{
-			name:       "redirects for 302 status",
-			err:        NewRedirectError("/temp", http.StatusFound),
-			wantURL:    "/temp",
-			wantStatus: http.StatusFound,
-		},
-		{
-			name:       "redirects to / when error has no URL",
-			err:        errors.New("test error"),
-			wantURL:    "/",
-			wantStatus: http.StatusMovedPermanently,
-		},
-		{
-			name:       "redirects for 302 status when error has URI",
-			err:        &testRedirectURIErr{uri: "/new-location"},
-			wantURL:    "/new-location",
-			wantStatus: http.StatusFound,
-		},
-		{
-			name:       "redirects for 302 status when error has URL",
-			err:        &testRedirectURLErr{url: "/new-location"},
-			wantURL:    "/new-location",
-			wantStatus: http.StatusFound,
-		},
-		{
-			name:       "redirects for 302 status when error is wrapped",
-			err:        fmt.Errorf("wrapped error: %w", NewRedirectError("/new-location", http.StatusFound)),
-			wantURL:    "/new-location",
-			wantStatus: http.StatusFound,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			pageHandler := &MockTheme{content: "test"}
-			handler := NewPageHandler(pageHandler)
-			manager := NewMockPageManager()
-			pattern := &MockErrorPattern{}
-
-			h := NewHTTPErrorHandler(handler, manager, pattern)
-
-			req := httptest.NewRequest(http.MethodGet, "/old", nil)
-			w := httptest.NewRecorder()
-
-			redirected := h.redirect(w, req, tt.wantStatus, tt.err)
-
-			assert.True(t, redirected)
-			assert.Equal(t, tt.wantStatus, w.Code)
-			assert.Equal(t, tt.wantURL, w.Header().Get("Location"))
-		})
-	}
-
-	t.Run("does not redirect for non-redirect status", func(t *testing.T) {
-		pageHandler := &MockTheme{content: "test"}
-		handler := NewPageHandler(pageHandler)
-		manager := NewMockPageManager()
-		pattern := &MockErrorPattern{}
-
-		h := NewHTTPErrorHandler(handler, manager, pattern)
-
-		req := httptest.NewRequest(http.MethodGet, "/test", nil)
-		w := httptest.NewRecorder()
-
-		redirected := h.redirect(w, req, http.StatusNotFound, ErrPageNotFound)
-
-		assert.False(t, redirected)
-		assert.Empty(t, w.Header().Get("Location"))
-	})
-}
-
 func TestHTTPErrorHandler_serveHTTP(t *testing.T) {
 	t.Run("calls page handler successfully", func(t *testing.T) {
 		pageHandler := &MockTheme{content: "error page content"}
@@ -490,7 +383,7 @@ func TestHTTPErrorHandler_serveHTTP(t *testing.T) {
 }
 
 func TestHTTPErrorHandler_ServeHTTP(t *testing.T) {
-	t.Run("handles HEAD request with status only", func(t *testing.T) {
+	t.Run("handles HEAD request with code only", func(t *testing.T) {
 		pageHandler := &MockTheme{content: "should not see this"}
 		handler := NewPageHandler(pageHandler)
 		manager := NewMockPageManager()
@@ -528,17 +421,17 @@ func TestHTTPErrorHandler_ServeHTTP(t *testing.T) {
 		c.SetError(ErrPageNotFound)
 
 		req := httptest.NewRequest(http.MethodGet, "/test", nil).WithContext(ctx)
-		req.Header.Set(HeaderAccept, MIMEApplicationJSON)
+		req.Header.Set(gor.HeaderAccept, gor.MIMEApplicationJSON)
 		w := httptest.NewRecorder()
 
 		h.ServeHTTP(w, req, ErrPageNotFound)
 
-		assert.Equal(t, MIMEApplicationJSON, w.Header().Get(HeaderContentType))
+		assert.Equal(t, gor.MIMEApplicationJSON, w.Header().Get(gor.HeaderContentType))
 
 		var data map[string]any
 		err := json.Unmarshal(w.Body.Bytes(), &data)
 		assert.NoError(t, err)
-		assert.Equal(t, float64(http.StatusNotFound), data["status"])
+		assert.Equal(t, float64(http.StatusNotFound), data["code"])
 	})
 
 	t.Run("serves fallback template when no site in context", func(t *testing.T) {
@@ -691,34 +584,10 @@ func TestHTTPErrorHandler_ServeHTTP(t *testing.T) {
 
 		logOutput := logBuf.String()
 		assert.Contains(t, logOutput, "request failed")
-		assert.Contains(t, logOutput, "status=404")
+		assert.Contains(t, logOutput, "code=404")
 		assert.Contains(t, logOutput, "method=POST")
-		assert.Contains(t, logOutput, "remote_addr=127.0.0.1:8080")
 		assert.Contains(t, logOutput, "debug=true")
 		assert.Contains(t, logOutput, "guest=false")
-	})
-
-	t.Run("redirects for redirect status codes", func(t *testing.T) {
-		pageHandler := &MockTheme{content: "should not see this"}
-		handler := NewPageHandler(pageHandler)
-		manager := NewMockPageManager()
-		pattern := NewMockErrorPattern()
-
-		h := NewHTTPErrorHandler(handler, manager, pattern)
-
-		ctx, _ := NewContext(context.Background())
-		c := FromContext(ctx)
-		site := NewSite()
-		c.SetSite(site)
-
-		req := httptest.NewRequest(http.MethodGet, "/old", nil).WithContext(ctx)
-		w := httptest.NewRecorder()
-
-		redirectErr := NewRedirectError("/new", http.StatusMovedPermanently)
-		h.ServeHTTP(w, req, redirectErr)
-
-		assert.Equal(t, http.StatusMovedPermanently, w.Code)
-		assert.Equal(t, "/new", w.Header().Get("Location"))
 	})
 }
 

@@ -7,6 +7,7 @@ import (
 	"net/url"
 	"testing"
 
+	"github.com/gowool/gor"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -35,35 +36,35 @@ func TestScheme(t *testing.T) {
 		{
 			name: "X-Forwarded-Proto header",
 			setupReq: func(r *http.Request) {
-				r.Header.Set(HeaderXForwardedProto, "https")
+				r.Header.Set(gor.HeaderXForwardedProto, "https")
 			},
 			want: "https",
 		},
 		{
 			name: "X-Forwarded-Protocol header",
 			setupReq: func(r *http.Request) {
-				r.Header.Set(HeaderXForwardedProtocol, "https")
+				r.Header.Set(gor.HeaderXForwardedProtocol, "https")
 			},
 			want: "https",
 		},
 		{
 			name: "X-Forwarded-Ssl header with on",
 			setupReq: func(r *http.Request) {
-				r.Header.Set(HeaderXForwardedSsl, "on")
+				r.Header.Set(gor.HeaderXForwardedSsl, "on")
 			},
 			want: "https",
 		},
 		{
 			name: "X-Forwarded-Ssl header with off",
 			setupReq: func(r *http.Request) {
-				r.Header.Set(HeaderXForwardedSsl, "off")
+				r.Header.Set(gor.HeaderXForwardedSsl, "off")
 			},
 			want: "http",
 		},
 		{
 			name: "X-Url-Scheme header",
 			setupReq: func(r *http.Request) {
-				r.Header.Set(HeaderXUrlScheme, "https")
+				r.Header.Set(gor.HeaderXUrlScheme, "https")
 			},
 			want: "https",
 		},
@@ -417,7 +418,7 @@ func TestPatternArgs(t *testing.T) {
 func TestIsDecorable(t *testing.T) {
 	t.Run("Non-HTML content type", func(t *testing.T) {
 		w := &delayedWriter{ResponseWriter: httptest.NewRecorder()}
-		w.Header().Set(HeaderContentType, "application/json")
+		w.Header().Set(gor.HeaderContentType, "application/json")
 
 		isDecorable := IsDecorable(w, httptest.NewRequest("GET", "/", nil))
 
@@ -426,8 +427,8 @@ func TestIsDecorable(t *testing.T) {
 
 	t.Run("HTML content type", func(t *testing.T) {
 		w := &delayedWriter{ResponseWriter: httptest.NewRecorder()}
-		w.status = http.StatusOK
-		w.Header().Set(HeaderContentType, MIMETextHTML)
+		w.code = http.StatusOK
+		w.Header().Set(gor.HeaderContentType, gor.MIMETextHTML)
 
 		isDecorable := IsDecorable(w, httptest.NewRequest("GET", "/", nil))
 
@@ -454,7 +455,7 @@ func TestIsDecorable(t *testing.T) {
 
 	t.Run("Status not OK", func(t *testing.T) {
 		w := &delayedWriter{ResponseWriter: httptest.NewRecorder()}
-		w.status = http.StatusOK
+		w.code = http.StatusOK
 		w.WriteHeader(http.StatusNotFound)
 
 		isDecorable := IsDecorable(w, httptest.NewRequest("GET", "/", nil))
@@ -465,7 +466,7 @@ func TestIsDecorable(t *testing.T) {
 	t.Run("XMLHttpRequest header set", func(t *testing.T) {
 		w := &delayedWriter{ResponseWriter: httptest.NewRecorder()}
 		req := httptest.NewRequest("GET", "/", nil)
-		req.Header.Set(HeaderXRequestedWith, XMLHTTPRequest)
+		req.Header.Set(gor.HeaderXRequestedWith, gor.XMLHTTPRequest)
 
 		isDecorable := IsDecorable(w, req)
 
@@ -474,321 +475,11 @@ func TestIsDecorable(t *testing.T) {
 
 	t.Run("All conditions allow decoration", func(t *testing.T) {
 		w := &delayedWriter{ResponseWriter: httptest.NewRecorder()}
-		w.status = http.StatusOK
+		w.code = http.StatusOK
 		req := httptest.NewRequest("GET", "/", nil)
 
 		isDecorable := IsDecorable(w, req)
 
 		assert.True(t, isDecorable)
-	})
-}
-
-type testUnwrapper struct {
-	http.ResponseWriter
-}
-
-func (w *testUnwrapper) Unwrap() http.ResponseWriter {
-	return w.ResponseWriter
-}
-
-type testStatusCodeUnwrapper struct {
-	http.ResponseWriter
-	status int
-}
-
-func (w *testStatusCodeUnwrapper) StatusCode() int {
-	return w.status
-}
-
-func (w *testStatusCodeUnwrapper) Unwrap() http.ResponseWriter {
-	return w.ResponseWriter
-}
-
-func TestResponseStatus(t *testing.T) {
-	tests := []struct {
-		name     string
-		w        http.ResponseWriter
-		expected int
-	}{
-		{
-			name:     "basic ResponseRecorder",
-			w:        httptest.NewRecorder(),
-			expected: 0,
-		},
-		{
-			name:     "writer with Status() returning Created",
-			w:        &delayedWriter{ResponseWriter: httptest.NewRecorder(), status: http.StatusCreated},
-			expected: http.StatusCreated,
-		},
-		{
-			name:     "writer with Status() returning OK",
-			w:        &delayedWriter{ResponseWriter: httptest.NewRecorder(), status: http.StatusOK},
-			expected: http.StatusOK,
-		},
-		{
-			name:     "writer with Status() returning NotFound",
-			w:        &delayedWriter{ResponseWriter: httptest.NewRecorder(), status: http.StatusNotFound},
-			expected: http.StatusNotFound,
-		},
-		{
-			name:     "writer with Status() returning InternalServerError",
-			w:        &delayedWriter{ResponseWriter: httptest.NewRecorder(), status: http.StatusInternalServerError},
-			expected: http.StatusInternalServerError,
-		},
-		{
-			name:     "writer with StatusCode() returning OK",
-			w:        &testStatusCodeUnwrapper{ResponseWriter: httptest.NewRecorder(), status: http.StatusOK},
-			expected: http.StatusOK,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got := ResponseStatus(tt.w)
-			assert.Equal(t, tt.expected, got)
-		})
-	}
-
-	t.Run("unwrapping writer finds Status()", func(t *testing.T) {
-		inner := &delayedWriter{ResponseWriter: httptest.NewRecorder(), status: http.StatusAccepted}
-		wrapper := &testUnwrapper{ResponseWriter: inner}
-
-		got := ResponseStatus(wrapper)
-		assert.Equal(t, http.StatusAccepted, got)
-	})
-
-	t.Run("multiple levels of unwrapping", func(t *testing.T) {
-		inner := &delayedWriter{ResponseWriter: httptest.NewRecorder(), status: http.StatusPartialContent}
-		middle := &testUnwrapper{ResponseWriter: inner}
-		outer := &testUnwrapper{ResponseWriter: middle}
-
-		got := ResponseStatus(outer)
-		assert.Equal(t, http.StatusPartialContent, got)
-	})
-
-	t.Run("no matching interface returns 0", func(t *testing.T) {
-		w := struct {
-			http.ResponseWriter
-		}{
-			ResponseWriter: httptest.NewRecorder(),
-		}
-
-		got := ResponseStatus(w)
-		assert.Equal(t, 0, got)
-	})
-
-	t.Run("Status() takes precedence over unwrapping", func(t *testing.T) {
-		w := &delayedWriter{
-			ResponseWriter: &delayedWriter{
-				ResponseWriter: httptest.NewRecorder(),
-				status:         http.StatusCreated,
-			},
-			status: http.StatusAccepted,
-		}
-
-		got := ResponseStatus(w)
-		assert.Equal(t, http.StatusAccepted, got)
-	})
-}
-
-type testSizeWriter struct {
-	http.ResponseWriter
-	size int64
-}
-
-func (w *testSizeWriter) Size() int64 {
-	return w.size
-}
-
-func (w *testSizeWriter) Unwrap() http.ResponseWriter {
-	return w.ResponseWriter
-}
-
-type testCommittedWriter struct {
-	http.ResponseWriter
-	committed bool
-}
-
-func (w *testCommittedWriter) Committed() bool {
-	return w.committed
-}
-
-func (w *testCommittedWriter) Unwrap() http.ResponseWriter {
-	return w.ResponseWriter
-}
-
-func TestResponseSize(t *testing.T) {
-	tests := []struct {
-		name     string
-		w        http.ResponseWriter
-		expected int64
-	}{
-		{
-			name:     "basic ResponseRecorder",
-			w:        httptest.NewRecorder(),
-			expected: -1,
-		},
-		{
-			name:     "writer with Size() returning 0",
-			w:        &testSizeWriter{ResponseWriter: httptest.NewRecorder(), size: 0},
-			expected: 0,
-		},
-		{
-			name:     "writer with Size() returning 100",
-			w:        &testSizeWriter{ResponseWriter: httptest.NewRecorder(), size: 100},
-			expected: 100,
-		},
-		{
-			name:     "writer with Size() returning 1024",
-			w:        &testSizeWriter{ResponseWriter: httptest.NewRecorder(), size: 1024},
-			expected: 1024,
-		},
-		{
-			name:     "writer with Size() returning large value",
-			w:        &testSizeWriter{ResponseWriter: httptest.NewRecorder(), size: 1024000},
-			expected: 1024000,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got := ResponseSize(tt.w)
-			assert.Equal(t, tt.expected, got)
-		})
-	}
-
-	t.Run("unwrapping writer finds Size()", func(t *testing.T) {
-		inner := &testSizeWriter{ResponseWriter: httptest.NewRecorder(), size: 512}
-		wrapper := &testUnwrapper{ResponseWriter: inner}
-
-		got := ResponseSize(wrapper)
-		assert.Equal(t, int64(512), got)
-	})
-
-	t.Run("multiple levels of unwrapping", func(t *testing.T) {
-		inner := &testSizeWriter{ResponseWriter: httptest.NewRecorder(), size: 2048}
-		middle := &testUnwrapper{ResponseWriter: inner}
-		outer := &testUnwrapper{ResponseWriter: middle}
-
-		got := ResponseSize(outer)
-		assert.Equal(t, int64(2048), got)
-	})
-
-	t.Run("no matching interface returns -1", func(t *testing.T) {
-		w := struct {
-			http.ResponseWriter
-		}{
-			ResponseWriter: httptest.NewRecorder(),
-		}
-
-		got := ResponseSize(w)
-		assert.Equal(t, int64(-1), got)
-	})
-
-	t.Run("Size() takes precedence over unwrapping", func(t *testing.T) {
-		w := &testSizeWriter{
-			ResponseWriter: &testSizeWriter{
-				ResponseWriter: httptest.NewRecorder(),
-				size:           100,
-			},
-			size: 200,
-		}
-
-		got := ResponseSize(w)
-		assert.Equal(t, int64(200), got)
-	})
-
-	t.Run("zero size is valid", func(t *testing.T) {
-		w := &testSizeWriter{ResponseWriter: httptest.NewRecorder(), size: 0}
-
-		got := ResponseSize(w)
-		assert.Equal(t, int64(0), got)
-	})
-
-	t.Run("negative size returned as-is", func(t *testing.T) {
-		w := &testSizeWriter{ResponseWriter: httptest.NewRecorder(), size: -100}
-
-		got := ResponseSize(w)
-		assert.Equal(t, int64(-100), got)
-	})
-}
-
-func TestResponseCommitted(t *testing.T) {
-	tests := []struct {
-		name     string
-		w        http.ResponseWriter
-		expected bool
-	}{
-		{
-			name:     "basic ResponseRecorder",
-			w:        httptest.NewRecorder(),
-			expected: false,
-		},
-		{
-			name:     "writer with Committed() returning true",
-			w:        &testCommittedWriter{ResponseWriter: httptest.NewRecorder(), committed: true},
-			expected: true,
-		},
-		{
-			name:     "writer with Committed() returning false",
-			w:        &testCommittedWriter{ResponseWriter: httptest.NewRecorder(), committed: false},
-			expected: false,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got := ResponseCommitted(tt.w)
-			assert.Equal(t, tt.expected, got)
-		})
-	}
-
-	t.Run("unwrapping writer finds Committed()", func(t *testing.T) {
-		inner := &testCommittedWriter{ResponseWriter: httptest.NewRecorder(), committed: true}
-		wrapper := &testUnwrapper{ResponseWriter: inner}
-
-		got := ResponseCommitted(wrapper)
-		assert.True(t, got)
-	})
-
-	t.Run("multiple levels of unwrapping", func(t *testing.T) {
-		inner := &testCommittedWriter{ResponseWriter: httptest.NewRecorder(), committed: true}
-		middle := &testUnwrapper{ResponseWriter: inner}
-		outer := &testUnwrapper{ResponseWriter: middle}
-
-		got := ResponseCommitted(outer)
-		assert.True(t, got)
-	})
-
-	t.Run("no matching interface returns false", func(t *testing.T) {
-		w := struct {
-			http.ResponseWriter
-		}{
-			ResponseWriter: httptest.NewRecorder(),
-		}
-
-		got := ResponseCommitted(w)
-		assert.False(t, got)
-	})
-
-	t.Run("Committed() takes precedence over unwrapping", func(t *testing.T) {
-		w := &testCommittedWriter{
-			ResponseWriter: &testCommittedWriter{
-				ResponseWriter: httptest.NewRecorder(),
-				committed:      false,
-			},
-			committed: true,
-		}
-
-		got := ResponseCommitted(w)
-		assert.True(t, got)
-	})
-
-	t.Run("unwrapped writer returns false when not committed", func(t *testing.T) {
-		inner := &testCommittedWriter{ResponseWriter: httptest.NewRecorder(), committed: false}
-		wrapper := &testUnwrapper{ResponseWriter: inner}
-
-		got := ResponseCommitted(wrapper)
-		assert.False(t, got)
 	})
 }

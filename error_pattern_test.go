@@ -96,7 +96,7 @@ func TestHTTPErrorPattern_Pattern(t *testing.T) {
 		assert.Equal(t, "/custom/pattern", result)
 	})
 
-	t.Run("error with Pattern(r, status, err) method", func(t *testing.T) {
+	t.Run("error with Pattern(r, code, err) method", func(t *testing.T) {
 		authorizer := NewMockPageAuthorizer()
 		strategy := NewMockPageDecoratorStrategy(true)
 		pattern := NewHTTPErrorPattern(authorizer, strategy)
@@ -199,7 +199,7 @@ func TestHTTPErrorPattern_Pattern(t *testing.T) {
 		assert.Equal(t, PageInternalCreate, result)
 	})
 
-	t.Run("status 401 Unauthorized", func(t *testing.T) {
+	t.Run("code 401 Unauthorized", func(t *testing.T) {
 		authorizer := NewMockPageAuthorizer()
 		strategy := NewMockPageDecoratorStrategy(true)
 		pattern := NewHTTPErrorPattern(authorizer, strategy)
@@ -212,7 +212,7 @@ func TestHTTPErrorPattern_Pattern(t *testing.T) {
 		assert.Equal(t, PageErrorUnauthorized, result)
 	})
 
-	t.Run("status 403 Forbidden", func(t *testing.T) {
+	t.Run("code 403 Forbidden", func(t *testing.T) {
 		authorizer := NewMockPageAuthorizer()
 		strategy := NewMockPageDecoratorStrategy(true)
 		pattern := NewHTTPErrorPattern(authorizer, strategy)
@@ -225,7 +225,7 @@ func TestHTTPErrorPattern_Pattern(t *testing.T) {
 		assert.Equal(t, PageErrorForbidden, result)
 	})
 
-	t.Run("status 404 Not Found", func(t *testing.T) {
+	t.Run("code 404 Not Found", func(t *testing.T) {
 		authorizer := NewMockPageAuthorizer()
 		strategy := NewMockPageDecoratorStrategy(true)
 		pattern := NewHTTPErrorPattern(authorizer, strategy)
@@ -238,7 +238,7 @@ func TestHTTPErrorPattern_Pattern(t *testing.T) {
 		assert.Equal(t, PageErrorNotFound, result)
 	})
 
-	t.Run("status 400 Bad Request", func(t *testing.T) {
+	t.Run("code 400 Bad Request", func(t *testing.T) {
 		authorizer := NewMockPageAuthorizer()
 		strategy := NewMockPageDecoratorStrategy(true)
 		pattern := NewHTTPErrorPattern(authorizer, strategy)
@@ -251,7 +251,7 @@ func TestHTTPErrorPattern_Pattern(t *testing.T) {
 		assert.Equal(t, PageError4xx, result)
 	})
 
-	t.Run("status 409 Conflict", func(t *testing.T) {
+	t.Run("code 409 Conflict", func(t *testing.T) {
 		authorizer := NewMockPageAuthorizer()
 		strategy := NewMockPageDecoratorStrategy(true)
 		pattern := NewHTTPErrorPattern(authorizer, strategy)
@@ -264,7 +264,7 @@ func TestHTTPErrorPattern_Pattern(t *testing.T) {
 		assert.Equal(t, PageError4xx, result)
 	})
 
-	t.Run("status 422 Unprocessable Entity", func(t *testing.T) {
+	t.Run("code 422 Unprocessable Entity", func(t *testing.T) {
 		authorizer := NewMockPageAuthorizer()
 		strategy := NewMockPageDecoratorStrategy(true)
 		pattern := NewHTTPErrorPattern(authorizer, strategy)
@@ -277,7 +277,7 @@ func TestHTTPErrorPattern_Pattern(t *testing.T) {
 		assert.Equal(t, PageError4xx, result)
 	})
 
-	t.Run("status 500 Internal Server Error", func(t *testing.T) {
+	t.Run("code 500 Internal Server Error", func(t *testing.T) {
 		authorizer := NewMockPageAuthorizer()
 		strategy := NewMockPageDecoratorStrategy(true)
 		pattern := NewHTTPErrorPattern(authorizer, strategy)
@@ -290,7 +290,7 @@ func TestHTTPErrorPattern_Pattern(t *testing.T) {
 		assert.Equal(t, PageError5xx, result)
 	})
 
-	t.Run("status 502 Bad Gateway", func(t *testing.T) {
+	t.Run("code 502 Bad Gateway", func(t *testing.T) {
 		authorizer := NewMockPageAuthorizer()
 		strategy := NewMockPageDecoratorStrategy(true)
 		pattern := NewHTTPErrorPattern(authorizer, strategy)
@@ -303,7 +303,7 @@ func TestHTTPErrorPattern_Pattern(t *testing.T) {
 		assert.Equal(t, PageError5xx, result)
 	})
 
-	t.Run("status 503 Service Unavailable", func(t *testing.T) {
+	t.Run("code 503 Service Unavailable", func(t *testing.T) {
 		authorizer := NewMockPageAuthorizer()
 		strategy := NewMockPageDecoratorStrategy(true)
 		pattern := NewHTTPErrorPattern(authorizer, strategy)
@@ -316,7 +316,7 @@ func TestHTTPErrorPattern_Pattern(t *testing.T) {
 		assert.Equal(t, PageError5xx, result)
 	})
 
-	t.Run("pattern method takes precedence over status code", func(t *testing.T) {
+	t.Run("pattern method takes precedence over code code", func(t *testing.T) {
 		authorizer := NewMockPageAuthorizer()
 		strategy := NewMockPageDecoratorStrategy(true)
 		pattern := NewHTTPErrorPattern(authorizer, strategy)
@@ -330,7 +330,7 @@ func TestHTTPErrorPattern_Pattern(t *testing.T) {
 		assert.NotEqual(t, PageError5xx, result)
 	})
 
-	t.Run("context pattern method is used instead of status code", func(t *testing.T) {
+	t.Run("context pattern method is used instead of code code", func(t *testing.T) {
 		authorizer := NewMockPageAuthorizer()
 		strategy := NewMockPageDecoratorStrategy(true)
 		pattern := NewHTTPErrorPattern(authorizer, strategy)
@@ -344,7 +344,7 @@ func TestHTTPErrorPattern_Pattern(t *testing.T) {
 		assert.NotEqual(t, PageErrorNotFound, result)
 	})
 
-	t.Run("nil error returns status-based pattern", func(t *testing.T) {
+	t.Run("nil error returns code-based pattern", func(t *testing.T) {
 		authorizer := NewMockPageAuthorizer()
 		strategy := NewMockPageDecoratorStrategy(true)
 		pattern := NewHTTPErrorPattern(authorizer, strategy)

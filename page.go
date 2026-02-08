@@ -43,7 +43,7 @@ type Page struct {
 	Created time.Time `json:"created,omitzero" yaml:"created,omitempty"`
 	Updated time.Time `json:"updated,omitzero" yaml:"updated,omitempty"`
 
-	Status     Status     `json:"status,omitempty" yaml:"status,omitempty"`
+	Status     Status     `json:"code,omitempty" yaml:"code,omitempty"`
 	Visibility Visibility `json:"visibility,omitempty" yaml:"visibility,omitempty"`
 
 	MetaTags *MetaTags           `json:"metaTags,omitempty" yaml:"metaTags,omitempty"`

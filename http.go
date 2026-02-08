@@ -4,48 +4,37 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/gowool/r"
+	"github.com/gowool/gor"
+	"github.com/gowool/gor/middleware"
 )
 
 const (
-	HeaderAccept             = "Accept"
-	HeaderAcceptLanguage     = "Accept-Language"
-	HeaderContentType        = "Content-Type"
-	HeaderCFIPCountry        = "CF-IPCountry"
-	HeaderXPageDecorable     = "X-Page-Decorable"
-	HeaderXPageNotDecorable  = "X-Page-Not-Decorable"
-	HeaderXRequestedWith     = "X-Requested-With"
-	HeaderXForwardedProto    = "X-Forwarded-Proto"
-	HeaderXForwardedProtocol = "X-Forwarded-Protocol"
-	HeaderXForwardedSsl      = "X-Forwarded-Ssl"
-	HeaderXUrlScheme         = "X-Url-Scheme"
-	XMLHTTPRequest           = "XMLHttpRequest"
-	MIMEApplicationJSON      = "application/json"
-	MIMETextHTML             = "text/html"
-	MIMETextHTMLCharsetUTF8  = MIMETextHTML + "; charset=UTF-8"
+	HeaderXPageDecorable    = "X-Page-Decorable"
+	HeaderXPageNotDecorable = "X-Page-Not-Decorable"
 )
 
 type (
-	Handler          = r.Handler
-	HandlerFunc      = r.HandlerFunc
-	ErrorHandler     = r.ErrorHandler
-	ErrorHandlerFunc = r.ErrorHandlerFunc
+	Handler          = gor.Handler
+	HandlerFunc      = gor.HandlerFunc
+	ErrorHandler     = gor.ErrorHandler
+	ErrorHandlerFunc = gor.ErrorHandlerFunc
+	Skipper          = middleware.Skipper
 )
 
 func Scheme(r *http.Request) string {
 	if r.TLS != nil {
 		return "https"
 	}
-	if scheme := r.Header.Get(HeaderXForwardedProto); scheme != "" {
+	if scheme := r.Header.Get(gor.HeaderXForwardedProto); scheme != "" {
 		return scheme
 	}
-	if scheme := r.Header.Get(HeaderXForwardedProtocol); scheme != "" {
+	if scheme := r.Header.Get(gor.HeaderXForwardedProtocol); scheme != "" {
 		return scheme
 	}
-	if ssl := r.Header.Get(HeaderXForwardedSsl); ssl == "on" {
+	if ssl := r.Header.Get(gor.HeaderXForwardedSsl); ssl == "on" {
 		return "https"
 	}
-	if scheme := r.Header.Get(HeaderXUrlScheme); scheme != "" {
+	if scheme := r.Header.Get(gor.HeaderXUrlScheme); scheme != "" {
 		return scheme
 	}
 	return "http"
@@ -106,9 +95,9 @@ func PatternArgs() PatternArgsFunc {
 }
 
 func IsDecorable(w http.ResponseWriter, r *http.Request) bool {
-	contentType := w.Header().Get(HeaderContentType)
+	contentType := w.Header().Get(gor.HeaderContentType)
 
-	if contentType != "" && !strings.HasPrefix(contentType, MIMETextHTML) {
+	if contentType != "" && !strings.HasPrefix(contentType, gor.MIMETextHTML) {
 		return false
 	}
 
@@ -120,53 +109,9 @@ func IsDecorable(w http.ResponseWriter, r *http.Request) bool {
 		return true
 	}
 
-	if r.Header.Get(HeaderXRequestedWith) == XMLHTTPRequest {
+	if r.Header.Get(gor.HeaderXRequestedWith) == gor.XMLHTTPRequest {
 		return false
 	}
 
-	return ResponseStatus(w) == http.StatusOK
-}
-
-func ResponseStatus(w http.ResponseWriter) int {
-	for {
-		switch t := w.(type) {
-		case interface{ Status() int }:
-			return t.Status()
-		case interface{ StatusCode() int }:
-			return t.StatusCode()
-		case interface{ Unwrap() http.ResponseWriter }:
-			w = t.Unwrap()
-			continue
-		default:
-			return 0
-		}
-	}
-}
-
-func ResponseSize(w http.ResponseWriter) int64 {
-	for {
-		switch t := w.(type) {
-		case interface{ Size() int64 }:
-			return t.Size()
-		case interface{ Unwrap() http.ResponseWriter }:
-			w = t.Unwrap()
-			continue
-		default:
-			return -1
-		}
-	}
-}
-
-func ResponseCommitted(w http.ResponseWriter) bool {
-	for {
-		switch t := w.(type) {
-		case interface{ Committed() bool }:
-			return t.Committed()
-		case interface{ Unwrap() http.ResponseWriter }:
-			w = t.Unwrap()
-			continue
-		default:
-			return false
-		}
-	}
+	return gor.ResponseStatusCode(w) == http.StatusOK
 }

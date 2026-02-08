@@ -632,11 +632,11 @@ func TestMemoryPageStore_EdgeCases(t *testing.T) {
 		require.NoError(t, err)
 
 		// Try to find with empty URL/pattern
-		foundPage, err := store.FindByURL(ctx, ID("site1"), "")
+		foundPage, err := store.FindByURL(ctx, "site1", "")
 		assert.NoError(t, err, "Should be able to find page with empty URL")
 		assert.Equal(t, ID("test"), foundPage.ID, "Should find correct page")
 
-		foundPage, err = store.FindByPattern(ctx, ID("site1"), "")
+		foundPage, err = store.FindByPattern(ctx, "site1", "")
 		assert.NoError(t, err, "Should be able to find page with empty pattern")
 		assert.Equal(t, ID("test"), foundPage.ID, "Should find correct page")
 	})
@@ -657,16 +657,16 @@ func TestMemoryPageStore_EdgeCases(t *testing.T) {
 		err := store.Save(ctx, page)
 		assert.NoError(t, err, "Save() should handle very long strings")
 
-		foundPage, err := store.FindByPattern(ctx, ID("site1"), longPattern)
+		foundPage, err := store.FindByPattern(ctx, "site1", longPattern)
 		assert.NoError(t, err, "Should be able to find page with long pattern")
 		assert.Equal(t, longTitle, foundPage.Title, "Should preserve long title")
 	})
 
-	t.Run("Delete from empty store", func(t *testing.T) {
+	t.Run("delete from empty store", func(t *testing.T) {
 		store := NewMemoryPageStore()
 
-		err := store.DeleteByID(ctx, ID("non-existent"))
-		assert.Error(t, err, "Delete from empty store should return error")
+		err := store.DeleteByID(ctx, "non-existent")
+		assert.Error(t, err, "delete from empty store should return error")
 		assert.True(t, errors.Is(err, ErrPageNotFound), "Error should be ErrPageNotFound")
 	})
 

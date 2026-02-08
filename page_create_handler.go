@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/gowool/gor"
 	"github.com/gowool/pages/internal"
 	"github.com/invopop/validation"
 )
@@ -75,7 +76,7 @@ func NewPageCreateHandlerWithConfig(store PageStore, authorizer PageAuthorizer, 
 	}
 }
 
-func (h *PageCreateHandler) ServeHTTP(_ http.ResponseWriter, r *http.Request) error {
+func (h *PageCreateHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) error {
 	if r.Method != http.MethodPost {
 		return fmt.Errorf("page create handler: %w", ErrPageNotFound)
 	}
@@ -96,7 +97,7 @@ func (h *PageCreateHandler) ServeHTTP(_ http.ResponseWriter, r *http.Request) er
 	}
 
 	var dto PageCreateRequest
-	if strings.Contains(r.Header.Get(HeaderContentType), MIMEApplicationJSON) {
+	if strings.Contains(r.Header.Get(gor.HeaderContentType), gor.MIMEApplicationJSON) {
 		if err := json.NewDecoder(r.Body).Decode(&dto); err != nil {
 			return fmt.Errorf("page create handler: json decode: %w", err)
 		}
@@ -158,5 +159,7 @@ func (h *PageCreateHandler) ServeHTTP(_ http.ResponseWriter, r *http.Request) er
 		return fmt.Errorf("page create handler: save: %w", err)
 	}
 
-	return NewRedirectError(page.AbsURL(), http.StatusFound)
+	http.Redirect(w, r, page.AbsURL(), http.StatusFound)
+
+	return nil
 }

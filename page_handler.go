@@ -7,6 +7,8 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+
+	"github.com/gowool/gor"
 )
 
 var _ Handler = (*PageHandler)(nil)
@@ -128,12 +130,12 @@ func (h *PageHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) error {
 		return nil
 	}
 
-	ct := w.Header().Get(HeaderContentType)
+	ct := w.Header().Get(gor.HeaderContentType)
 	if ct == "" {
-		ct = MIMETextHTMLCharsetUTF8
+		ct = gor.MIMETextHTMLCharsetUTF8
 	}
 
-	w.Header().Set(HeaderContentType, ct)
+	w.Header().Set(gor.HeaderContentType, ct)
 	w.WriteHeader(c.Status())
 
 	if _, err := w.Write(buf.Bytes()); err != nil {

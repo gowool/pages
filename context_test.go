@@ -541,7 +541,7 @@ func TestContext_Status(t *testing.T) {
 }
 
 func TestContext_SetStatus(t *testing.T) {
-	t.Run("Set status", func(t *testing.T) {
+	t.Run("Set code", func(t *testing.T) {
 		ctx, _ := NewContext(context.Background())
 		c := FromContext(ctx)
 
@@ -550,7 +550,7 @@ func TestContext_SetStatus(t *testing.T) {
 		assert.Equal(t, http.StatusNotFound, c.Status())
 	})
 
-	t.Run("Set status to zero", func(t *testing.T) {
+	t.Run("Set code to zero", func(t *testing.T) {
 		ctx, _ := NewContext(context.Background())
 		c := FromContext(ctx)
 
