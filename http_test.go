@@ -7,7 +7,7 @@ import (
 	"net/url"
 	"testing"
 
-	"github.com/gowool/gor"
+	"github.com/gowool/keratin"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -36,35 +36,35 @@ func TestScheme(t *testing.T) {
 		{
 			name: "X-Forwarded-Proto header",
 			setupReq: func(r *http.Request) {
-				r.Header.Set(gor.HeaderXForwardedProto, "https")
+				r.Header.Set(keratin.HeaderXForwardedProto, "https")
 			},
 			want: "https",
 		},
 		{
 			name: "X-Forwarded-Protocol header",
 			setupReq: func(r *http.Request) {
-				r.Header.Set(gor.HeaderXForwardedProtocol, "https")
+				r.Header.Set(keratin.HeaderXForwardedProtocol, "https")
 			},
 			want: "https",
 		},
 		{
 			name: "X-Forwarded-Ssl header with on",
 			setupReq: func(r *http.Request) {
-				r.Header.Set(gor.HeaderXForwardedSsl, "on")
+				r.Header.Set(keratin.HeaderXForwardedSsl, "on")
 			},
 			want: "https",
 		},
 		{
 			name: "X-Forwarded-Ssl header with off",
 			setupReq: func(r *http.Request) {
-				r.Header.Set(gor.HeaderXForwardedSsl, "off")
+				r.Header.Set(keratin.HeaderXForwardedSsl, "off")
 			},
 			want: "http",
 		},
 		{
 			name: "X-Url-Scheme header",
 			setupReq: func(r *http.Request) {
-				r.Header.Set(gor.HeaderXUrlScheme, "https")
+				r.Header.Set(keratin.HeaderXUrlScheme, "https")
 			},
 			want: "https",
 		},
@@ -418,7 +418,7 @@ func TestPatternArgs(t *testing.T) {
 func TestIsDecorable(t *testing.T) {
 	t.Run("Non-HTML content type", func(t *testing.T) {
 		w := &delayedWriter{ResponseWriter: httptest.NewRecorder()}
-		w.Header().Set(gor.HeaderContentType, "application/json")
+		w.Header().Set(keratin.HeaderContentType, "application/json")
 
 		isDecorable := IsDecorable(w, httptest.NewRequest("GET", "/", nil))
 
@@ -428,7 +428,7 @@ func TestIsDecorable(t *testing.T) {
 	t.Run("HTML content type", func(t *testing.T) {
 		w := &delayedWriter{ResponseWriter: httptest.NewRecorder()}
 		w.code = http.StatusOK
-		w.Header().Set(gor.HeaderContentType, gor.MIMETextHTML)
+		w.Header().Set(keratin.HeaderContentType, keratin.MIMETextHTML)
 
 		isDecorable := IsDecorable(w, httptest.NewRequest("GET", "/", nil))
 
@@ -466,7 +466,7 @@ func TestIsDecorable(t *testing.T) {
 	t.Run("XMLHttpRequest header set", func(t *testing.T) {
 		w := &delayedWriter{ResponseWriter: httptest.NewRecorder()}
 		req := httptest.NewRequest("GET", "/", nil)
-		req.Header.Set(gor.HeaderXRequestedWith, gor.XMLHTTPRequest)
+		req.Header.Set(keratin.HeaderXRequestedWith, keratin.XMLHTTPRequest)
 
 		isDecorable := IsDecorable(w, req)
 

@@ -10,7 +10,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/gowool/gor"
+	"github.com/gowool/keratin"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
@@ -88,7 +88,7 @@ func TestHTTPErrorHandlerConfig_jsonHandler(t *testing.T) {
 		cfg.jsonHandler(w, req)
 
 		assert.Equal(t, http.StatusNotFound, w.Code)
-		assert.Equal(t, gor.MIMEApplicationJSON, w.Header().Get(gor.HeaderContentType))
+		assert.Equal(t, keratin.MIMEApplicationJSON, w.Header().Get(keratin.HeaderContentType))
 
 		var data map[string]any
 		err := json.Unmarshal(w.Body.Bytes(), &data)
@@ -421,12 +421,12 @@ func TestHTTPErrorHandler_ServeHTTP(t *testing.T) {
 		c.SetError(ErrPageNotFound)
 
 		req := httptest.NewRequest(http.MethodGet, "/test", nil).WithContext(ctx)
-		req.Header.Set(gor.HeaderAccept, gor.MIMEApplicationJSON)
+		req.Header.Set(keratin.HeaderAccept, keratin.MIMEApplicationJSON)
 		w := httptest.NewRecorder()
 
 		h.ServeHTTP(w, req, ErrPageNotFound)
 
-		assert.Equal(t, gor.MIMEApplicationJSON, w.Header().Get(gor.HeaderContentType))
+		assert.Equal(t, keratin.MIMEApplicationJSON, w.Header().Get(keratin.HeaderContentType))
 
 		var data map[string]any
 		err := json.Unmarshal(w.Body.Bytes(), &data)

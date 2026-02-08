@@ -10,7 +10,7 @@ import (
 	"net/http"
 	"sync"
 
-	"github.com/gowool/gor/middleware"
+	"github.com/gowool/keratin/middleware"
 	"github.com/gowool/pages/internal"
 )
 

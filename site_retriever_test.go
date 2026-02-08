@@ -8,7 +8,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/gowool/gor"
+	"github.com/gowool/keratin"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
@@ -76,7 +76,7 @@ func TestNewHTTPSiteRetriever(t *testing.T) {
 		retriever := NewHTTPSiteRetriever(store)
 
 		req := CreateTestRequest("GET", "http://example.com", map[string]string{
-			gor.HeaderCFIPCountry: "US",
+			keratin.HeaderCFIPCountry: "US",
 		})
 
 		// Test that the retriever works with default country function
@@ -175,7 +175,7 @@ func TestHTTPSiteRetriever_Retrieve(t *testing.T) {
 
 		retriever := NewHTTPSiteRetriever(store)
 		req := CreateTestRequest("GET", "http://example.com", map[string]string{
-			gor.HeaderAcceptLanguage: "fr-FR,fr;q=0.9,en;q=0.8",
+			keratin.HeaderAcceptLanguage: "fr-FR,fr;q=0.9,en;q=0.8",
 		})
 
 		site, _, err := retriever.Retrieve(req)
@@ -200,7 +200,7 @@ func TestHTTPSiteRetriever_Retrieve(t *testing.T) {
 		retriever := NewHTTPSiteRetrieverWithConfig(store, HTTPSiteRetrieverConfig{
 			CountryFunc: func(r *http.Request) (string, error) { return "US", nil },
 		})
-		req := CreateTestRequest("GET", "http://example.com/test", map[string]string{gor.HeaderAcceptLanguage: "en-US;q=0.9,en;q=0.8"})
+		req := CreateTestRequest("GET", "http://example.com/test", map[string]string{keratin.HeaderAcceptLanguage: "en-US;q=0.9,en;q=0.8"})
 
 		site, _, err := retriever.Retrieve(req)
 
@@ -269,7 +269,7 @@ func TestHTTPSiteRetriever_LanguageMatching(t *testing.T) {
 
 		// Test French preference
 		req := CreateTestRequest("GET", "http://example.com", map[string]string{
-			gor.HeaderAcceptLanguage: "fr-FR,fr;q=0.9,en;q=0.8",
+			keratin.HeaderAcceptLanguage: "fr-FR,fr;q=0.9,en;q=0.8",
 		})
 
 		site, _, err := retriever.Retrieve(req)
@@ -292,7 +292,7 @@ func TestHTTPSiteRetriever_LanguageMatching(t *testing.T) {
 
 		// Test with en-US which should fallback to en
 		req := CreateTestRequest("GET", "http://example.com", map[string]string{
-			gor.HeaderAcceptLanguage: "en-US,en;q=0.9",
+			keratin.HeaderAcceptLanguage: "en-US,en;q=0.9",
 		})
 
 		site, _, err := retriever.Retrieve(req)
@@ -315,7 +315,7 @@ func TestHTTPSiteRetriever_LanguageMatching(t *testing.T) {
 
 		// Test with invalid Accept-Language header
 		req := CreateTestRequest("GET", "http://example.com", map[string]string{
-			gor.HeaderAcceptLanguage: "invalid-language-header",
+			keratin.HeaderAcceptLanguage: "invalid-language-header",
 		})
 
 		site, _, err := retriever.Retrieve(req)
@@ -346,7 +346,7 @@ func TestHTTPSiteRetriever_Integration(t *testing.T) {
 
 		t.Run("French language preference", func(t *testing.T) {
 			req := CreateTestRequest("GET", "http://example.com", map[string]string{
-				gor.HeaderAcceptLanguage: "fr-FR,fr;q=0.9,en;q=0.8",
+				keratin.HeaderAcceptLanguage: "fr-FR,fr;q=0.9,en;q=0.8",
 			})
 
 			site, _, err := retriever.Retrieve(req)
@@ -358,7 +358,7 @@ func TestHTTPSiteRetriever_Integration(t *testing.T) {
 
 		t.Run("US country with path", func(t *testing.T) {
 			req := CreateTestRequest("GET", "http://example.com/blog/test", map[string]string{
-				gor.HeaderAcceptLanguage: "en-US,en;q=0.9",
+				keratin.HeaderAcceptLanguage: "en-US,en;q=0.9",
 			})
 
 			site, pathInfo, err := retriever.Retrieve(req)
@@ -371,7 +371,7 @@ func TestHTTPSiteRetriever_Integration(t *testing.T) {
 
 		t.Run("Fallback to default", func(t *testing.T) {
 			req := CreateTestRequest("GET", "http://example.com", map[string]string{
-				gor.HeaderAcceptLanguage: "es-ES,es;q=0.9",
+				keratin.HeaderAcceptLanguage: "es-ES,es;q=0.9",
 			})
 
 			site, _, err := retriever.Retrieve(req)
@@ -478,7 +478,7 @@ func BenchmarkSiteRetriever_Retrieve(b *testing.B) {
 
 	retriever := NewHTTPSiteRetriever(store)
 	req := CreateTestRequest("GET", "http://example.com", map[string]string{
-		gor.HeaderAcceptLanguage: "en-US,en;q=0.9",
+		keratin.HeaderAcceptLanguage: "en-US,en;q=0.9",
 	})
 
 	b.ResetTimer()
@@ -496,7 +496,7 @@ func TestHTTPSiteRetriever_CandidateEdgeCases(t *testing.T) {
 		site := CreateTestSite("Test", "example.com", "en-US", false)
 		candidates := []candidate{{site: site}}
 		req := CreateTestRequest("GET", "/", map[string]string{
-			gor.HeaderAcceptLanguage: "",
+			keratin.HeaderAcceptLanguage: "",
 		})
 
 		resultSite, path := retriever.candidate(req, candidates, "")
@@ -508,7 +508,7 @@ func TestHTTPSiteRetriever_CandidateEdgeCases(t *testing.T) {
 		site := CreateTestSite("Test", "example.com", "en-US", false)
 		candidates := []candidate{{site: site}}
 		req := CreateTestRequest("GET", "/", map[string]string{
-			gor.HeaderAcceptLanguage: "invalid***language",
+			keratin.HeaderAcceptLanguage: "invalid***language",
 		})
 
 		resultSite, path := retriever.candidate(req, candidates, "")
@@ -595,7 +595,7 @@ func TestHTTPSiteRetriever_Retrieve_LanguagePreferenceFallback(t *testing.T) {
 
 	retriever := NewHTTPSiteRetriever(mockStore)
 	req := CreateTestRequest("GET", "http://example.com", map[string]string{
-		gor.HeaderAcceptLanguage: "de-DE,de;q=0.9,en-US;q=0.8,en;q=0.7",
+		keratin.HeaderAcceptLanguage: "de-DE,de;q=0.9,en-US;q=0.8,en;q=0.7",
 	})
 
 	site, _, err := retriever.Retrieve(req)
@@ -655,7 +655,7 @@ func TestHTTPSiteRetriever_ExactLanguageMatch(t *testing.T) {
 
 	retriever := NewHTTPSiteRetriever(mockStore)
 	req := CreateTestRequest("GET", "http://example.com/test", map[string]string{
-		gor.HeaderAcceptLanguage: "fr-FR,fr;q=0.9,en;q=0.8",
+		keratin.HeaderAcceptLanguage: "fr-FR,fr;q=0.9,en;q=0.8",
 	})
 
 	resultSite, path, err := retriever.Retrieve(req)
@@ -698,7 +698,7 @@ func TestHTTPSiteRetriever_ParentTagFallback(t *testing.T) {
 
 	retriever := NewHTTPSiteRetriever(mockStore)
 	req := CreateTestRequest("GET", "http://example.com/test", map[string]string{
-		gor.HeaderAcceptLanguage: "en-GB,en;q=0.9",
+		keratin.HeaderAcceptLanguage: "en-GB,en;q=0.9",
 	})
 
 	resultSite, path, err := retriever.Retrieve(req)

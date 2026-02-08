@@ -8,8 +8,8 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/gowool/gor"
-	"github.com/gowool/gor/middleware"
+	"github.com/gowool/keratin"
+	"github.com/gowool/keratin/middleware"
 )
 
 var _ ErrorHandler = (*HTTPErrorHandler)(nil)
@@ -56,7 +56,7 @@ func (cfg *HTTPErrorHandlerConfig) SetDefaults() {
 func (cfg *HTTPErrorHandlerConfig) jsonHandler(w http.ResponseWriter, r *http.Request) {
 	c := MustContext(r.Context())
 
-	w.Header().Set(gor.HeaderContentType, gor.MIMEApplicationJSON)
+	w.Header().Set(keratin.HeaderContentType, keratin.MIMEApplicationJSON)
 	w.WriteHeader(c.Status())
 
 	data := map[string]any{
@@ -73,7 +73,7 @@ func (cfg *HTTPErrorHandlerConfig) jsonHandler(w http.ResponseWriter, r *http.Re
 	}
 
 	if c.HasError() {
-		var httpErr *gor.HTTPError
+		var httpErr *keratin.HTTPError
 		if errors.As(c.Error(), &httpErr) && httpErr.Message != "" {
 			data["message"] = httpErr.Message
 		}
@@ -128,7 +128,7 @@ func NewHTTPErrorHandlerWithConfig(pageHandler Handler, manager PageManager, err
 }
 
 func (h *HTTPErrorHandler) ServeHTTP(w http.ResponseWriter, r *http.Request, e error) {
-	if committer := gor.ResponseCommitter(w); committer != nil && committer.Committed() {
+	if committer := keratin.ResponseCommitter(w); committer != nil && committer.Committed() {
 		h.logger.Warn("response is committed, skip error handler", "error", e)
 		return
 	}
@@ -156,7 +156,7 @@ func (h *HTTPErrorHandler) ServeHTTP(w http.ResponseWriter, r *http.Request, e e
 		return
 	}
 
-	if strings.Contains(r.Header.Get(gor.HeaderAccept), gor.MIMEApplicationJSON) {
+	if strings.Contains(r.Header.Get(keratin.HeaderAccept), keratin.MIMEApplicationJSON) {
 		h.jsonHandler.ServeHTTP(w, r)
 		return
 	}

@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/gowool/gor"
+	"github.com/gowool/keratin"
 	"github.com/invopop/validation"
 	"github.com/stretchr/testify/assert"
 )
@@ -51,9 +51,9 @@ func TestErrorStatus(t *testing.T) {
 		assert.Equal(t, http.StatusNotFound, status)
 	})
 
-	t.Run("gor.ErrFileNotFound returns 404", func(t *testing.T) {
+	t.Run("keratin.ErrFileNotFound returns 404", func(t *testing.T) {
 		ctx := context.Background()
-		status := ErrorStatus(ctx, gor.ErrFileNotFound)
+		status := ErrorStatus(ctx, keratin.ErrFileNotFound)
 
 		assert.Equal(t, http.StatusNotFound, status)
 	})

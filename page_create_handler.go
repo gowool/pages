@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/gowool/gor"
+	"github.com/gowool/keratin"
 	"github.com/gowool/pages/internal"
 	"github.com/invopop/validation"
 )
@@ -97,7 +97,7 @@ func (h *PageCreateHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) er
 	}
 
 	var dto PageCreateRequest
-	if strings.Contains(r.Header.Get(gor.HeaderContentType), gor.MIMEApplicationJSON) {
+	if strings.Contains(r.Header.Get(keratin.HeaderContentType), keratin.MIMEApplicationJSON) {
 		if err := json.NewDecoder(r.Body).Decode(&dto); err != nil {
 			return fmt.Errorf("page create handler: json decode: %w", err)
 		}

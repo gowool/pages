@@ -6,17 +6,17 @@ import (
 	"errors"
 	"net/http"
 
-	"github.com/gowool/gor"
+	"github.com/gowool/keratin"
 	"github.com/invopop/validation"
 )
 
-// ErrorStatus returns an error code code.
+// ErrorStatus returns an error code.
 func ErrorStatus(_ context.Context, err error) int {
 	if err == nil {
 		return http.StatusInternalServerError
 	}
 
-	if errors.Is(err, ErrPageNotFound) || errors.Is(err, sql.ErrNoRows) || errors.Is(err, gor.ErrFileNotFound) {
+	if errors.Is(err, ErrPageNotFound) || errors.Is(err, sql.ErrNoRows) || errors.Is(err, keratin.ErrFileNotFound) {
 		return http.StatusNotFound
 	}
 
@@ -37,5 +37,5 @@ func ErrorStatus(_ context.Context, err error) int {
 		return http.StatusUnprocessableEntity
 	}
 
-	return gor.HTTPErrorStatusCode(err)
+	return keratin.HTTPErrorStatusCode(err)
 }

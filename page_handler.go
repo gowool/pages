@@ -8,7 +8,7 @@ import (
 	"log/slog"
 	"net/http"
 
-	"github.com/gowool/gor"
+	"github.com/gowool/keratin"
 )
 
 var _ Handler = (*PageHandler)(nil)
@@ -130,12 +130,12 @@ func (h *PageHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) error {
 		return nil
 	}
 
-	ct := w.Header().Get(gor.HeaderContentType)
+	ct := w.Header().Get(keratin.HeaderContentType)
 	if ct == "" {
-		ct = gor.MIMETextHTMLCharsetUTF8
+		ct = keratin.MIMETextHTMLCharsetUTF8
 	}
 
-	w.Header().Set(gor.HeaderContentType, ct)
+	w.Header().Set(keratin.HeaderContentType, ct)
 	w.WriteHeader(c.Status())
 
 	if _, err := w.Write(buf.Bytes()); err != nil {

@@ -3,7 +3,7 @@ package pages
 import (
 	"net/http"
 
-	"github.com/gowool/gor/middleware"
+	"github.com/gowool/keratin/middleware"
 )
 
 func PageSkipper(decoratorStrategy PageDecoratorStrategy) middleware.Skipper {

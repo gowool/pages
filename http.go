@@ -4,8 +4,8 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/gowool/gor"
-	"github.com/gowool/gor/middleware"
+	"github.com/gowool/keratin"
+	"github.com/gowool/keratin/middleware"
 )
 
 const (
@@ -14,10 +14,10 @@ const (
 )
 
 type (
-	Handler          = gor.Handler
-	HandlerFunc      = gor.HandlerFunc
-	ErrorHandler     = gor.ErrorHandler
-	ErrorHandlerFunc = gor.ErrorHandlerFunc
+	Handler          = keratin.Handler
+	HandlerFunc      = keratin.HandlerFunc
+	ErrorHandler     = keratin.ErrorHandler
+	ErrorHandlerFunc = keratin.ErrorHandlerFunc
 	Skipper          = middleware.Skipper
 )
 
@@ -25,16 +25,16 @@ func Scheme(r *http.Request) string {
 	if r.TLS != nil {
 		return "https"
 	}
-	if scheme := r.Header.Get(gor.HeaderXForwardedProto); scheme != "" {
+	if scheme := r.Header.Get(keratin.HeaderXForwardedProto); scheme != "" {
 		return scheme
 	}
-	if scheme := r.Header.Get(gor.HeaderXForwardedProtocol); scheme != "" {
+	if scheme := r.Header.Get(keratin.HeaderXForwardedProtocol); scheme != "" {
 		return scheme
 	}
-	if ssl := r.Header.Get(gor.HeaderXForwardedSsl); ssl == "on" {
+	if ssl := r.Header.Get(keratin.HeaderXForwardedSsl); ssl == "on" {
 		return "https"
 	}
-	if scheme := r.Header.Get(gor.HeaderXUrlScheme); scheme != "" {
+	if scheme := r.Header.Get(keratin.HeaderXUrlScheme); scheme != "" {
 		return scheme
 	}
 	return "http"
@@ -95,9 +95,9 @@ func PatternArgs() PatternArgsFunc {
 }
 
 func IsDecorable(w http.ResponseWriter, r *http.Request) bool {
-	contentType := w.Header().Get(gor.HeaderContentType)
+	contentType := w.Header().Get(keratin.HeaderContentType)
 
-	if contentType != "" && !strings.HasPrefix(contentType, gor.MIMETextHTML) {
+	if contentType != "" && !strings.HasPrefix(contentType, keratin.MIMETextHTML) {
 		return false
 	}
 
@@ -109,9 +109,9 @@ func IsDecorable(w http.ResponseWriter, r *http.Request) bool {
 		return true
 	}
 
-	if r.Header.Get(gor.HeaderXRequestedWith) == gor.XMLHTTPRequest {
+	if r.Header.Get(keratin.HeaderXRequestedWith) == keratin.XMLHTTPRequest {
 		return false
 	}
 
-	return gor.ResponseStatusCode(w) == http.StatusOK
+	return keratin.ResponseStatusCode(w) == http.StatusOK
 }

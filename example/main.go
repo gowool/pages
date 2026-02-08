@@ -11,10 +11,10 @@ import (
 	"slices"
 
 	"github.com/danielgtaylor/huma/v2"
-	"github.com/gowool/gor"
-	"github.com/gowool/gor/adapter"
-	"github.com/gowool/gor/middleware"
 	"github.com/gowool/got"
+	"github.com/gowool/keratin"
+	"github.com/gowool/keratin/adapter"
+	"github.com/gowool/keratin/middleware"
 	"github.com/gowool/pages"
 	"github.com/gowool/pages/internal"
 )
@@ -76,9 +76,9 @@ func main() {
 		Logger: logger,
 	})
 
-	router := gor.NewRouter(errorHandler)
-	router.PreFunc(func(next gor.Handler) gor.Handler {
-		return gor.HandlerFunc(func(w http.ResponseWriter, r *http.Request) error {
+	router := keratin.NewRouter(errorHandler)
+	router.PreFunc(func(next keratin.Handler) keratin.Handler {
+		return keratin.HandlerFunc(func(w http.ResponseWriter, r *http.Request) error {
 			c := pages.MustContext(r.Context())
 			c.SetDebug(debug)
 			c.SetGuest(guest)
@@ -92,7 +92,7 @@ func main() {
 	}))
 	router.PreFunc(selectSite)
 
-	router.GET("/favicon.ico", gor.FileFS(publicFS, "favicon.ico"))
+	router.GET("/favicon.ico", keratin.FileFS(publicFS, "favicon.ico"))
 
 	front := router.Group("")
 	front.UseFunc(selectPage)
@@ -193,7 +193,7 @@ func (PageAuthorizer) Authorize(ctx context.Context, action pages.PageAction) pa
 
 type humRouter struct {
 	http.Handler
-	*gor.RouterGroup
+	*keratin.RouterGroup
 }
 
 type humaResponse[T any] struct {
