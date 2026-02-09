@@ -7,8 +7,9 @@ replace github.com/gowool/pages => ../
 require (
 	github.com/danielgtaylor/huma/v2 v2.35.0
 	github.com/gowool/got v0.0.0-20260205154204-22d894dcd94e
-	github.com/gowool/keratin v0.0.0-20260208034719-777b721da847
-	github.com/gowool/keratin/adapter v0.0.0-20260208034719-777b721da847
+	github.com/gowool/keratin v0.0.0-20260209085009-a4088ae58fad
+	github.com/gowool/keratin/adapter v0.0.0-20260209085009-a4088ae58fad
+	github.com/gowool/keratin/server v0.0.0-20260209085009-a4088ae58fad
 	github.com/gowool/pages v0.0.0-00010101000000-000000000000
 )
 
@@ -20,11 +21,15 @@ require (
 	github.com/gosimple/unidecode v1.0.1 // indirect
 	github.com/invopop/validation v0.8.0 // indirect
 	github.com/philhofer/fwd v1.2.0 // indirect
+	github.com/quic-go/qpack v0.6.0 // indirect
+	github.com/quic-go/quic-go v0.59.0 // indirect
 	github.com/segmentio/go-camelcase v0.0.0-20160726192923-7085f1e3c734 // indirect
 	github.com/segmentio/go-snakecase v1.2.0 // indirect
 	github.com/spf13/cast v1.10.0 // indirect
 	github.com/tinylib/msgp v1.6.3 // indirect
+	golang.org/x/crypto v0.47.0 // indirect
 	golang.org/x/net v0.49.0 // indirect
+	golang.org/x/sys v0.41.0 // indirect
 	golang.org/x/text v0.33.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )

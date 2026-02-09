@@ -2,19 +2,22 @@ package main
 
 import (
 	"context"
-	"errors"
 	"flag"
 	"io/fs"
 	"log/slog"
 	"net/http"
 	"os"
+	"os/signal"
 	"slices"
+	"syscall"
+	"time"
 
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/gowool/got"
 	"github.com/gowool/keratin"
 	"github.com/gowool/keratin/adapter"
 	"github.com/gowool/keratin/middleware"
+	"github.com/gowool/keratin/server"
 	"github.com/gowool/pages"
 	"github.com/gowool/pages/internal"
 )
@@ -136,7 +139,8 @@ func main() {
 		generator,
 	)
 
-	ctx := context.Background()
+	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer cancel()
 
 	for site, err := range siteStore.FindPublished(ctx) {
 		if err != nil {
@@ -150,11 +154,17 @@ func main() {
 
 	logger.Info("server started: http://localhost:8888")
 
-	if err := http.ListenAndServe(":8888", handler); err != nil {
-		if errors.Is(err, http.ErrServerClosed) {
-			return
-		}
-		panic(err)
+	srv := server.New(server.Config{Address: ":8888"}, handler, logger.WithGroup("server"))
+
+	go srv.Start()
+
+	<-ctx.Done()
+
+	ctx, cancel = context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	if err := srv.Stop(ctx); err != nil {
+		logger.Error("server stop error", "error", err)
 	}
 }
 
