@@ -2,7 +2,6 @@ package pages
 
 import (
 	"context"
-	"io"
 	"iter"
 	"net/http"
 
@@ -212,14 +211,13 @@ type MockTheme struct {
 	data     any
 }
 
-func (m *MockTheme) Write(_ context.Context, w io.Writer, template string, data any) error {
+func (m *MockTheme) Render(_ context.Context, template string, data any) ([]byte, error) {
 	m.template = template
 	m.data = data
 	if m.err != nil {
-		return m.err
+		return nil, m.err
 	}
-	_, err := w.Write([]byte(m.content))
-	return err
+	return []byte(m.content), nil
 }
 
 var _ PageAuthorizer = (*MockPageAuthorizer)(nil)

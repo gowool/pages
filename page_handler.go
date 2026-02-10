@@ -1,10 +1,8 @@
 package pages
 
 import (
-	"bytes"
 	"context"
 	"fmt"
-	"io"
 	"log/slog"
 	"net/http"
 
@@ -15,7 +13,7 @@ var _ Handler = (*PageHandler)(nil)
 
 // Theme defines an interface for rendering templates with a specific context and writing the output to an io.Writer.
 type Theme interface {
-	Write(ctx context.Context, w io.Writer, template string, data any) error
+	Render(ctx context.Context, template string, data any) ([]byte, error)
 }
 
 // TemplateVarsFunc return a template variables.
@@ -118,8 +116,8 @@ func (h *PageHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) error {
 		return nil
 	}
 
-	var buf bytes.Buffer
-	if err := h.theme.Write(r.Context(), &buf, c.Template(), h.varsFunc(r, c)); err != nil {
+	data, err := h.theme.Render(r.Context(), c.Template(), h.varsFunc(r, c))
+	if err != nil {
 		if !c.HasError() {
 			return fmt.Errorf("page handler: theme write error: %w", err)
 		}
@@ -138,7 +136,7 @@ func (h *PageHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) error {
 	w.Header().Set(keratin.HeaderContentType, ct)
 	w.WriteHeader(c.Status())
 
-	if _, err := w.Write(buf.Bytes()); err != nil {
+	if _, err := w.Write(data); err != nil {
 		h.logger.Error("write response error", "error", err)
 	}
 
