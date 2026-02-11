@@ -143,6 +143,7 @@ golangci-lint run -v --timeout=5m --build-tags=race --output.code-climate.path g
 - Pass `context.Context` as first parameter to store/manager methods
 - Use `context.Background()` for tests when no context is needed
 - Store and retrieve domain objects from context using `FromContext()` or `MustContext()`
+- Should not use built-in type string as key for value; define your own type to avoid collisions
 
 ### Logging
 - Use `log/slog` for structured logging
