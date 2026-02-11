@@ -32,8 +32,7 @@ func ErrorStatus(_ context.Context, err error) int {
 		return http.StatusConflict
 	}
 
-	var validErrs validation.Errors
-	if errors.As(err, &validErrs) {
+	if _, ok := errors.AsType[validation.Errors](err); ok {
 		return http.StatusUnprocessableEntity
 	}
 

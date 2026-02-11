@@ -6,7 +6,6 @@ import (
 	"iter"
 	"testing"
 
-	"github.com/gowool/pages/internal"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
@@ -143,7 +142,7 @@ func TestDefaultPageSyncer_Sync(t *testing.T) {
 
 		// Since HomeHybridPattern was not found by FindByPatterns, it's considered a new page too
 		mockStore.On("Save", ctx, mock.MatchedBy(func(pages []*Page) bool {
-			return len(pages) == 7 // HomeHybrid + 6 internal pages
+			return len(pages) == 6 // 6 internal pages
 		})).Return(nil).Once()
 
 		err := syncer.Sync(ctx, site)
@@ -1104,11 +1103,11 @@ func TestDefaultPageSyncer_setPageConfig(t *testing.T) {
 
 		cfg := PageSyncerConfig{}
 		cfg.DefaultPage = &PageConfig{
-			Template:   internal.Ref("default.gohtml"),
-			Position:   internal.Ref(5),
-			Decorate:   internal.Ref(true),
-			Status:     internal.Ref(Published),
-			Visibility: internal.Ref(Public),
+			Template:   new("default.gohtml"),
+			Position:   new(5),
+			Decorate:   new(true),
+			Status:     new(Published),
+			Visibility: new(Public),
 		}
 		cfg.DefaultPatterns = map[string]*PageConfig{
 			"/test": {}, // All nil

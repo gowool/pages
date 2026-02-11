@@ -9,7 +9,7 @@ import (
 	"github.com/gowool/keratin"
 )
 
-var _ Handler = (*PageHandler)(nil)
+var _ keratin.Handler = (*PageHandler)(nil)
 
 // Theme defines an interface for rendering templates with a specific context and writing the output to an io.Writer.
 type Theme interface {
@@ -37,16 +37,16 @@ type PageHandlerConfig struct {
 	Logger *slog.Logger
 }
 
-func (cfg *PageHandlerConfig) SetDefaults() {
-	if cfg.VarsFunc == nil {
-		cfg.VarsFunc = cfg.vars
+func (c *PageHandlerConfig) SetDefaults() {
+	if c.VarsFunc == nil {
+		c.VarsFunc = c.vars
 	}
 
-	if cfg.Logger == nil {
-		cfg.Logger = slog.New(slog.DiscardHandler)
+	if c.Logger == nil {
+		c.Logger = slog.New(slog.DiscardHandler)
 	}
 
-	cfg.Logger = cfg.Logger.WithGroup("page_handler")
+	c.Logger = c.Logger.WithGroup("page_handler")
 }
 
 func (*PageHandlerConfig) vars(r *http.Request, c *Context) any {
@@ -67,16 +67,16 @@ func NewPageHandler(theme Theme) *PageHandler {
 	return NewPageHandlerWithConfig(theme, PageHandlerConfig{})
 }
 
-func NewPageHandlerWithConfig(theme Theme, config PageHandlerConfig) *PageHandler {
+func NewPageHandlerWithConfig(theme Theme, cfg PageHandlerConfig) *PageHandler {
 	if theme == nil {
 		panic("page handler: theme is required")
 	}
-	config.SetDefaults()
+	cfg.SetDefaults()
 
 	return &PageHandler{
 		theme:    theme,
-		varsFunc: config.VarsFunc,
-		logger:   config.Logger,
+		varsFunc: cfg.VarsFunc,
+		logger:   cfg.Logger,
 	}
 }
 
@@ -133,10 +133,7 @@ func (h *PageHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) error {
 		ct = keratin.MIMETextHTMLCharsetUTF8
 	}
 
-	w.Header().Set(keratin.HeaderContentType, ct)
-	w.WriteHeader(c.Status())
-
-	if _, err := w.Write(data); err != nil {
+	if err = keratin.Blob(w, c.Status(), ct, data); err != nil {
 		h.logger.Error("write response error", "error", err)
 	}
 

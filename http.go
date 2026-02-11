@@ -5,7 +5,6 @@ import (
 	"strings"
 
 	"github.com/gowool/keratin"
-	"github.com/gowool/keratin/middleware"
 )
 
 const (
@@ -13,54 +12,9 @@ const (
 	HeaderXPageNotDecorable = "X-Page-Not-Decorable"
 )
 
-type (
-	Handler          = keratin.Handler
-	HandlerFunc      = keratin.HandlerFunc
-	ErrorHandler     = keratin.ErrorHandler
-	ErrorHandlerFunc = keratin.ErrorHandlerFunc
-	Skipper          = middleware.Skipper
-)
-
-func Scheme(r *http.Request) string {
-	if r.TLS != nil {
-		return "https"
-	}
-	if scheme := r.Header.Get(keratin.HeaderXForwardedProto); scheme != "" {
-		return scheme
-	}
-	if scheme := r.Header.Get(keratin.HeaderXForwardedProtocol); scheme != "" {
-		return scheme
-	}
-	if ssl := r.Header.Get(keratin.HeaderXForwardedSsl); ssl == "on" {
-		return "https"
-	}
-	if scheme := r.Header.Get(keratin.HeaderXUrlScheme); scheme != "" {
-		return scheme
-	}
-	return "http"
-}
-
-func CheckMethod(method, pattern string) (string, bool) {
-	if index := strings.IndexRune(pattern, ' '); index > 0 {
-		if method == pattern[:index] {
-			return strings.TrimSpace(pattern[index+1:]), true
-		}
-		return "", false
-	}
-	return pattern, true
-}
-
-func Pattern(r *http.Request) string {
-	pattern := r.Pattern
-	if index := strings.IndexRune(pattern, ' '); index > -1 {
-		pattern = pattern[index+1:]
-	}
-	return pattern
-}
-
 func PatternArgs() PatternArgsFunc {
 	return func(r *http.Request) (args []any) {
-		pattern := Pattern(r)
+		pattern := keratin.Pattern(r)
 
 		n := strings.Count(pattern, "{")
 		if n == 0 {

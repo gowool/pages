@@ -10,19 +10,20 @@ import (
 	"net/http"
 	"sync"
 
+	"github.com/gowool/keratin"
 	"github.com/gowool/keratin/middleware"
 	"github.com/gowool/pages/internal"
 )
 
-func SelectSiteMiddleware(retriever SiteRetriever, skippers ...Skipper) func(Handler) Handler {
+func SelectSiteMiddleware(retriever SiteRetriever, skippers ...middleware.Skipper) func(keratin.Handler) keratin.Handler {
 	if retriever == nil {
 		panic("middleware: select site: retriever is required")
 	}
 
 	skip := middleware.ChainSkipper(skippers...)
 
-	return func(next Handler) Handler {
-		return HandlerFunc(func(w http.ResponseWriter, r *http.Request) error {
+	return func(next keratin.Handler) keratin.Handler {
+		return keratin.HandlerFunc(func(w http.ResponseWriter, r *http.Request) error {
 			if skip(r) {
 				return next.ServeHTTP(w, r)
 			}
@@ -41,7 +42,7 @@ func SelectSiteMiddleware(retriever SiteRetriever, skippers ...Skipper) func(Han
 				return ErrSiteNotFound
 			}
 
-			site.Scheme = Scheme(r)
+			site.Scheme = keratin.Scheme(r)
 			site.Host = r.Host
 			site.IsRoot = r.URL.Path == "/"
 
@@ -58,7 +59,12 @@ func SelectSiteMiddleware(retriever SiteRetriever, skippers ...Skipper) func(Han
 
 type PatternArgsFunc func(*http.Request) []any
 
-func SelectPageMiddleware(manager PageManager, authorizer PageAuthorizer, patternArgs PatternArgsFunc, skippers ...Skipper) func(Handler) Handler {
+func SelectPageMiddleware(
+	manager PageManager,
+	authorizer PageAuthorizer,
+	patternArgs PatternArgsFunc,
+	skippers ...middleware.Skipper,
+) func(keratin.Handler) keratin.Handler {
 	if manager == nil {
 		panic("middleware: select page: manager is required")
 	}
@@ -73,10 +79,10 @@ func SelectPageMiddleware(manager PageManager, authorizer PageAuthorizer, patter
 	skip := middleware.ChainSkipper(skippers...)
 
 	findPage := func(r *http.Request, site *Site) (page *Page, err error) {
-		if pattern := Pattern(r); pattern != PageCMSPattern {
-			page, err = manager.GetByPattern(r.Context(), site, pattern)
-		} else {
+		if pattern := keratin.Pattern(r); pattern == PageCMSPattern {
 			page, err = manager.GetByURL(r.Context(), site, r.URL.Path)
+		} else {
+			page, err = manager.GetByPattern(r.Context(), site, pattern)
 		}
 
 		if err != nil {
@@ -102,8 +108,8 @@ func SelectPageMiddleware(manager PageManager, authorizer PageAuthorizer, patter
 		return nil
 	}
 
-	return func(next Handler) Handler {
-		return HandlerFunc(func(w http.ResponseWriter, r *http.Request) error {
+	return func(next keratin.Handler) keratin.Handler {
+		return keratin.HandlerFunc(func(w http.ResponseWriter, r *http.Request) error {
 			if skip(r) {
 				return next.ServeHTTP(w, r)
 			}
@@ -152,7 +158,7 @@ func SelectPageMiddleware(manager PageManager, authorizer PageAuthorizer, patter
 	}
 }
 
-func HybridPageMiddleware(pageHandler Handler, logger *slog.Logger, skippers ...Skipper) func(Handler) Handler {
+func HybridPageMiddleware(pageHandler keratin.Handler, logger *slog.Logger, skippers ...middleware.Skipper) func(keratin.Handler) keratin.Handler {
 	if pageHandler == nil {
 		panic("middleware: hybrid page: page handler is required")
 	}
@@ -176,8 +182,8 @@ func HybridPageMiddleware(pageHandler Handler, logger *slog.Logger, skippers ...
 		},
 	}
 
-	return func(next Handler) Handler {
-		return HandlerFunc(func(w http.ResponseWriter, r *http.Request) error {
+	return func(next keratin.Handler) keratin.Handler {
+		return keratin.HandlerFunc(func(w http.ResponseWriter, r *http.Request) error {
 			if skip(r) {
 				return next.ServeHTTP(w, r)
 			}

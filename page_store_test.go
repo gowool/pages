@@ -139,17 +139,19 @@ func TestMemoryPageStore_Save(t *testing.T) {
 		ctx := context.Background()
 
 		page1 := &Page{
-			ID:     ID("page1"),
-			SiteID: ID("site1"),
-			Alias:  "same-alias",
-			Title:  "Page 1",
+			ID:      ID("page1"),
+			SiteID:  ID("site1"),
+			Pattern: "/page1",
+			Alias:   "same-alias",
+			Title:   "Page 1",
 		}
 
 		page2 := &Page{
-			ID:     ID("page2"),
-			SiteID: ID("site1"),
-			Alias:  "same-alias",
-			Title:  "Page 2",
+			ID:      ID("page2"),
+			SiteID:  ID("site1"),
+			Pattern: "/page2",
+			Alias:   "same-alias",
+			Title:   "Page 2",
 		}
 
 		// Save first page

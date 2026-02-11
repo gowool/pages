@@ -12,6 +12,8 @@ import (
 	"github.com/invopop/validation"
 )
 
+var _ keratin.Handler = (*PageCreateHandler)(nil)
+
 // BeforeSaveFunc called before page save.
 type BeforeSaveFunc func(context.Context, *Page) error
 
@@ -20,17 +22,17 @@ type PageCreateHandlerConfig struct {
 	BeforeSaveFunc BeforeSaveFunc
 }
 
-func (cfg *PageCreateHandlerConfig) SetDefaults() {
-	if cfg.GeneratorFunc == nil {
-		cfg.GeneratorFunc = IDGenerator()
+func (c *PageCreateHandlerConfig) SetDefaults() {
+	if c.GeneratorFunc == nil {
+		c.GeneratorFunc = IDGenerator()
 	}
 
-	if cfg.BeforeSaveFunc == nil {
-		cfg.BeforeSaveFunc = cfg.beforeSave
+	if c.BeforeSaveFunc == nil {
+		c.BeforeSaveFunc = c.beforeSave
 	}
 }
 
-func (cfg *PageCreateHandlerConfig) beforeSave(context.Context, *Page) error {
+func (c *PageCreateHandlerConfig) beforeSave(context.Context, *Page) error {
 	return nil
 }
 
@@ -59,20 +61,20 @@ func NewPageCreateHandler(store PageStore, authorizer PageAuthorizer) *PageCreat
 	return NewPageCreateHandlerWithConfig(store, authorizer, PageCreateHandlerConfig{})
 }
 
-func NewPageCreateHandlerWithConfig(store PageStore, authorizer PageAuthorizer, config PageCreateHandlerConfig) *PageCreateHandler {
+func NewPageCreateHandlerWithConfig(store PageStore, authorizer PageAuthorizer, cfg PageCreateHandlerConfig) *PageCreateHandler {
 	if store == nil {
 		panic("page create handler: store is required")
 	}
 	if authorizer == nil {
 		panic("page create handler: authorizer is required")
 	}
-	config.SetDefaults()
+	cfg.SetDefaults()
 
 	return &PageCreateHandler{
 		store:          store,
 		authorizer:     authorizer,
-		generatorFunc:  config.GeneratorFunc,
-		beforeSaveFunc: config.BeforeSaveFunc,
+		generatorFunc:  cfg.GeneratorFunc,
+		beforeSaveFunc: cfg.BeforeSaveFunc,
 	}
 }
 

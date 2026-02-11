@@ -1,16 +1,16 @@
 module github.com/gowool/pages
 
-go 1.25
+go 1.26
 
 require (
 	github.com/dlclark/regexp2 v1.11.5
 	github.com/google/uuid v1.6.0
 	github.com/gosimple/slug v1.15.0
-	github.com/gowool/keratin v0.0.0-20260209085009-a4088ae58fad
+	github.com/gowool/keratin v0.0.0-20260211210650-bdc90e587cf6
 	github.com/invopop/validation v0.8.0
 	github.com/spf13/cast v1.10.0
 	github.com/stretchr/testify v1.11.1
-	golang.org/x/text v0.33.0
+	golang.org/x/text v0.34.0
 )
 
 require (

@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/gowool/keratin"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
@@ -101,7 +102,7 @@ func TestSelectSiteMiddleware(t *testing.T) {
 		w := httptest.NewRecorder()
 
 		nextCalled := false
-		next := HandlerFunc(func(w http.ResponseWriter, r *http.Request) error {
+		next := keratin.HandlerFunc(func(w http.ResponseWriter, r *http.Request) error {
 			nextCalled = true
 			return nil
 		})
@@ -121,7 +122,7 @@ func TestSelectSiteMiddleware(t *testing.T) {
 		req := httptest.NewRequest(http.MethodGet, "/test", nil)
 		w := httptest.NewRecorder()
 
-		next := HandlerFunc(func(w http.ResponseWriter, r *http.Request) error {
+		next := keratin.HandlerFunc(func(w http.ResponseWriter, r *http.Request) error {
 			return nil
 		})
 
@@ -144,7 +145,7 @@ func TestSelectSiteMiddleware(t *testing.T) {
 		req = req.WithContext(parentCtx)
 		w := httptest.NewRecorder()
 
-		next := HandlerFunc(func(w http.ResponseWriter, r *http.Request) error {
+		next := keratin.HandlerFunc(func(w http.ResponseWriter, r *http.Request) error {
 			return nil
 		})
 
@@ -169,7 +170,7 @@ func TestSelectSiteMiddleware(t *testing.T) {
 		req = req.WithContext(parentCtx)
 		w := httptest.NewRecorder()
 
-		next := HandlerFunc(func(w http.ResponseWriter, r *http.Request) error {
+		next := keratin.HandlerFunc(func(w http.ResponseWriter, r *http.Request) error {
 			return nil
 		})
 
@@ -192,7 +193,7 @@ func TestSelectSiteMiddleware(t *testing.T) {
 		req = req.WithContext(parentCtx)
 		w := httptest.NewRecorder()
 
-		next := HandlerFunc(func(w http.ResponseWriter, r *http.Request) error {
+		next := keratin.HandlerFunc(func(w http.ResponseWriter, r *http.Request) error {
 			return nil
 		})
 
@@ -215,7 +216,7 @@ func TestSelectSiteMiddleware(t *testing.T) {
 		req = req.WithContext(parentCtx)
 		w := httptest.NewRecorder()
 
-		next := HandlerFunc(func(w http.ResponseWriter, r *http.Request) error {
+		next := keratin.HandlerFunc(func(w http.ResponseWriter, r *http.Request) error {
 			return nil
 		})
 
@@ -240,7 +241,7 @@ func TestSelectSiteMiddleware(t *testing.T) {
 		req = req.WithContext(parentCtx)
 		w := httptest.NewRecorder()
 
-		next := HandlerFunc(func(w http.ResponseWriter, r *http.Request) error {
+		next := keratin.HandlerFunc(func(w http.ResponseWriter, r *http.Request) error {
 			return nil
 		})
 
@@ -265,7 +266,7 @@ func TestSelectSiteMiddleware(t *testing.T) {
 		req = req.WithContext(parentCtx)
 		w := httptest.NewRecorder()
 
-		next := HandlerFunc(func(w http.ResponseWriter, r *http.Request) error {
+		next := keratin.HandlerFunc(func(w http.ResponseWriter, r *http.Request) error {
 			return nil
 		})
 
@@ -288,7 +289,7 @@ func TestSelectSiteMiddleware(t *testing.T) {
 		req = req.WithContext(parentCtx)
 		w := httptest.NewRecorder()
 
-		next := HandlerFunc(func(w http.ResponseWriter, r *http.Request) error {
+		next := keratin.HandlerFunc(func(w http.ResponseWriter, r *http.Request) error {
 			return nil
 		})
 
@@ -312,7 +313,7 @@ func TestSelectSiteMiddleware(t *testing.T) {
 		req = req.WithContext(parentCtx)
 		w := httptest.NewRecorder()
 
-		next := HandlerFunc(func(w http.ResponseWriter, r *http.Request) error {
+		next := keratin.HandlerFunc(func(w http.ResponseWriter, r *http.Request) error {
 			return nil
 		})
 
@@ -365,7 +366,7 @@ func TestSelectPageMiddleware(t *testing.T) {
 		req = req.WithContext(parentCtx)
 		w := httptest.NewRecorder()
 
-		next := HandlerFunc(func(w http.ResponseWriter, r *http.Request) error {
+		next := keratin.HandlerFunc(func(w http.ResponseWriter, r *http.Request) error {
 			return nil
 		})
 
@@ -395,7 +396,7 @@ func TestSelectPageMiddleware(t *testing.T) {
 		w := httptest.NewRecorder()
 
 		nextCalled := false
-		next := HandlerFunc(func(w http.ResponseWriter, r *http.Request) error {
+		next := keratin.HandlerFunc(func(w http.ResponseWriter, r *http.Request) error {
 			nextCalled = true
 			return nil
 		})
@@ -416,7 +417,7 @@ func TestSelectPageMiddleware(t *testing.T) {
 		req := httptest.NewRequest(http.MethodGet, "/test", nil)
 		w := httptest.NewRecorder()
 
-		next := HandlerFunc(func(w http.ResponseWriter, r *http.Request) error {
+		next := keratin.HandlerFunc(func(w http.ResponseWriter, r *http.Request) error {
 			return nil
 		})
 
@@ -439,7 +440,7 @@ func TestSelectPageMiddleware(t *testing.T) {
 		req = req.WithContext(parentCtx)
 		w := httptest.NewRecorder()
 
-		next := HandlerFunc(func(w http.ResponseWriter, r *http.Request) error {
+		next := keratin.HandlerFunc(func(w http.ResponseWriter, r *http.Request) error {
 			return nil
 		})
 
@@ -473,7 +474,7 @@ func TestSelectPageMiddleware(t *testing.T) {
 
 		manager.On("GetByPattern", req.Context(), site, "/test").Return(page, nil)
 
-		next := HandlerFunc(func(w http.ResponseWriter, r *http.Request) error {
+		next := keratin.HandlerFunc(func(w http.ResponseWriter, r *http.Request) error {
 			return nil
 		})
 
@@ -509,7 +510,7 @@ func TestSelectPageMiddleware(t *testing.T) {
 
 		manager.On("GetByURL", req.Context(), site, "/cms-page").Return(page, nil)
 
-		next := HandlerFunc(func(w http.ResponseWriter, r *http.Request) error {
+		next := keratin.HandlerFunc(func(w http.ResponseWriter, r *http.Request) error {
 			return nil
 		})
 
@@ -539,7 +540,7 @@ func TestSelectPageMiddleware(t *testing.T) {
 		otherErr := errors.New("database error")
 		manager.On("GetByPattern", mock.Anything, mock.Anything, mock.Anything).Return(nil, otherErr)
 
-		next := HandlerFunc(func(w http.ResponseWriter, r *http.Request) error {
+		next := keratin.HandlerFunc(func(w http.ResponseWriter, r *http.Request) error {
 			return nil
 		})
 
@@ -569,7 +570,7 @@ func TestSelectPageMiddleware(t *testing.T) {
 
 		manager.On("GetByPattern", mock.Anything, mock.Anything, mock.Anything).Return(nil, nil)
 
-		next := HandlerFunc(func(w http.ResponseWriter, r *http.Request) error {
+		next := keratin.HandlerFunc(func(w http.ResponseWriter, r *http.Request) error {
 			return nil
 		})
 
@@ -607,7 +608,7 @@ func TestSelectPageMiddleware(t *testing.T) {
 
 		manager.On("GetByPattern", mock.Anything, mock.Anything, mock.Anything).Return(page, nil)
 
-		next := HandlerFunc(func(w http.ResponseWriter, r *http.Request) error {
+		next := keratin.HandlerFunc(func(w http.ResponseWriter, r *http.Request) error {
 			return nil
 		})
 
@@ -645,7 +646,7 @@ func TestSelectPageMiddleware(t *testing.T) {
 
 		manager.On("GetByPattern", mock.Anything, mock.Anything, mock.Anything).Return(page, nil)
 
-		next := HandlerFunc(func(w http.ResponseWriter, r *http.Request) error {
+		next := keratin.HandlerFunc(func(w http.ResponseWriter, r *http.Request) error {
 			return nil
 		})
 
@@ -679,7 +680,7 @@ func TestSelectPageMiddleware(t *testing.T) {
 
 		manager.On("GetByPattern", mock.Anything, mock.Anything, mock.Anything).Return(page, nil)
 
-		next := HandlerFunc(func(w http.ResponseWriter, r *http.Request) error {
+		next := keratin.HandlerFunc(func(w http.ResponseWriter, r *http.Request) error {
 			return nil
 		})
 
@@ -714,7 +715,7 @@ func TestSelectPageMiddleware(t *testing.T) {
 
 		manager.On("GetByPattern", mock.Anything, mock.Anything, mock.Anything).Return(page, nil)
 
-		next := HandlerFunc(func(w http.ResponseWriter, r *http.Request) error {
+		next := keratin.HandlerFunc(func(w http.ResponseWriter, r *http.Request) error {
 			return nil
 		})
 
@@ -749,7 +750,7 @@ func TestSelectPageMiddleware(t *testing.T) {
 
 		manager.On("GetByPattern", mock.Anything, mock.Anything, mock.Anything).Return(page, nil)
 
-		next := HandlerFunc(func(w http.ResponseWriter, r *http.Request) error {
+		next := keratin.HandlerFunc(func(w http.ResponseWriter, r *http.Request) error {
 			return nil
 		})
 
@@ -784,7 +785,7 @@ func TestSelectPageMiddleware(t *testing.T) {
 
 		manager.On("GetByPattern", mock.Anything, mock.Anything, mock.Anything).Return(page, nil)
 
-		next := HandlerFunc(func(w http.ResponseWriter, r *http.Request) error {
+		next := keratin.HandlerFunc(func(w http.ResponseWriter, r *http.Request) error {
 			return nil
 		})
 
@@ -820,7 +821,7 @@ func TestSelectPageMiddleware(t *testing.T) {
 
 		manager.On("GetByPattern", mock.Anything, mock.Anything, mock.Anything).Return(page, nil)
 
-		next := HandlerFunc(func(w http.ResponseWriter, r *http.Request) error {
+		next := keratin.HandlerFunc(func(w http.ResponseWriter, r *http.Request) error {
 			return nil
 		})
 
@@ -855,7 +856,7 @@ func TestSelectPageMiddleware(t *testing.T) {
 
 		manager.On("GetByPattern", mock.Anything, mock.Anything, mock.Anything).Return(page, nil)
 
-		next := HandlerFunc(func(w http.ResponseWriter, r *http.Request) error {
+		next := keratin.HandlerFunc(func(w http.ResponseWriter, r *http.Request) error {
 			return nil
 		})
 
@@ -875,7 +876,7 @@ func TestHybridPageMiddleware(t *testing.T) {
 	})
 
 	t.Run("default logger when nil", func(t *testing.T) {
-		pageHandler := HandlerFunc(func(w http.ResponseWriter, r *http.Request) error {
+		pageHandler := keratin.HandlerFunc(func(w http.ResponseWriter, r *http.Request) error {
 			return nil
 		})
 
@@ -884,7 +885,7 @@ func TestHybridPageMiddleware(t *testing.T) {
 	})
 
 	t.Run("built-in skipper for non-hybrid pages", func(t *testing.T) {
-		pageHandler := HandlerFunc(func(w http.ResponseWriter, r *http.Request) error {
+		pageHandler := keratin.HandlerFunc(func(w http.ResponseWriter, r *http.Request) error {
 			return nil
 		})
 
@@ -901,7 +902,7 @@ func TestHybridPageMiddleware(t *testing.T) {
 		w := httptest.NewRecorder()
 
 		nextCalled := false
-		next := HandlerFunc(func(w http.ResponseWriter, r *http.Request) error {
+		next := keratin.HandlerFunc(func(w http.ResponseWriter, r *http.Request) error {
 			nextCalled = true
 			return nil
 		})
@@ -915,7 +916,7 @@ func TestHybridPageMiddleware(t *testing.T) {
 	})
 
 	t.Run("skip when skipper returns true", func(t *testing.T) {
-		pageHandler := HandlerFunc(func(w http.ResponseWriter, r *http.Request) error {
+		pageHandler := keratin.HandlerFunc(func(w http.ResponseWriter, r *http.Request) error {
 			return nil
 		})
 
@@ -936,7 +937,7 @@ func TestHybridPageMiddleware(t *testing.T) {
 		w := httptest.NewRecorder()
 
 		nextCalled := false
-		next := HandlerFunc(func(w http.ResponseWriter, r *http.Request) error {
+		next := keratin.HandlerFunc(func(w http.ResponseWriter, r *http.Request) error {
 			nextCalled = true
 			return nil
 		})
@@ -950,7 +951,7 @@ func TestHybridPageMiddleware(t *testing.T) {
 	})
 
 	t.Run("error when page not found in context", func(t *testing.T) {
-		pageHandler := HandlerFunc(func(w http.ResponseWriter, r *http.Request) error {
+		pageHandler := keratin.HandlerFunc(func(w http.ResponseWriter, r *http.Request) error {
 			return nil
 		})
 
@@ -961,7 +962,7 @@ func TestHybridPageMiddleware(t *testing.T) {
 		req = req.WithContext(parentCtx)
 		w := httptest.NewRecorder()
 
-		next := HandlerFunc(func(w http.ResponseWriter, r *http.Request) error {
+		next := keratin.HandlerFunc(func(w http.ResponseWriter, r *http.Request) error {
 			return nil
 		})
 
@@ -974,7 +975,7 @@ func TestHybridPageMiddleware(t *testing.T) {
 	})
 
 	t.Run("set X-Page-Decorable header", func(t *testing.T) {
-		pageHandler := HandlerFunc(func(w http.ResponseWriter, r *http.Request) error {
+		pageHandler := keratin.HandlerFunc(func(w http.ResponseWriter, r *http.Request) error {
 			return nil
 		})
 
@@ -992,7 +993,7 @@ func TestHybridPageMiddleware(t *testing.T) {
 		req = req.WithContext(parentCtx)
 		w := httptest.NewRecorder()
 
-		next := HandlerFunc(func(w http.ResponseWriter, r *http.Request) error {
+		next := keratin.HandlerFunc(func(w http.ResponseWriter, r *http.Request) error {
 			return nil
 		})
 
@@ -1005,7 +1006,7 @@ func TestHybridPageMiddleware(t *testing.T) {
 	})
 
 	t.Run("set X-Page-Not-Decorable header", func(t *testing.T) {
-		pageHandler := HandlerFunc(func(w http.ResponseWriter, r *http.Request) error {
+		pageHandler := keratin.HandlerFunc(func(w http.ResponseWriter, r *http.Request) error {
 			return nil
 		})
 
@@ -1022,7 +1023,7 @@ func TestHybridPageMiddleware(t *testing.T) {
 		req = req.WithContext(parentCtx)
 		w := httptest.NewRecorder()
 
-		next := HandlerFunc(func(w http.ResponseWriter, r *http.Request) error {
+		next := keratin.HandlerFunc(func(w http.ResponseWriter, r *http.Request) error {
 			return nil
 		})
 
@@ -1035,7 +1036,7 @@ func TestHybridPageMiddleware(t *testing.T) {
 	})
 
 	t.Run("code > 0 sets context code", func(t *testing.T) {
-		pageHandler := HandlerFunc(func(w http.ResponseWriter, r *http.Request) error {
+		pageHandler := keratin.HandlerFunc(func(w http.ResponseWriter, r *http.Request) error {
 			return nil
 		})
 
@@ -1053,7 +1054,7 @@ func TestHybridPageMiddleware(t *testing.T) {
 		req = req.WithContext(parentCtx)
 		w := httptest.NewRecorder()
 
-		next := HandlerFunc(func(w http.ResponseWriter, r *http.Request) error {
+		next := keratin.HandlerFunc(func(w http.ResponseWriter, r *http.Request) error {
 			return nil
 		})
 
@@ -1066,7 +1067,7 @@ func TestHybridPageMiddleware(t *testing.T) {
 	})
 
 	t.Run("context content is set from buffer", func(t *testing.T) {
-		pageHandler := HandlerFunc(func(w http.ResponseWriter, r *http.Request) error {
+		pageHandler := keratin.HandlerFunc(func(w http.ResponseWriter, r *http.Request) error {
 			return nil
 		})
 
@@ -1085,7 +1086,7 @@ func TestHybridPageMiddleware(t *testing.T) {
 		w := httptest.NewRecorder()
 
 		testContent := "test content"
-		next := HandlerFunc(func(w http.ResponseWriter, r *http.Request) error {
+		next := keratin.HandlerFunc(func(w http.ResponseWriter, r *http.Request) error {
 			_, err := w.Write([]byte(testContent))
 			return err
 		})
@@ -1099,7 +1100,7 @@ func TestHybridPageMiddleware(t *testing.T) {
 	})
 
 	t.Run("IsDecorable returns false - write response directly", func(t *testing.T) {
-		pageHandler := HandlerFunc(func(w http.ResponseWriter, r *http.Request) error {
+		pageHandler := keratin.HandlerFunc(func(w http.ResponseWriter, r *http.Request) error {
 			return nil
 		})
 
@@ -1117,7 +1118,7 @@ func TestHybridPageMiddleware(t *testing.T) {
 		w := httptest.NewRecorder()
 
 		testContent := "test content"
-		next := HandlerFunc(func(w http.ResponseWriter, r *http.Request) error {
+		next := keratin.HandlerFunc(func(w http.ResponseWriter, r *http.Request) error {
 			w.WriteHeader(http.StatusOK)
 			_, err := w.Write([]byte(testContent))
 			return err
@@ -1134,7 +1135,7 @@ func TestHybridPageMiddleware(t *testing.T) {
 
 	t.Run("IsDecorable returns true - call pageHandler", func(t *testing.T) {
 		pageHandlerCalled := false
-		pageHandler := HandlerFunc(func(w http.ResponseWriter, r *http.Request) error {
+		pageHandler := keratin.HandlerFunc(func(w http.ResponseWriter, r *http.Request) error {
 			pageHandlerCalled = true
 			_, err := w.Write([]byte("decorated content"))
 			return err
@@ -1154,7 +1155,7 @@ func TestHybridPageMiddleware(t *testing.T) {
 		req = req.WithContext(parentCtx)
 		w := httptest.NewRecorder()
 
-		next := HandlerFunc(func(w http.ResponseWriter, r *http.Request) error {
+		next := keratin.HandlerFunc(func(w http.ResponseWriter, r *http.Request) error {
 			_, err := w.Write([]byte("test content"))
 			return err
 		})
@@ -1168,7 +1169,7 @@ func TestHybridPageMiddleware(t *testing.T) {
 	})
 
 	t.Run("write response with buffer when not decorable", func(t *testing.T) {
-		pageHandler := HandlerFunc(func(w http.ResponseWriter, r *http.Request) error {
+		pageHandler := keratin.HandlerFunc(func(w http.ResponseWriter, r *http.Request) error {
 			return nil
 		})
 
@@ -1186,7 +1187,7 @@ func TestHybridPageMiddleware(t *testing.T) {
 		w := httptest.NewRecorder()
 
 		testContent := "buffered content"
-		next := HandlerFunc(func(w http.ResponseWriter, r *http.Request) error {
+		next := keratin.HandlerFunc(func(w http.ResponseWriter, r *http.Request) error {
 			_, err := w.Write([]byte(testContent))
 			return err
 		})
@@ -1200,7 +1201,7 @@ func TestHybridPageMiddleware(t *testing.T) {
 	})
 
 	t.Run("logger error on write failure", func(t *testing.T) {
-		pageHandler := HandlerFunc(func(w http.ResponseWriter, r *http.Request) error {
+		pageHandler := keratin.HandlerFunc(func(w http.ResponseWriter, r *http.Request) error {
 			return nil
 		})
 
@@ -1223,7 +1224,7 @@ func TestHybridPageMiddleware(t *testing.T) {
 		}
 
 		testContent := "test content"
-		next := HandlerFunc(func(w http.ResponseWriter, r *http.Request) error {
+		next := keratin.HandlerFunc(func(w http.ResponseWriter, r *http.Request) error {
 			_, err := w.Write([]byte(testContent))
 			return err
 		})
@@ -1236,7 +1237,7 @@ func TestHybridPageMiddleware(t *testing.T) {
 	})
 
 	t.Run("next handler returns error", func(t *testing.T) {
-		pageHandler := HandlerFunc(func(w http.ResponseWriter, r *http.Request) error {
+		pageHandler := keratin.HandlerFunc(func(w http.ResponseWriter, r *http.Request) error {
 			return nil
 		})
 
@@ -1254,7 +1255,7 @@ func TestHybridPageMiddleware(t *testing.T) {
 		req = req.WithContext(parentCtx)
 		w := httptest.NewRecorder()
 
-		next := HandlerFunc(func(w http.ResponseWriter, r *http.Request) error {
+		next := keratin.HandlerFunc(func(w http.ResponseWriter, r *http.Request) error {
 			return errors.New("handler error")
 		})
 
@@ -1266,7 +1267,7 @@ func TestHybridPageMiddleware(t *testing.T) {
 	})
 
 	t.Run("empty buffer writes nothing", func(t *testing.T) {
-		pageHandler := HandlerFunc(func(w http.ResponseWriter, r *http.Request) error {
+		pageHandler := keratin.HandlerFunc(func(w http.ResponseWriter, r *http.Request) error {
 			return nil
 		})
 
@@ -1283,7 +1284,7 @@ func TestHybridPageMiddleware(t *testing.T) {
 		req = req.WithContext(parentCtx)
 		w := httptest.NewRecorder()
 
-		next := HandlerFunc(func(w http.ResponseWriter, r *http.Request) error {
+		next := keratin.HandlerFunc(func(w http.ResponseWriter, r *http.Request) error {
 			return nil
 		})
 
@@ -1296,7 +1297,7 @@ func TestHybridPageMiddleware(t *testing.T) {
 	})
 
 	t.Run("decorable with non-HTML content type", func(t *testing.T) {
-		pageHandler := HandlerFunc(func(w http.ResponseWriter, r *http.Request) error {
+		pageHandler := keratin.HandlerFunc(func(w http.ResponseWriter, r *http.Request) error {
 			return nil
 		})
 
@@ -1313,7 +1314,7 @@ func TestHybridPageMiddleware(t *testing.T) {
 		req = req.WithContext(parentCtx)
 		w := httptest.NewRecorder()
 
-		next := HandlerFunc(func(w http.ResponseWriter, r *http.Request) error {
+		next := keratin.HandlerFunc(func(w http.ResponseWriter, r *http.Request) error {
 			w.Header().Set("Content-Type", "application/json")
 			_, err := w.Write([]byte("test content"))
 			return err
@@ -1328,7 +1329,7 @@ func TestHybridPageMiddleware(t *testing.T) {
 	})
 
 	t.Run("decorable with XMLHttpRequest", func(t *testing.T) {
-		pageHandler := HandlerFunc(func(w http.ResponseWriter, r *http.Request) error {
+		pageHandler := keratin.HandlerFunc(func(w http.ResponseWriter, r *http.Request) error {
 			return nil
 		})
 
@@ -1346,7 +1347,7 @@ func TestHybridPageMiddleware(t *testing.T) {
 		req = req.WithContext(parentCtx)
 		w := httptest.NewRecorder()
 
-		next := HandlerFunc(func(w http.ResponseWriter, r *http.Request) error {
+		next := keratin.HandlerFunc(func(w http.ResponseWriter, r *http.Request) error {
 			_, err := w.Write([]byte("test content"))
 			return err
 		})
@@ -1360,7 +1361,7 @@ func TestHybridPageMiddleware(t *testing.T) {
 	})
 
 	t.Run("non-OK code writes response", func(t *testing.T) {
-		pageHandler := HandlerFunc(func(w http.ResponseWriter, r *http.Request) error {
+		pageHandler := keratin.HandlerFunc(func(w http.ResponseWriter, r *http.Request) error {
 			return nil
 		})
 
@@ -1377,7 +1378,7 @@ func TestHybridPageMiddleware(t *testing.T) {
 		req = req.WithContext(parentCtx)
 		w := httptest.NewRecorder()
 
-		next := HandlerFunc(func(w http.ResponseWriter, r *http.Request) error {
+		next := keratin.HandlerFunc(func(w http.ResponseWriter, r *http.Request) error {
 			w.WriteHeader(http.StatusNotFound)
 			_, err := w.Write([]byte("not found"))
 			return err

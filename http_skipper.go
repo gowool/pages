@@ -3,6 +3,7 @@ package pages
 import (
 	"net/http"
 
+	"github.com/gowool/keratin"
 	"github.com/gowool/keratin/middleware"
 )
 
@@ -16,7 +17,7 @@ func PageSkipper(decoratorStrategy PageDecoratorStrategy) middleware.Skipper {
 			return true
 		}
 
-		if pattern := Pattern(r); pattern != PageCMSPattern {
+		if pattern := keratin.Pattern(r); pattern != PageCMSPattern {
 			return !decoratorStrategy.IsPatternDecorable(r.Context(), pattern)
 		}
 

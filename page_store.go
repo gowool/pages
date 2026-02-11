@@ -96,6 +96,9 @@ func (s *MemoryPageStore) FindByAlias(_ context.Context, siteID ID, alias string
 }
 
 func (s *MemoryPageStore) Save(_ context.Context, pages ...*Page) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	for _, page := range pages {
 		if page.ID.IsZero() {
 			page.ID = ID(uuid.NewString())
@@ -113,7 +116,16 @@ func (s *MemoryPageStore) Save(_ context.Context, pages ...*Page) error {
 			ok    bool
 		)
 
-		s.mu.Lock()
+		if index, ok = s.paths[path]; ok && s.data[index].ID != page.ID {
+			return fmt.Errorf("page store: page path is not unique %s: %w", path, ErrUniqueViolation)
+		}
+
+		// Only check alias uniqueness if alias is not empty
+		if page.Alias != "" {
+			if index, ok = s.aliases[alias]; ok && s.data[index].ID != page.ID {
+				return fmt.Errorf("page store: page alias is not unique %s: %w", alias, ErrUniqueViolation)
+			}
+		}
 
 		if index, ok = s.ids[page.ID]; ok {
 			s.data[index] = page
@@ -127,26 +139,11 @@ func (s *MemoryPageStore) Save(_ context.Context, pages ...*Page) error {
 			s.data = newData
 		}
 
-		if _, ok = s.paths[path]; ok {
-			s.mu.Unlock()
-
-			return fmt.Errorf("page store: page path is not unique %s: %w", path, ErrUniqueViolation)
-		}
-
-		// Only check alias uniqueness if alias is not empty
-		if page.Alias != "" {
-			if _, ok = s.aliases[alias]; ok {
-				s.mu.Unlock()
-
-				return fmt.Errorf("page store: page alias is not unique %s: %w", alias, ErrUniqueViolation)
-			}
-
-			s.aliases[alias] = index
-		}
-
 		s.paths[path] = index
 
-		s.mu.Unlock()
+		if page.Alias != "" {
+			s.aliases[alias] = index
+		}
 	}
 
 	return nil

@@ -2,6 +2,13 @@
 
 {{define "body"}}
     <div class="wrap">
+        {{if ne .Request.URL.Path "/"}}
+        <header>
+            <ul>
+                <li><a href="/">HOME</a></li>
+            </ul>
+        </header>
+        {{end}}
         <main class="main">
             <div class="container">
                 {{block "main" .}}{{end}}

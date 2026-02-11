@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/gowool/pages/internal"
+	"github.com/gowool/keratin/middleware"
 )
 
 var _ PageSyncer = (*DefaultPageSyncer)(nil)
@@ -58,23 +58,23 @@ func (c *PageSyncerConfig) SetDefaults() {
 	}
 
 	if c.DefaultPage.Template == nil {
-		c.DefaultPage.Template = internal.Ref(hybridTemplate)
+		c.DefaultPage.Template = new(hybridTemplate)
 	}
 
 	if c.DefaultPage.Position == nil {
-		c.DefaultPage.Position = internal.Ref(1)
+		c.DefaultPage.Position = new(1)
 	}
 
 	if c.DefaultPage.Decorate == nil {
-		c.DefaultPage.Decorate = internal.Ref(true)
+		c.DefaultPage.Decorate = new(true)
 	}
 
 	if c.DefaultPage.Status == nil {
-		c.DefaultPage.Status = internal.Ref(Draft)
+		c.DefaultPage.Status = new(Draft)
 	}
 
 	if c.DefaultPage.Visibility == nil {
-		c.DefaultPage.Visibility = internal.Ref(Public)
+		c.DefaultPage.Visibility = new(Public)
 	}
 
 	if c.DefaultPage.MetaTags == nil {
@@ -97,52 +97,52 @@ func (c *PageSyncerConfig) SetDefaults() {
 		c.DefaultPatterns[HomeHybridPattern] = new(PageConfig)
 	}
 	if c.DefaultPatterns[HomeHybridPattern].Template == nil {
-		c.DefaultPatterns[HomeHybridPattern].Template = internal.Ref(homeHybridTemplate)
+		c.DefaultPatterns[HomeHybridPattern].Template = new(homeHybridTemplate)
 	}
 	if c.DefaultPatterns[HomeHybridPattern].Position == nil {
-		c.DefaultPatterns[HomeHybridPattern].Position = internal.Ref(0)
+		c.DefaultPatterns[HomeHybridPattern].Position = new(0)
 	}
 
 	if p, ok := c.DefaultPatterns[PageInternalCreate]; !ok || p == nil {
 		c.DefaultPatterns[PageInternalCreate] = new(PageConfig)
 	}
 	if c.DefaultPatterns[PageInternalCreate].Template == nil {
-		c.DefaultPatterns[PageInternalCreate].Template = internal.Ref(createTemplate)
+		c.DefaultPatterns[PageInternalCreate].Template = new(createTemplate)
 	}
 
 	if p, ok := c.DefaultPatterns[PageErrorUnauthorized]; !ok || p == nil {
 		c.DefaultPatterns[PageErrorUnauthorized] = new(PageConfig)
 	}
 	if c.DefaultPatterns[PageErrorUnauthorized].Template == nil {
-		c.DefaultPatterns[PageErrorUnauthorized].Template = internal.Ref(error401Template)
+		c.DefaultPatterns[PageErrorUnauthorized].Template = new(error401Template)
 	}
 
 	if p, ok := c.DefaultPatterns[PageErrorForbidden]; !ok || p == nil {
 		c.DefaultPatterns[PageErrorForbidden] = new(PageConfig)
 	}
 	if c.DefaultPatterns[PageErrorForbidden].Template == nil {
-		c.DefaultPatterns[PageErrorForbidden].Template = internal.Ref(error403Template)
+		c.DefaultPatterns[PageErrorForbidden].Template = new(error403Template)
 	}
 
 	if p, ok := c.DefaultPatterns[PageErrorNotFound]; !ok || p == nil {
 		c.DefaultPatterns[PageErrorNotFound] = new(PageConfig)
 	}
 	if c.DefaultPatterns[PageErrorNotFound].Template == nil {
-		c.DefaultPatterns[PageErrorNotFound].Template = internal.Ref(error404Template)
+		c.DefaultPatterns[PageErrorNotFound].Template = new(error404Template)
 	}
 
 	if p, ok := c.DefaultPatterns[PageError4xx]; !ok || p == nil {
 		c.DefaultPatterns[PageError4xx] = new(PageConfig)
 	}
 	if c.DefaultPatterns[PageError4xx].Template == nil {
-		c.DefaultPatterns[PageError4xx].Template = internal.Ref(error4xxTemplate)
+		c.DefaultPatterns[PageError4xx].Template = new(error4xxTemplate)
 	}
 
 	if p, ok := c.DefaultPatterns[PageError5xx]; !ok || p == nil {
 		c.DefaultPatterns[PageError5xx] = new(PageConfig)
 	}
 	if c.DefaultPatterns[PageError5xx].Template == nil {
-		c.DefaultPatterns[PageError5xx].Template = internal.Ref(error5xxTemplate)
+		c.DefaultPatterns[PageError5xx].Template = new(error5xxTemplate)
 	}
 }
 
@@ -191,7 +191,7 @@ func NewDefaultPageSyncer(
 func (s *DefaultPageSyncer) Sync(ctx context.Context, site *Site) error {
 	var root *Page
 
-	pages := make(map[string]*Page)
+	pages := make(map[string]struct{})
 
 	patterns, homeHybrid := s.getPatterns(ctx)
 	if !homeHybrid {
@@ -207,20 +207,20 @@ func (s *DefaultPageSyncer) Sync(ctx context.Context, site *Site) error {
 			root = page
 		}
 
-		pages[page.Pattern] = page
+		pages[site.ID.String()+page.Pattern] = struct{}{}
 	}
 
 	if root == nil {
 		var err error
-		root, err = s.createRootPage(ctx, site, homeHybrid)
-		if err != nil {
+		if root, err = s.createRootPage(ctx, site, homeHybrid); err != nil {
 			return fmt.Errorf("page syncer: create root page error: %w", err)
 		}
+		pages[site.ID.String()+root.Pattern] = struct{}{}
 	}
 
 	newPages := make([]*Page, 0, len(patterns))
 	for _, pattern := range patterns {
-		if _, ok := pages[pattern]; ok {
+		if _, ok := pages[site.ID.String()+pattern]; ok {
 			continue
 		}
 
@@ -276,7 +276,7 @@ func (s *DefaultPageSyncer) getPatterns(ctx context.Context) ([]string, bool) {
 
 	for pattern := range s.patterns.Patterns() {
 		var ok bool
-		if pattern, ok = CheckMethod(http.MethodGet, pattern); !ok {
+		if pattern, ok = middleware.CheckMethod(http.MethodGet, pattern); !ok {
 			continue
 		}
 

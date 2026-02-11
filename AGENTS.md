@@ -82,7 +82,7 @@ golangci-lint run -v --timeout=5m --build-tags=race --output.code-climate.path g
 
 ### Error Handling
 - Define errors as package-level variables using `errors.New()`
-- Use `errors.Is()` and `errors.As()` for error checking
+- Use `errors.Is()` and `errors.AsType[E error]()` for error checking
 - Wrap errors with context using `fmt.Errorf("msg: %w", err)`
 - Return nil pointers for "not found" cases, don't wrap in error
 - Use `fmt.Errorf` for errors with dynamic messages
