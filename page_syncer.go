@@ -40,7 +40,7 @@ type PageConfig struct {
 	Template   *string             `json:"template,omitempty" yaml:"template,omitempty"`
 	Position   *int                `json:"position,omitempty" yaml:"position,omitempty"`
 	Decorate   *bool               `json:"decorate,omitempty" yaml:"decorate,omitempty"`
-	Status     *Status             `json:"code,omitempty" yaml:"code,omitempty"`
+	Status     *Status             `json:"status,omitempty" yaml:"status,omitempty"`
 	Visibility *Visibility         `json:"visibility,omitempty" yaml:"visibility,omitempty"`
 	MetaTags   *MetaTags           `json:"metaTags,omitempty" yaml:"metaTags,omitempty"`
 	Metadata   Metadata            `json:"metadata,omitempty" yaml:"metadata,omitempty"`
