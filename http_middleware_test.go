@@ -504,7 +504,7 @@ func TestSelectPageMiddleware(t *testing.T) {
 		c.SetGuest(false)
 
 		req := httptest.NewRequest(http.MethodGet, "/cms-page", nil)
-		req.Pattern = "GET /{_page_cms...}"
+		req.Pattern = "GET /{_cms...}"
 		req = req.WithContext(parentCtx)
 		w := httptest.NewRecorder()
 

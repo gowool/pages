@@ -645,7 +645,7 @@ func TestPage_Copy(t *testing.T) {
 		Name:      "Test Page",
 		Title:     "Test Title",
 		Pattern:   "/test/{slug}",
-		Alias:     "_page_alias_test",
+		Alias:     "_alias_test",
 		Slug:      "test-page",
 		URL:       "/test/page",
 		CustomURL: "/custom/test",
@@ -991,11 +991,11 @@ func TestPage_AbsURL_EdgeCases(t *testing.T) {
 }
 
 func TestPage_Constants(t *testing.T) {
-	assert.Equal(t, "_page_cms", PageCMS, "PageCMS constant should match")
-	assert.Equal(t, "_page_alias_", PageAliasPrefix, "PageAliasPrefix constant should match")
-	assert.Equal(t, "_page_internal_", PageInternalPrefix, "PageInternalPrefix constant should match")
-	assert.Equal(t, "_page_internal_create", PageInternalCreate, "PageInternalCreate constant should match")
-	assert.Equal(t, "_page_internal_error_", PageErrorPrefix, "PageErrorPrefix constant should match")
-	assert.Equal(t, "_page_internal_error_4xx", PageError4xx, "PageError4xx constant should match")
-	assert.Equal(t, "_page_internal_error_5xx", PageError5xx, "PageError5xx constant should match")
+	assert.Equal(t, "_cms", PageCMS, "PageCMS constant should match")
+	assert.Equal(t, "_alias_", PageAliasPrefix, "PageAliasPrefix constant should match")
+	assert.Equal(t, "_internal_", PageInternalPrefix, "PageInternalPrefix constant should match")
+	assert.Equal(t, "_internal_create", PageInternalCreate, "PageInternalCreate constant should match")
+	assert.Equal(t, "_internal_error_", PageErrorPrefix, "PageErrorPrefix constant should match")
+	assert.Equal(t, "_internal_error_4xx", PageError4xx, "PageError4xx constant should match")
+	assert.Equal(t, "_internal_error_5xx", PageError5xx, "PageError5xx constant should match")
 }

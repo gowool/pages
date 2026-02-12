@@ -867,9 +867,9 @@ func TestDefaultPageSyncer_newPage(t *testing.T) {
 
 		syncer := NewDefaultPageSyncer(PageSyncerConfig{}, mockStore, mockPatterns, mockStrategy, generator)
 
-		page := syncer.newPage("", "_page_internal_error", site)
+		page := syncer.newPage("", "_internal_error", site)
 
-		assert.Equal(t, site.Name+": internal error", page.Name)
+		assert.Equal(t, site.Name+": _internal_error", page.Name)
 	})
 
 	t.Run("new page with custom config", func(t *testing.T) {

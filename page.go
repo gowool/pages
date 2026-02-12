@@ -13,14 +13,14 @@ import (
 
 var (
 	DynamicPatternChars = "{"
-	PageCMSPattern      = "/{_page_cms...}"
+	PageCMSPattern      = "/{_cms...}"
 	HomeHybridPattern   = "/{$}"
 )
 
 const (
-	PageCMS               = "_page_cms"
-	PageAliasPrefix       = "_page_alias_"
-	PageInternalPrefix    = "_page_internal_"
+	PageCMS               = "_cms"
+	PageAliasPrefix       = "_alias_"
+	PageInternalPrefix    = "_internal_"
 	PageInternalCreate    = PageInternalPrefix + "create"
 	PageErrorPrefix       = PageInternalPrefix + "error_"
 	PageErrorUnauthorized = PageErrorPrefix + "401"

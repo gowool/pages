@@ -8,7 +8,6 @@ import (
 	"strings"
 
 	"github.com/gowool/keratin"
-	"github.com/gowool/pages/internal"
 	"github.com/invopop/validation"
 )
 
@@ -132,7 +131,7 @@ func (h *PageCreateHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) er
 	page := NewPage()
 	page.ID = pageID
 	page.Pattern = PageCMS
-	page.Name = internal.ToTitle(dto.URL)
+	page.Name = site.Name + ": " + dto.URL
 	page.Site = site
 	page.SiteID = site.ID
 	page.Title = dto.Title
@@ -146,7 +145,6 @@ func (h *PageCreateHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) er
 				page.ParentID = &p.ID
 				page.Parent = p
 				page.CustomURL = dto.URL[index+1:]
-				page.Name = internal.ToTitle(page.CustomURL)
 			}
 		}
 	}

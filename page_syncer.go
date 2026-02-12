@@ -305,12 +305,7 @@ func (s *DefaultPageSyncer) getPatterns(ctx context.Context) ([]string, bool) {
 
 func (s *DefaultPageSyncer) newPage(name, pattern string, site *Site) *Page {
 	if name == "" {
-		if strings.HasPrefix(pattern, PageInternalPrefix) {
-			name = strings.TrimPrefix(pattern, "_page_")
-			name = strings.ReplaceAll(name, "_", " ")
-		} else {
-			name = pattern
-		}
+		name = pattern
 	}
 
 	name = site.Name + ": " + name
