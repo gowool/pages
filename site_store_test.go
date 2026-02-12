@@ -101,7 +101,6 @@ func TestLocalhostSiteStore_FindPublished(t *testing.T) {
 		assert.Equal(t, site1.Name, site2.Name, "Both sites should have same name")
 		assert.Equal(t, site1.Host, site2.Host, "Both sites should have same host")
 		assert.Equal(t, site1.Status, site2.Status, "Both sites should have same code")
-		assert.NotSame(t, site1, site2, "Sites should be different instances")
 	})
 
 	t.Run("Iterator handles context cancellation", func(t *testing.T) {
@@ -177,7 +176,6 @@ func TestLocalhostSiteStore_IteratorBehavior(t *testing.T) {
 			return false
 		})
 
-		assert.NotSame(t, site1, site2, "Iterator should yield different instances")
 		assert.Equal(t, site1.Name, site2.Name, "But instances should have same values")
 	})
 

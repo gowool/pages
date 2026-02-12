@@ -3,6 +3,7 @@ package pages
 import (
 	"maps"
 	"slices"
+	"strings"
 	"time"
 
 	"golang.org/x/text/language"
@@ -62,7 +63,8 @@ func (s *Site) String() string {
 }
 
 func (s *Site) IsLocalhost() bool {
-	return s.Host == "" || s.Host == "localhost" || s.Host == "127.0.0.1"
+	host, _, _ := strings.Cut(s.Host, ":")
+	return host == "" || host == "localhost" || host == "127.0.0.1"
 }
 
 func (s *Site) Home() string {

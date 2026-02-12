@@ -129,11 +129,6 @@ func SelectPageMiddleware(
 				return fmt.Errorf("middleware: select page: %w", err)
 			}
 
-			if page.Site == nil {
-				page.Site = c.Site()
-				page.SiteID = c.Site().ID
-			}
-
 			var args []any
 			if page.IsDynamic() {
 				args = patternArgs(r)

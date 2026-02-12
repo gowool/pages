@@ -11,17 +11,19 @@ type SiteStore interface {
 	FindPublished(ctx context.Context) iter.Seq2[*Site, error]
 }
 
-type LocalhostSiteStore struct{}
+type LocalhostSiteStore struct {
+	site *Site
+}
 
 func NewLocalhostSiteStore() *LocalhostSiteStore {
-	return &LocalhostSiteStore{}
+	site := NewSite()
+	site.Status = Published
+
+	return &LocalhostSiteStore{site: site}
 }
 
 func (s *LocalhostSiteStore) FindPublished(context.Context) iter.Seq2[*Site, error] {
 	return func(yield func(*Site, error) bool) {
-		site := NewSite()
-		site.Status = Published
-
-		yield(site, nil)
+		yield(s.site, nil)
 	}
 }
