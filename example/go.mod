@@ -7,15 +7,16 @@ replace github.com/gowool/pages => ../
 require (
 	github.com/danielgtaylor/huma/v2 v2.35.0
 	github.com/gowool/got v0.0.0-20260210095131-024e762e2838
-	github.com/gowool/keratin v0.0.0-20260213095814-8de92d2d02a1
-	github.com/gowool/keratin/adapter v0.0.0-20260213095814-8de92d2d02a1
-	github.com/gowool/keratin/server v0.0.0-20260213095814-8de92d2d02a1
-	github.com/gowool/pages v0.0.0-20260213024106-c1ae1fd78e34
+	github.com/gowool/keratin v0.0.0-20260213190635-cab4e888ff73
+	github.com/gowool/keratin/adapter v0.0.0-20260213190635-cab4e888ff73
+	github.com/gowool/keratin/server v0.0.0-20260213190635-cab4e888ff73
+	github.com/gowool/pages v0.0.0-20260213101151-b8879c953e24
 )
 
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/dlclark/regexp2 v1.11.5 // indirect
+	github.com/expr-lang/expr v1.17.7 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/gosimple/slug v1.15.0 // indirect
 	github.com/gosimple/unidecode v1.0.1 // indirect

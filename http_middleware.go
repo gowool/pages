@@ -42,7 +42,7 @@ func SelectSiteMiddleware(retriever SiteRetriever, skippers ...middleware.Skippe
 				return ErrSiteNotFound
 			}
 
-			site.Scheme = keratin.Scheme(r)
+			site.Scheme = keratin.FromContext(r.Context()).Scheme()
 			site.Host = r.Host
 			site.IsRoot = r.URL.Path == "/"
 

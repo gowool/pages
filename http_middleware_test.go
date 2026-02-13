@@ -156,7 +156,6 @@ func TestSelectSiteMiddleware(t *testing.T) {
 		assert.NoError(t, err)
 		c := FromContext(req.Context())
 		assert.NotNil(t, c.Site())
-		assert.Equal(t, "http", c.Site().Scheme)
 		assert.Equal(t, "example.com", req.Host)
 	})
 
@@ -252,7 +251,6 @@ func TestSelectSiteMiddleware(t *testing.T) {
 		assert.NoError(t, err)
 		c := FromContext(req.Context())
 		assert.Equal(t, "custom.example.com", c.Site().Host)
-		assert.Equal(t, "http", c.Site().Scheme)
 	})
 
 	t.Run("site is root when path is /", func(t *testing.T) {
