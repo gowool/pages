@@ -7,10 +7,10 @@ replace github.com/gowool/pages => ../
 require (
 	github.com/danielgtaylor/huma/v2 v2.35.0
 	github.com/gowool/got v0.0.0-20260210095131-024e762e2838
-	github.com/gowool/keratin v0.0.0-20260211210650-bdc90e587cf6
-	github.com/gowool/keratin/adapter v0.0.0-20260211210650-bdc90e587cf6
-	github.com/gowool/keratin/server v0.0.0-20260211210650-bdc90e587cf6
-	github.com/gowool/pages v0.0.0-20260210100217-4e90cf75cc21
+	github.com/gowool/keratin v0.0.0-20260213023554-be91930c88d7
+	github.com/gowool/keratin/adapter v0.0.0-20260213023554-be91930c88d7
+	github.com/gowool/keratin/server v0.0.0-20260213023554-be91930c88d7
+	github.com/gowool/pages v0.0.0-20260212134057-bfd08513eb4a
 )
 
 require (
@@ -20,13 +20,11 @@ require (
 	github.com/gosimple/slug v1.15.0 // indirect
 	github.com/gosimple/unidecode v1.0.1 // indirect
 	github.com/invopop/validation v0.8.0 // indirect
-	github.com/philhofer/fwd v1.2.0 // indirect
 	github.com/quic-go/qpack v0.6.0 // indirect
 	github.com/quic-go/quic-go v0.59.0 // indirect
 	github.com/segmentio/go-camelcase v0.0.0-20160726192923-7085f1e3c734 // indirect
 	github.com/segmentio/go-snakecase v1.2.0 // indirect
 	github.com/spf13/cast v1.10.0 // indirect
-	github.com/tinylib/msgp v1.6.3 // indirect
 	golang.org/x/crypto v0.48.0 // indirect
 	golang.org/x/net v0.50.0 // indirect
 	golang.org/x/sys v0.41.0 // indirect
