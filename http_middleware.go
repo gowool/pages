@@ -159,7 +159,7 @@ func HybridPageMiddleware(pageHandler keratin.Handler, logger *slog.Logger, skip
 	}
 
 	if logger == nil {
-		logger = slog.New(slog.DiscardHandler)
+		logger = slog.Default()
 	}
 
 	logger = logger.WithGroup("hybrid_page")

@@ -7,10 +7,10 @@ replace github.com/gowool/pages => ../
 require (
 	github.com/danielgtaylor/huma/v2 v2.35.0
 	github.com/gowool/got v0.0.0-20260210095131-024e762e2838
-	github.com/gowool/keratin v0.0.0-20260213023554-be91930c88d7
-	github.com/gowool/keratin/adapter v0.0.0-20260213023554-be91930c88d7
-	github.com/gowool/keratin/server v0.0.0-20260213023554-be91930c88d7
-	github.com/gowool/pages v0.0.0-20260212134057-bfd08513eb4a
+	github.com/gowool/keratin v0.0.0-20260213095814-8de92d2d02a1
+	github.com/gowool/keratin/adapter v0.0.0-20260213095814-8de92d2d02a1
+	github.com/gowool/keratin/server v0.0.0-20260213095814-8de92d2d02a1
+	github.com/gowool/pages v0.0.0-20260213024106-c1ae1fd78e34
 )
 
 require (

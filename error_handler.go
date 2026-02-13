@@ -44,7 +44,7 @@ func (cfg *ErrorHandlerConfig) SetDefaults() {
 	}
 
 	if cfg.Logger == nil {
-		cfg.Logger = slog.New(slog.DiscardHandler)
+		cfg.Logger = slog.Default()
 	}
 
 	cfg.Logger = cfg.Logger.WithGroup("http_error_handler")

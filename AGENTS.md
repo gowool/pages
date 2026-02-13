@@ -148,7 +148,7 @@ golangci-lint run -v --timeout=5m --build-tags=race --output.code-climate.path g
 ### Logging
 - Use `log/slog` for structured logging
 - Create loggers with `logger.WithGroup("component_name")` for context
-- Use slog.DiscardHandler for nil logger defaults
+- Use slog.Default() for nil logger defaults
 - Log errors with context: `logger.Error("message", "key", value)`
 
 ### Visibility

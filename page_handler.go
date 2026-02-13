@@ -43,7 +43,7 @@ func (c *PageHandlerConfig) SetDefaults() {
 	}
 
 	if c.Logger == nil {
-		c.Logger = slog.New(slog.DiscardHandler)
+		c.Logger = slog.Default()
 	}
 
 	c.Logger = c.Logger.WithGroup("page_handler")
