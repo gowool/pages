@@ -464,7 +464,7 @@ func TestHTTPSiteRetriever_CountryBasedSelection(t *testing.T) {
 // Benchmark tests
 func BenchmarkSiteRetriever_Retrieve(b *testing.B) {
 	sites := make([]*Site, 100)
-	for i := 0; i < 100; i++ {
+	for i := range 100 {
 		sites[i] = CreateTestSite(
 			fmt.Sprintf("Site %d", i),
 			"example.com",

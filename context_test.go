@@ -633,7 +633,7 @@ func TestContext_PoolConcurrency(t *testing.T) {
 	t.Run("Concurrent context creation", func(t *testing.T) {
 		done := make(chan bool, 100)
 
-		for i := 0; i < 100; i++ {
+		for range 100 {
 			go func() {
 				ctx, cancel := NewContext(context.Background())
 				c := FromContext(ctx)
@@ -643,7 +643,7 @@ func TestContext_PoolConcurrency(t *testing.T) {
 			}()
 		}
 
-		for i := 0; i < 100; i++ {
+		for range 100 {
 			<-done
 		}
 

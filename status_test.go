@@ -392,14 +392,14 @@ func TestStatus_ConcurrentAccess(t *testing.T) {
 		results := make(chan string, 100)
 
 		// Launch multiple goroutines calling String() concurrently
-		for i := 0; i < 100; i++ {
+		for range 100 {
 			go func() {
 				results <- status.String()
 			}()
 		}
 
 		// Collect results
-		for i := 0; i < 100; i++ {
+		for range 100 {
 			result := <-results
 			assert.Equal(t, "published", result, "Concurrent String() calls should return consistent results")
 		}
@@ -418,7 +418,7 @@ func TestStatus_ConcurrentAccess(t *testing.T) {
 		expectedResults := []string{"status_draft", "status_published"}
 		actualResults := make([]string, 0, len(statuses))
 
-		for i := 0; i < len(statuses); i++ {
+		for range statuses {
 			actualResults = append(actualResults, <-results)
 		}
 

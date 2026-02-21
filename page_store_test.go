@@ -454,7 +454,7 @@ func TestMemoryPageStore_ConcurrentAccess(t *testing.T) {
 	ctx := context.Background()
 
 	// Save initial pages
-	for i := 0; i < 10; i++ {
+	for i := range 10 {
 		page := &Page{
 			ID:      ID(uuid.NewString()),
 			SiteID:  ID("site1"),
@@ -478,11 +478,11 @@ func TestMemoryPageStore_ConcurrentAccess(t *testing.T) {
 		}
 
 		// Start 10 goroutines reading concurrently
-		for i := 0; i < 10; i++ {
+		for i := range 10 {
 			wg.Add(1)
 			go func(id int) {
 				defer wg.Done()
-				for j := 0; j < 10; j++ {
+				for range 10 {
 					_, err := store.FindByID(ctx, pageIDs[id])
 					if err != nil {
 						errChan <- err
@@ -505,7 +505,7 @@ func TestMemoryPageStore_ConcurrentAccess(t *testing.T) {
 		errChan := make(chan error, 10)
 
 		// Start 10 goroutines writing different pages
-		for i := 0; i < 10; i++ {
+		for i := range 10 {
 			wg.Add(1)
 			go func(index int) {
 				defer wg.Done()
@@ -538,11 +538,9 @@ func TestMemoryPageStore_ConcurrentAccess(t *testing.T) {
 		errChan := make(chan error, 20)
 
 		// Start 10 readers
-		for i := 0; i < 10; i++ {
-			wg.Add(1)
-			go func() {
-				defer wg.Done()
-				for j := 0; j < 5; j++ {
+		for range 10 {
+			wg.Go(func() {
+				for range 5 {
 					// Use GetData() for thread-safe access to the data slice
 					data := store.GetData()
 					if len(data) > 0 {
@@ -553,11 +551,11 @@ func TestMemoryPageStore_ConcurrentAccess(t *testing.T) {
 						}
 					}
 				}
-			}()
+			})
 		}
 
 		// Start 10 writers
-		for i := 0; i < 10; i++ {
+		for i := range 10 {
 			wg.Add(1)
 			go func(index int) {
 				defer wg.Done()

@@ -500,8 +500,8 @@ func TestHTMLAttrs(t *testing.T) {
 			// Validate that attributes are properly formatted by checking the whole string
 			if resultStr != "" {
 				// Each attribute should be in the format name="value"
-				attributes := strings.Fields(resultStr)
-				for _, attr := range attributes {
+				attributes := strings.FieldsSeq(resultStr)
+				for attr := range attributes {
 					// Skip validation if this doesn't look like a complete attribute
 					if !strings.Contains(attr, "=") {
 						continue
@@ -742,8 +742,8 @@ func TestHeadLinks(t *testing.T) {
 
 			// Validate that all links are properly formatted
 			if resultStr != "" {
-				lines := strings.Split(strings.TrimSpace(resultStr), "\n")
-				for _, line := range lines {
+				lines := strings.SplitSeq(strings.TrimSpace(resultStr), "\n")
+				for line := range lines {
 					line = strings.TrimSpace(line)
 					if line != "" {
 						// Basic link tag validation
@@ -774,7 +774,8 @@ type expectedLink struct {
 
 // Helper function to build regex pattern for link validation
 func buildLinkPattern(link expectedLink) string {
-	pattern := `<link rel="` + regexp.QuoteMeta(link.Rel) + `"`
+	var pattern strings.Builder
+	pattern.WriteString(`<link rel="` + regexp.QuoteMeta(link.Rel) + `"`)
 
 	attrs := []string{}
 	if link.Href != "" {
@@ -803,15 +804,15 @@ func buildLinkPattern(link expectedLink) string {
 	if len(attrs) > 0 {
 		for i, attr := range attrs {
 			if i < len(attrs)-1 {
-				pattern += `(?:` + attr + `)?`
+				pattern.WriteString(`(?:` + attr + `)?`)
 			} else {
-				pattern += attr + `?`
+				pattern.WriteString(attr + `?`)
 			}
 		}
 	}
 
-	pattern += `\s+/>`
-	return pattern
+	pattern.WriteString(`\s+/>`)
+	return pattern.String()
 }
 
 func TestNormalize(t *testing.T) {

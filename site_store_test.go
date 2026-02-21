@@ -138,7 +138,7 @@ func TestLocalhostSiteStore_ConcurrentAccess(t *testing.T) {
 
 	t.Run("Concurrent iterator calls", func(t *testing.T) {
 		// Start multiple goroutines calling FindPublished
-		for i := 0; i < 10; i++ {
+		for range 10 {
 			go func() {
 				iterator := store.FindPublished(ctx)
 				assert.NotNil(t, iterator, "FindPublished() should return iterator")
@@ -294,7 +294,7 @@ func TestLocalhostSiteStore_EdgeCases(t *testing.T) {
 
 	t.Run("Multiple iterations", func(t *testing.T) {
 		// Test that we can call FindPublished multiple times and get consistent results
-		for i := 0; i < 5; i++ {
+		for i := range 5 {
 			iterator := store.FindPublished(context.Background())
 			assert.NotNil(t, iterator, "Call %d should return iterator", i+1)
 

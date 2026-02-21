@@ -8,6 +8,7 @@ github.com/dlclark/regexp2 v1.11.5 h1:Q/sSnsKerHeCkc/jSTNq1oCm7KiVgUMZRDUoRu0JQZ
 github.com/dlclark/regexp2 v1.11.5/go.mod h1:DHkYz0B9wPfa6wondMfaivmHpzrQ3v9q8cnmRbL6yW8=
 github.com/expr-lang/expr v1.17.7 h1:Q0xY/e/2aCIp8g9s/LGvMDCC5PxYlvHgDZRQ4y16JX8=
 github.com/expr-lang/expr v1.17.7/go.mod h1:8/vRC7+7HBzESEqt5kKpYXxrxkr31SaO8r40VO/1IT4=
+github.com/expr-lang/expr v1.17.8/go.mod h1:8/vRC7+7HBzESEqt5kKpYXxrxkr31SaO8r40VO/1IT4=
 github.com/frankban/quicktest v1.14.6 h1:7Xjx+VpznH+oBnejlPUj8oUpdxnVs4f8XU8WnHkI4W8=
 github.com/frankban/quicktest v1.14.6/go.mod h1:4ptaffx2x8+WTWXmUCuVU6aPUX1/Mz7zb5vbUoiM6w0=
 github.com/google/go-cmp v0.7.0 h1:wk8382ETsv4JYUZwIsn6YpYiWiBsYLSJiTsyBybVuN8=
@@ -22,6 +23,7 @@ github.com/gowool/got v0.0.0-20260210095131-024e762e2838 h1:Q5G+e/GCaMNnDeXiCA1w
 github.com/gowool/got v0.0.0-20260210095131-024e762e2838/go.mod h1:k4+sNJIjjuQJrq39/uNiiv+JiVzBy1gzPU2qAiJCXyQ=
 github.com/gowool/keratin v0.0.0-20260213190635-cab4e888ff73 h1:wKB5MFE0miJQny0YVmdJf9sawyFQO8FK9r2ZwGGC+54=
 github.com/gowool/keratin v0.0.0-20260213190635-cab4e888ff73/go.mod h1:dpuDsJ+Om/INHTGw2iY0pgHNzJA+EcapB1anMJH5DRg=
+github.com/gowool/keratin v0.0.0-20260218124945-9446fd8e2f0c/go.mod h1:CvmovRKRSZ2tR1+tB0B9nzfT8b4ndJ8nc73Hu4j7VVo=
 github.com/gowool/keratin/adapter v0.0.0-20260213190635-cab4e888ff73 h1:MG0anxYgzWgXf+QeARpZZ7xcVt2PfwYAYCxEER6JKUU=
 github.com/gowool/keratin/adapter v0.0.0-20260213190635-cab4e888ff73/go.mod h1:ULWUXjD8rKJNF42CI+hHbnnXVfC8j8cUEKG+/E8rhxI=
 github.com/gowool/keratin/server v0.0.0-20260213190635-cab4e888ff73 h1:Hk3mNOUBDMKUXBWXMgDBWPihIYRnPNzW0FiDbCgs4Vc=
