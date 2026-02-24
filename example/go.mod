@@ -5,12 +5,12 @@ go 1.26
 replace github.com/gowool/pages => ../
 
 require (
-	github.com/danielgtaylor/huma/v2 v2.35.0
+	github.com/danielgtaylor/huma/v2 v2.37.2
 	github.com/gowool/got v0.0.0-20260210095131-024e762e2838
 	github.com/gowool/keratin v0.0.0-20260218124945-9446fd8e2f0c
-	github.com/gowool/keratin/adapter v0.0.0-20260213190635-cab4e888ff73
-	github.com/gowool/keratin/server v0.0.0-20260213190635-cab4e888ff73
-	github.com/gowool/pages v0.0.0-20260213101151-b8879c953e24
+	github.com/gowool/keratin/adapter v0.0.0-20260218124945-9446fd8e2f0c
+	github.com/gowool/keratin/server v0.0.0-20260218124945-9446fd8e2f0c
+	github.com/gowool/pages v0.0.0-20260221030620-b44445f16685
 )
 
 require (

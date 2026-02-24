@@ -12,6 +12,8 @@ const (
 	HeaderXPageNotDecorable = "X-Page-Not-Decorable"
 )
 
+type PatternArgsFunc func(*http.Request) []any
+
 func PatternArgs() PatternArgsFunc {
 	return func(r *http.Request) (args []any) {
 		pattern := keratin.Pattern(r)

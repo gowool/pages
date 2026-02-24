@@ -40,7 +40,7 @@ func TestNewContext(t *testing.T) {
 		c := FromContext(ctx)
 
 		require.NotNil(t, c, "NewContext should create Context")
-		assert.NotNil(t, c.SEO(), "SEO should be initialized")
+		assert.NotNil(t, c.DOM(), "DOM should be initialized")
 		assert.Equal(t, http.StatusOK, c.Status(), "Status should default to OK")
 		assert.True(t, c.Guest(), "Guest should default to true")
 		assert.False(t, c.Debug(), "Debug should default to false")
@@ -99,7 +99,7 @@ func TestContext_Reset(t *testing.T) {
 		c.SetSite(NewSite())
 		c.SetPage(NewPage())
 		c.SetError(errors.New("test error"))
-		c.SEO().SetTitle("Test Title")
+		c.DOM().HTML.Attr.Add("lang", "en")
 
 		c.Reset()
 
@@ -110,7 +110,7 @@ func TestContext_Reset(t *testing.T) {
 		assert.False(t, c.HasPage(), "Page should be nil after reset")
 		assert.False(t, c.HasError(), "Error should be nil after reset")
 		assert.False(t, c.HasContent(), "Content should be empty after reset")
-		assert.Equal(t, "", c.SEO().Title(), "SEO should be reset")
+		assert.Equal(t, "", c.DOM().HTML.Attr.String(), "DOM should be reset")
 	})
 
 	t.Run("Reset new context", func(t *testing.T) {
@@ -125,26 +125,26 @@ func TestContext_Reset(t *testing.T) {
 	})
 }
 
-func TestContext_SEO(t *testing.T) {
+func TestContext_DOM(t *testing.T) {
 	t.Run("Lazy initialization", func(t *testing.T) {
 		c := new(Context)
 
-		assert.Nil(t, c.seo, "SEO should be nil initially")
+		assert.Nil(t, c.dom, "DOM should be nil initially")
 
-		seo := c.SEO()
+		dom := c.DOM()
 
-		assert.NotNil(t, seo, "SEO should be created on first access")
-		assert.Same(t, seo, c.SEO(), "Should return same instance")
+		assert.NotNil(t, dom, "DOM should be created on first access")
+		assert.Same(t, dom, c.DOM(), "Should return same instance")
 	})
 
-	t.Run("Returns existing SEO", func(t *testing.T) {
+	t.Run("Returns existing DOM", func(t *testing.T) {
 		c := new(Context)
-		c.seo = NewSEO()
-		c.SEO().SetTitle("Test")
+		c.dom = new(DOM)
+		c.DOM().HTML.Attr.Add("lang", "en")
 
-		seo := c.SEO()
+		dom := c.DOM()
 
-		assert.Equal(t, "Test", seo.Title())
+		assert.Equal(t, ` lang="en"`, dom.HTML.Attr.String())
 	})
 }
 
@@ -173,13 +173,11 @@ func TestContext_SetSite(t *testing.T) {
 		c := FromContext(ctx)
 
 		site := NewSite()
-		site.Title = "Test Site"
 
 		c.SetSite(site)
 
 		assert.Equal(t, site, c.Site())
 		assert.True(t, c.HasSite())
-		assert.Equal(t, "Test Site", c.SEO().FirstTitle())
 	})
 
 	t.Run("Set site to nil", func(t *testing.T) {
@@ -248,18 +246,15 @@ func TestContext_SetPage(t *testing.T) {
 
 		site := NewSite()
 		site.ID = "site1"
-		site.Title = "Test Site"
 		c.SetSite(site)
 
 		page := NewPage()
-		page.Title = "Test Page"
 
 		c.SetPage(page)
 
 		assert.Equal(t, page, c.Page())
 		assert.Equal(t, site, page.Site)
 		assert.Equal(t, ID("site1"), page.SiteID)
-		assert.Equal(t, "Test Site", c.SEO().FirstTitle())
 	})
 
 	t.Run("Set page without site set", func(t *testing.T) {
@@ -303,19 +298,6 @@ func TestContext_SetPage(t *testing.T) {
 
 		assert.Nil(t, c.Page())
 		assert.False(t, c.HasPage())
-	})
-
-	t.Run("Set page with args", func(t *testing.T) {
-		ctx, _ := NewContext(context.Background())
-		c := FromContext(ctx)
-
-		page := NewPage()
-		page.Name = "Test Page"
-		page.Pattern = "/test/{id}"
-
-		c.SetPage(page, "{id}", "123")
-
-		assert.Equal(t, page, c.Page())
 	})
 }
 

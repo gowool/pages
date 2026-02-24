@@ -84,8 +84,7 @@ func build(logger *slog.Logger) (*RouterWrapper, func(context.Context) error) {
 	theme.SetParent(newTheme(".", pages.ErrorTemplateFS))
 	theme.SetDebug(debug)
 	theme.AddFuncMap(got.Funcs)
-	theme.AddFuncMap(pages.SEOFuncMap)
-	theme.AddFuncMap(pages.PageFuncMap(urlGenerator))
+	theme.AddFuncMap(pages.FuncMap(urlGenerator))
 
 	siteRetriever := pages.NewHTTPSiteRetriever(siteStore)
 
@@ -101,7 +100,7 @@ func build(logger *slog.Logger) (*RouterWrapper, func(context.Context) error) {
 	apiSkip := middleware.PrefixPathSkipper("/api")
 
 	selectSite := pages.SelectSiteMiddleware(siteRetriever, faviconSkip, apiSkip)
-	selectPage := pages.SelectPageMiddleware(pageManager, authorizer, pages.PatternArgs(), faviconSkip, apiSkip, pageSkipper)
+	selectPage := pages.SelectPageMiddleware(pageManager, authorizer, faviconSkip, apiSkip, pageSkipper)
 	hybridPage := pages.HybridPageMiddleware(pageHandler, logger, faviconSkip, apiSkip, pageSkipper)
 
 	errorPattern := pages.ErrorPattern(authorizer, strategy)
@@ -121,6 +120,12 @@ func build(logger *slog.Logger) (*RouterWrapper, func(context.Context) error) {
 			c.SetDebug(debug)
 			c.SetGuest(guest)
 
+			c.DOM().HTML.Attr = pages.NewAttr(
+				"dir", "ltr",
+				"lang", "en",
+				"prefix", "og: https://ogp.me/ns#",
+			)
+
 			next.ServeHTTP(w, r)
 		})
 	})
@@ -129,11 +134,55 @@ func build(logger *slog.Logger) (*RouterWrapper, func(context.Context) error) {
 		ErrorStatusFunc: pages.ErrorStatus,
 	}))
 	router.PreFunc(selectSite)
+	router.PreFunc(func(next keratin.Handler) keratin.Handler {
+		return keratin.HandlerFunc(func(w http.ResponseWriter, r *http.Request) error {
+			c := pages.MustContext(r.Context())
+			if !c.HasSite() {
+				return next.ServeHTTP(w, r)
+			}
+
+			c.Site().Title = "Wool Pages"
+
+			if c.Site().Locale != "" {
+				lang := strings.ReplaceAll(c.Site().Locale, "_", "-")
+				c.DOM().HTML.Attr.Add("lang", lang)
+				c.DOM().Head.Add(pages.PropertyMetaNode("og:locale", lang))
+			}
+
+			if c.Site().Title != "" {
+				c.DOM().Head.Add(pages.PropertyMetaNode("og:site_name", c.Site().Title))
+			}
+
+			return next.ServeHTTP(w, r)
+		})
+	})
 
 	router.GET("/favicon.ico", keratin.FileFS(publicFS, "favicon.ico"))
 
 	front := router.Group("")
 	front.UseFunc(selectPage)
+
+	patternArgs := pages.PatternArgs()
+	front.UseFunc(func(next keratin.Handler) keratin.Handler {
+		return keratin.HandlerFunc(func(w http.ResponseWriter, r *http.Request) error {
+			c := pages.MustContext(r.Context())
+			if !c.HasPage() {
+				return next.ServeHTTP(w, r)
+			}
+
+			c.Page().Title = c.Page().Name
+
+			var args []any
+			if c.Page().IsDynamic() {
+				args = patternArgs(r)
+			}
+
+			c.DOM().Head.Add(pages.PropertyMetaNode("og:url", c.Page().AbsURL(args...)))
+
+			return next.ServeHTTP(w, r)
+		})
+	})
+
 	front.UseFunc(hybridPage)
 
 	front.Route("", pages.PageCMSPattern, pageHandler)

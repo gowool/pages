@@ -46,9 +46,9 @@ type Page struct {
 	Status     Status     `json:"status,omitempty" yaml:"status,omitempty"`
 	Visibility Visibility `json:"visibility,omitempty" yaml:"visibility,omitempty"`
 
-	MetaTags *MetaTags           `json:"metaTags,omitempty" yaml:"metaTags,omitempty"`
-	Metadata Metadata            `json:"metadata,omitempty" yaml:"metadata,omitempty"`
-	Header   map[string][]string `json:"header,omitempty" yaml:"header,omitempty"`
+	Meta   Meta                `json:"meta,omitempty" yaml:"meta,omitempty"`
+	DOM    DOM                 `json:"dom,omitempty" yaml:"dom,omitempty"`
+	Header map[string][]string `json:"header,omitempty" yaml:"header,omitempty"`
 
 	Name      string `json:"name,omitempty" yaml:"name,omitempty"`
 	Title     string `json:"title,omitempty" yaml:"title,omitempty"`
@@ -68,8 +68,7 @@ func NewPage() *Page {
 	return &Page{
 		Created:    t,
 		Updated:    t,
-		MetaTags:   NewMetaTags(DefaultCharset),
-		Metadata:   NewMetadata(nil),
+		Meta:       NewMeta(nil),
 		Header:     make(map[string][]string),
 		Status:     Draft,
 		Visibility: Public,
@@ -210,11 +209,11 @@ func (p *Page) fixChildren() {
 
 func (p *Page) Copy() *Page {
 	page := *p
-	page.Metadata = maps.Clone(p.Metadata)
+	page.Meta = maps.Clone(p.Meta)
+	page.DOM = p.DOM.Copy()
 
 	if p.ParentID != nil {
-		parentID := *p.ParentID
-		page.ParentID = &parentID
+		page.ParentID = new(*p.ParentID)
 	}
 
 	if p.Parent != nil {
@@ -223,10 +222,6 @@ func (p *Page) Copy() *Page {
 
 	if p.Site != nil {
 		page.Site = p.Site.Copy()
-	}
-
-	if p.MetaTags != nil {
-		page.MetaTags = NewMetaTags(p.MetaTags.Charset, p.MetaTags)
 	}
 
 	if p.Header != nil {

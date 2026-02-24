@@ -41,7 +41,7 @@ func NewContext(parent context.Context) (context.Context, context.CancelFunc) {
 }
 
 type Context struct {
-	seo      *SEO
+	dom      *DOM
 	site     *Site
 	page     *Page
 	err      error
@@ -53,22 +53,22 @@ type Context struct {
 }
 
 func (c *Context) Reset() {
-	c.SEO().Reset()
 	c.status = http.StatusOK
 	c.template = ""
 	c.content = ""
 	c.debug = false
 	c.guest = true
+	c.dom = nil
 	c.site = nil
 	c.page = nil
 	c.err = nil
 }
 
-func (c *Context) SEO() *SEO {
-	if c.seo == nil {
-		c.seo = NewSEO()
+func (c *Context) DOM() *DOM {
+	if c.dom == nil {
+		c.dom = new(DOM)
 	}
-	return c.seo
+	return c.dom
 }
 
 func (c *Context) Site() *Site {
@@ -76,10 +76,6 @@ func (c *Context) Site() *Site {
 }
 
 func (c *Context) SetSite(site *Site) {
-	c.SEO().Reset()
-	if site != nil {
-		c.SEO().Site(site)
-	}
 	c.site = site
 }
 
@@ -91,21 +87,12 @@ func (c *Context) Page() *Page {
 	return c.page
 }
 
-func (c *Context) SetPage(page *Page, args ...any) {
-	c.SEO().Reset()
-
-	if page != nil && page.Site != nil {
-		c.SEO().Site(page.Site)
-	} else if c.HasSite() {
-		c.SEO().Site(c.site)
-	}
-
+func (c *Context) SetPage(page *Page) {
 	if page != nil {
 		if page.Site == nil && c.HasSite() {
 			page.SiteID = c.site.ID
 			page.Site = c.site
 		}
-		c.SEO().Page(page, args...)
 	}
 	c.page = page
 }

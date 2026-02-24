@@ -10,6 +10,7 @@ require (
 	github.com/invopop/validation v0.8.0
 	github.com/spf13/cast v1.10.0
 	github.com/stretchr/testify v1.11.1
+	golang.org/x/net v0.50.0
 	golang.org/x/text v0.34.0
 )
 

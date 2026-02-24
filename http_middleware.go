@@ -57,23 +57,12 @@ func SelectSiteMiddleware(retriever SiteRetriever, skippers ...middleware.Skippe
 	}
 }
 
-type PatternArgsFunc func(*http.Request) []any
-
-func SelectPageMiddleware(
-	manager PageManager,
-	authorizer PageAuthorizer,
-	patternArgs PatternArgsFunc,
-	skippers ...middleware.Skipper,
-) func(keratin.Handler) keratin.Handler {
+func SelectPageMiddleware(manager PageManager, authorizer PageAuthorizer, skippers ...middleware.Skipper) func(keratin.Handler) keratin.Handler {
 	if manager == nil {
 		panic("middleware: select page: manager is required")
 	}
 	if authorizer == nil {
 		panic("middleware: select page: authorizer is required")
-	}
-
-	if patternArgs == nil {
-		patternArgs = PatternArgs()
 	}
 
 	skip := middleware.ChainSkipper(skippers...)
@@ -129,12 +118,7 @@ func SelectPageMiddleware(
 				return fmt.Errorf("middleware: select page: %w", err)
 			}
 
-			var args []any
-			if page.IsDynamic() {
-				args = patternArgs(r)
-			}
-
-			c.SetPage(page, args...)
+			c.SetPage(page)
 
 			if page.Status == Draft {
 				if err := allow(ctx, ViewDraftPage, c.Guest()); err != nil {

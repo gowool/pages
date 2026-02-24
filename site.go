@@ -17,8 +17,8 @@ type Site struct {
 
 	Status Status `json:"status,omitempty" yaml:"status,omitempty"`
 
-	MetaTags *MetaTags `json:"metaTags,omitempty" yaml:"metaTags,omitempty"`
-	Metadata Metadata  `json:"metadata,omitempty" yaml:"metadata,omitempty"`
+	Meta Meta `json:"meta,omitempty" yaml:"meta,omitempty"`
+	DOM  DOM  `json:"dom,omitempty" yaml:"dom,omitempty"`
 
 	Name      string   `json:"name,omitempty" yaml:"name,omitempty"`
 	Title     string   `json:"title,omitempty" yaml:"title,omitempty"`
@@ -49,8 +49,7 @@ func NewSite() *Site {
 		Locale:    "en",
 		Timezone:  "UTC",
 		Separator: " | ",
-		MetaTags:  NewMetaTags(DefaultCharset),
-		Metadata:  NewMetadata(nil),
+		Meta:      NewMeta(nil),
 		Status:    Draft,
 	}
 }
@@ -114,14 +113,11 @@ func (s *Site) Tag() language.Tag {
 
 func (s *Site) Copy() *Site {
 	site := *s
-	site.Metadata = maps.Clone(s.Metadata)
+	site.Meta = maps.Clone(s.Meta)
+	site.DOM = s.DOM.Copy()
 	site.Countries = slices.Clone(s.Countries)
 	site.location = nil
 	site.tag = nil
-
-	if s.MetaTags != nil {
-		site.MetaTags = NewMetaTags(s.MetaTags.Charset, s.MetaTags)
-	}
 
 	return &site
 }

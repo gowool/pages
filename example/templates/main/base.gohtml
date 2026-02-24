@@ -1,16 +1,14 @@
 <!DOCTYPE html>
-<html {{block "html_attrs" .}}{{html_attrs .SEO}}{{end}}>
-<head {{block "head_attrs" .}}{{head_attrs .SEO}}{{end}}>
+<html{{block "html_attr" .}}{{html_attr .Ctx}}{{end}}>
+<head{{block "head_attr" .}}{{head_attr .Ctx}}{{end}}>
     {{block "head_start" .}}{{end}}
+    {{block "title" .}}{{rev_title_tag .Ctx}}{{end}}
     {{block "favicons" .}}{{end}}
-    {{lang_alternates .SEO}}
-    {{block "title" .}}{{reverse_title_tag .SEO}}{{end}}
-    {{head_links .SEO}}
-    {{meta_tags .SEO}}
+    {{head_tags .Ctx}}
     {{block "head" .}}{{end}}
     {{block "head_end" .}}{{end}}
 </head>
-<body {{block "body_attrs" .}}{{body_attrs .SEO}}{{end}}>
+<body{{block "body_attr" .}}{{body_attr .Ctx}}{{end}}>
 {{block "body_start" .}}{{end}}
 {{block "body" .}}{{end}}
 {{block "body_after" .}}{{end}}

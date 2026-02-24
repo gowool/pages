@@ -26,9 +26,7 @@ func TestNewSite(t *testing.T) {
 
 	assert.Equal(t, " | ", site.Separator, "Separator should be ' | '")
 
-	assert.Equal(t, "UTF-8", site.MetaTags.Charset, "MetaTags.Charset should be 'UTF-8'")
-
-	assert.NotNil(t, site.Metadata, "Metadata map should be initialized")
+	assert.NotNil(t, site.Meta, "Meta map should be initialized")
 
 	assert.Equal(t, Draft, site.Status, "Status should be draft by default")
 
@@ -375,7 +373,7 @@ func TestSite_CompleteExample(t *testing.T) {
 		RelativePath: "/blog",
 		IsDefault:    true,
 		Status:       Published,
-		Metadata:     NewMetadata(map[string]any{"theme": "dark"}),
+		Meta:         NewMeta(map[string]any{"theme": "dark"}),
 	}
 
 	// Test all methods
@@ -452,14 +450,16 @@ func TestSite_Copy(t *testing.T) {
 			RelativePath: "/blog",
 			IsDefault:    true,
 			Status:       Published,
-			Metadata:     NewMetadata(map[string]any{"theme": "dark", "version": 1}),
-			MetaTags:     NewMetaTags("UTF-8"),
+			Meta:         NewMeta(map[string]any{"theme": "dark", "version": 1}),
 			IsRoot:       false,
 		}
 
 		// Add some meta tags
-		original.MetaTags.SetName("description", "Test description")
-		original.MetaTags.SetProperty("og:title", "Test OG Title")
+		original.DOM.Head.Add(
+			CharsetMetaNode("UTF-8"),
+			NameMetaNode("description", "Test description"),
+			PropertyMetaNode("og:title", "Test OG Title"),
+		)
 
 		copy := original.Copy()
 
@@ -488,18 +488,18 @@ func TestSite_Copy(t *testing.T) {
 		copy.Countries = copy.Countries[:len(copy.Countries)-1]
 
 		// Verify maps are cloned
-		assert.Equal(t, original.Metadata, copy.Metadata, "Metadata should be copied")
+		assert.Equal(t, original.Meta, copy.Meta, "Meta should be copied")
 		// Test independence by modifying copy
-		copy.Metadata["test"] = "value"
-		assert.NotContains(t, original.Metadata, "test", "Original metadata should be independent")
+		copy.Meta["test"] = "value"
+		assert.NotContains(t, original.Meta, "test", "Original metadata should be independent")
 		// Remove test key
-		delete(copy.Metadata, "test")
+		delete(copy.Meta, "test")
 
 		// Verify MetaTags is copied correctly
-		assert.NotNil(t, copy.MetaTags, "MetaTags should be copied")
-		assert.Equal(t, original.MetaTags.Charset, copy.MetaTags.Charset, "MetaTags charset should be copied")
-		assert.Equal(t, original.MetaTags.Name, copy.MetaTags.Name, "MetaTags name should be copied")
-		assert.NotSame(t, original.MetaTags, copy.MetaTags, "MetaTags should be a new instance")
+		copyHead := copy.DOM.Head.Nodes.String()
+		assert.Contains(t, copyHead, `charset="UTF-8"`, "Meta tag charset should be copied")
+		assert.Contains(t, copyHead, `name="description"`, "Meta tag description should be copied")
+		assert.Contains(t, copyHead, `property="og:title"`, "Meta tag og:title should be copied")
 
 		// Verify cached fields are reset
 		assert.Nil(t, copy.location, "Location cache should be reset")
@@ -507,24 +507,11 @@ func TestSite_Copy(t *testing.T) {
 		assert.False(t, copy.IsRoot, "IsRoot should be reset to false")
 	})
 
-	t.Run("Copy site with nil MetaTags", func(t *testing.T) {
-		original := &Site{
-			Name: "Test Site",
-			Host: "example.com",
-		}
-		original.MetaTags = nil
-
-		copy := original.Copy()
-
-		assert.Nil(t, copy.MetaTags, "MetaTags should remain nil when original has nil MetaTags")
-	})
-
 	t.Run("Copy site with empty slices and maps", func(t *testing.T) {
 		original := &Site{
 			Name:      "Test Site",
 			Countries: []string{},
-			Metadata:  NewMetadata(nil),
-			MetaTags:  NewMetaTags("UTF-8"),
+			Meta:      NewMeta(nil),
 		}
 
 		copy := original.Copy()
@@ -534,18 +521,17 @@ func TestSite_Copy(t *testing.T) {
 		copy.Countries = append(copy.Countries, "test")
 		assert.Empty(t, original.Countries, "Original countries slice should remain empty")
 
-		assert.Empty(t, copy.Metadata, "Metadata map should be empty")
+		assert.Empty(t, copy.Meta, "Meta map should be empty")
 		// For empty maps, they're both empty but should be different instances
-		copy.Metadata["test"] = "value"
-		assert.Empty(t, original.Metadata, "Original metadata map should remain empty")
+		copy.Meta["test"] = "value"
+		assert.Empty(t, original.Meta, "Original metadata map should remain empty")
 	})
 
 	t.Run("Modify copy doesn't affect original", func(t *testing.T) {
 		original := &Site{
 			Name:      "Original Site",
 			Countries: []string{"US"},
-			Metadata:  NewMetadata(map[string]any{"key": "original"}),
-			MetaTags:  NewMetaTags("UTF-8"),
+			Meta:      NewMeta(map[string]any{"key": "original"}),
 		}
 
 		copy := original.Copy()
@@ -553,16 +539,14 @@ func TestSite_Copy(t *testing.T) {
 		// Modify the copy
 		copy.Name = "Modified Site"
 		copy.Countries = append(copy.Countries, "CA")
-		copy.Metadata["key"] = "modified"
-		copy.Metadata["newKey"] = "new value"
-		copy.MetaTags.Charset = "ISO-8859-1"
+		copy.Meta["key"] = "modified"
+		copy.Meta["newKey"] = "new value"
 
 		// Verify original is unchanged
 		assert.Equal(t, "Original Site", original.Name, "Original name should be unchanged")
 		assert.Equal(t, []string{"US"}, original.Countries, "Original countries should be unchanged")
-		assert.Equal(t, "original", original.Metadata["key"], "Original metadata should be unchanged")
-		assert.NotContains(t, original.Metadata, "newKey", "Original should not have new metadata key")
-		assert.Equal(t, "UTF-8", original.MetaTags.Charset, "Original MetaTags charset should be unchanged")
+		assert.Equal(t, "original", original.Meta["key"], "Original metadata should be unchanged")
+		assert.NotContains(t, original.Meta, "newKey", "Original should not have new metadata key")
 	})
 }
 
@@ -617,44 +601,6 @@ func TestSite_InvalidLocaleHandling(t *testing.T) {
 
 		tag2 := site.Tag()
 		assert.Equal(t, "fr-FR", tag2.String(), "Second call with valid locale should return correct tag")
-	})
-}
-
-func TestSite_MetaTagsIntegration(t *testing.T) {
-	t.Run("NewSite creates MetaTags with default charset", func(t *testing.T) {
-		site := NewSite()
-
-		assert.NotNil(t, site.MetaTags, "NewSite should create MetaTags")
-		assert.Equal(t, "UTF-8", site.MetaTags.Charset, "MetaTags should have default charset")
-		assert.NotNil(t, site.MetaTags.Name, "MetaTags.Name map should be initialized")
-		assert.NotNil(t, site.MetaTags.Property, "MetaTags.Property map should be initialized")
-		assert.NotNil(t, site.MetaTags.HTTPEquiv, "MetaTags.HTTPEquiv map should be initialized")
-	})
-
-	t.Run("Copy site with complex MetaTags", func(t *testing.T) {
-		original := NewSite()
-
-		// Add complex meta tags
-		original.MetaTags.SetName("description", "Test site description")
-		original.MetaTags.SetName("keywords", "test", "site", "example")
-		original.MetaTags.SetProperty("og:title", "Test OG Title")
-		original.MetaTags.SetProperty("og:description", "Test OG Description")
-		original.MetaTags.SetHTTPEquiv("refresh", "30")
-		original.MetaTags.Charset = "ISO-8859-1"
-
-		copy := original.Copy()
-
-		// Verify MetaTags are copied correctly
-		assert.NotNil(t, copy.MetaTags, "Copy should have MetaTags")
-		assert.Equal(t, "ISO-8859-1", copy.MetaTags.Charset, "Charset should be copied")
-		assert.Equal(t, original.MetaTags.Name, copy.MetaTags.Name, "Name meta tags should be copied")
-		assert.Equal(t, original.MetaTags.Property, copy.MetaTags.Property, "Property meta tags should be copied")
-		assert.Equal(t, original.MetaTags.HTTPEquiv, copy.MetaTags.HTTPEquiv, "HTTP-Equiv meta tags should be copied")
-		assert.NotSame(t, original.MetaTags, copy.MetaTags, "MetaTags should be a new instance")
-
-		// Verify modifying copy doesn't affect original
-		copy.MetaTags.SetName("new-name", "new value")
-		assert.NotContains(t, original.MetaTags.Name, "new-name", "Original MetaTags should not be modified")
 	})
 }
 
@@ -761,11 +707,14 @@ func BenchmarkSite_Copy(b *testing.B) {
 		Updated:   time.Now(),
 		Name:      "Test Site",
 		Countries: []string{"US", "CA", "MX", "GB", "FR"},
-		Metadata:  NewMetadata(map[string]any{"theme": "dark", "version": 1, "features": []string{"search", "api"}}),
-		MetaTags:  NewMetaTags("UTF-8"),
+		Meta:      NewMeta(map[string]any{"theme": "dark", "version": 1, "features": []string{"search", "api"}}),
 	}
-	original.MetaTags.SetName("description", "Test description")
-	original.MetaTags.SetProperty("og:title", "Test OG Title")
+
+	original.DOM.Head.Add(
+		CharsetMetaNode("UTF-8"),
+		NameMetaNode("description", "Test description"),
+		PropertyMetaNode("og:title", "Test OG Title"),
+	)
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {

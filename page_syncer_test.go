@@ -909,20 +909,18 @@ func TestDefaultPageSyncer_newPage(t *testing.T) {
 		assert.Equal(t, customVisibility, page.Visibility)
 	})
 
-	t.Run("new page with metadata and meta tags", func(t *testing.T) {
+	t.Run("new page with meta", func(t *testing.T) {
 		mockStore := &MockPageStore{}
 		mockPatterns := NewMockPatterns([]string{})
 		mockStrategy := NewMockPageDecoratorStrategy(true)
 		generator := func(context.Context) (ID, error) { return "test", nil }
 
-		customMetaTags := NewMetaTags("custom-charset")
-		customMetadata := NewMetadata(map[string]any{"key": "value"})
+		customMeta := NewMeta(map[string]any{"key": "value"})
 
 		cfg := PageSyncerConfig{}
 		cfg.DefaultPatterns = map[string]*PageConfig{
 			"/custom": {
-				MetaTags: customMetaTags,
-				Metadata: customMetadata,
+				Meta: customMeta,
 			},
 		}
 
@@ -930,8 +928,7 @@ func TestDefaultPageSyncer_newPage(t *testing.T) {
 
 		page := syncer.newPage("", "/custom", site)
 
-		assert.Equal(t, customMetaTags, page.MetaTags)
-		assert.Equal(t, customMetadata, page.Metadata)
+		assert.Equal(t, customMeta, page.Meta)
 	})
 
 	t.Run("new page with custom headers", func(t *testing.T) {
@@ -970,8 +967,7 @@ func TestPageSyncerConfig_SetDefaults(t *testing.T) {
 		assert.NotNil(t, cfg.DefaultPage.Decorate)
 		assert.NotNil(t, cfg.DefaultPage.Status)
 		assert.NotNil(t, cfg.DefaultPage.Visibility)
-		assert.NotNil(t, cfg.DefaultPage.MetaTags)
-		assert.NotNil(t, cfg.DefaultPage.Metadata)
+		assert.NotNil(t, cfg.DefaultPage.Meta)
 		assert.NotNil(t, cfg.DefaultPage.Header)
 	})
 
@@ -1059,8 +1055,7 @@ func TestDefaultPageSyncer_setPageConfig(t *testing.T) {
 		customDecorate := false
 		customStatus := Published
 		customVisibility := Private
-		customMetaTags := NewMetaTags("utf-8")
-		customMetadata := NewMetadata(map[string]any{"key": "value"})
+		customMeta := NewMeta(map[string]any{"key": "value"})
 		customHeaders := map[string][]string{"X-Header": {"value"}}
 
 		cfg := PageSyncerConfig{}
@@ -1072,8 +1067,7 @@ func TestDefaultPageSyncer_setPageConfig(t *testing.T) {
 				Decorate:   &customDecorate,
 				Status:     &customStatus,
 				Visibility: &customVisibility,
-				MetaTags:   customMetaTags,
-				Metadata:   customMetadata,
+				Meta:       customMeta,
 				Header:     customHeaders,
 			},
 		}
@@ -1088,8 +1082,7 @@ func TestDefaultPageSyncer_setPageConfig(t *testing.T) {
 		assert.Equal(t, customDecorate, page.Decorate)
 		assert.Equal(t, customStatus, page.Status)
 		assert.Equal(t, customVisibility, page.Visibility)
-		assert.Equal(t, customMetaTags, page.MetaTags)
-		assert.Equal(t, customMetadata, page.Metadata)
+		assert.Equal(t, customMeta, page.Meta)
 		assert.Equal(t, customHeaders, page.Header)
 	})
 
@@ -1175,7 +1168,6 @@ func TestDefaultPages(t *testing.T) {
 		assert.Equal(t, Draft, *cfg.DefaultPage.Status, "DefaultPage code should be Draft")
 		assert.NotNil(t, cfg.DefaultPage.Visibility, "DefaultPage visibility should be set")
 		assert.Equal(t, Public, *cfg.DefaultPage.Visibility, "DefaultPage visibility should be Public")
-		assert.NotNil(t, cfg.DefaultPage.MetaTags, "DefaultPage metaTags should be set")
 	})
 
 	t.Run("verify CMS patterns are removed from DefaultPatterns", func(t *testing.T) {

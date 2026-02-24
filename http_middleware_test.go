@@ -327,52 +327,18 @@ func TestSelectSiteMiddleware(t *testing.T) {
 func TestSelectPageMiddleware(t *testing.T) {
 	t.Run("panic when manager is nil", func(t *testing.T) {
 		authorizer := NewMockPageAuthorizer()
-		patternArgs := PatternArgs()
 
 		assert.Panics(t, func() {
-			SelectPageMiddleware(nil, authorizer, patternArgs)
+			SelectPageMiddleware(nil, authorizer)
 		})
 	})
 
 	t.Run("panic when authorizer is nil", func(t *testing.T) {
 		manager := NewMockPageManager()
-		patternArgs := PatternArgs()
 
 		assert.Panics(t, func() {
-			SelectPageMiddleware(manager, nil, patternArgs)
+			SelectPageMiddleware(manager, nil)
 		})
-	})
-
-	t.Run("default patternArgs when nil", func(t *testing.T) {
-		manager := NewMockPageManager()
-		authorizer := NewMockPageAuthorizer()
-
-		page := NewPage()
-		page.Pattern = "/test"
-		page.Status = Published
-		manager.On("GetByPattern", mock.Anything, mock.Anything, mock.Anything).Return(page, nil)
-
-		parentCtx, cancel := NewContext(context.Background())
-		defer cancel()
-		c := FromContext(parentCtx)
-		site := NewSite()
-		c.SetSite(site)
-		c.SetGuest(false)
-
-		req := httptest.NewRequest(http.MethodGet, "/test", nil)
-		req.Pattern = "GET /test"
-		req = req.WithContext(parentCtx)
-		w := httptest.NewRecorder()
-
-		next := keratin.HandlerFunc(func(w http.ResponseWriter, r *http.Request) error {
-			return nil
-		})
-
-		middleware := SelectPageMiddleware(manager, authorizer, nil)
-		handler := middleware(next)
-		err := handler.ServeHTTP(w, req)
-
-		assert.NoError(t, err)
 	})
 
 	t.Run("skip when skipper returns true", func(t *testing.T) {
@@ -399,7 +365,7 @@ func TestSelectPageMiddleware(t *testing.T) {
 			return nil
 		})
 
-		middleware := SelectPageMiddleware(manager, authorizer, PatternArgs(), skipper)
+		middleware := SelectPageMiddleware(manager, authorizer, skipper)
 		handler := middleware(next)
 		err := handler.ServeHTTP(w, req)
 
@@ -419,7 +385,7 @@ func TestSelectPageMiddleware(t *testing.T) {
 			return nil
 		})
 
-		middleware := SelectPageMiddleware(manager, authorizer, PatternArgs())
+		middleware := SelectPageMiddleware(manager, authorizer)
 		handler := middleware(next)
 
 		assert.Panics(t, func() {
@@ -442,7 +408,7 @@ func TestSelectPageMiddleware(t *testing.T) {
 			return nil
 		})
 
-		middleware := SelectPageMiddleware(manager, authorizer, PatternArgs())
+		middleware := SelectPageMiddleware(manager, authorizer)
 		handler := middleware(next)
 		err := handler.ServeHTTP(w, req)
 
@@ -476,7 +442,7 @@ func TestSelectPageMiddleware(t *testing.T) {
 			return nil
 		})
 
-		middleware := SelectPageMiddleware(manager, authorizer, PatternArgs())
+		middleware := SelectPageMiddleware(manager, authorizer)
 		handler := middleware(next)
 		err := handler.ServeHTTP(w, req)
 
@@ -512,7 +478,7 @@ func TestSelectPageMiddleware(t *testing.T) {
 			return nil
 		})
 
-		middleware := SelectPageMiddleware(manager, authorizer, PatternArgs())
+		middleware := SelectPageMiddleware(manager, authorizer)
 		handler := middleware(next)
 		err := handler.ServeHTTP(w, req)
 
@@ -542,7 +508,7 @@ func TestSelectPageMiddleware(t *testing.T) {
 			return nil
 		})
 
-		middleware := SelectPageMiddleware(manager, authorizer, PatternArgs())
+		middleware := SelectPageMiddleware(manager, authorizer)
 		handler := middleware(next)
 		err := handler.ServeHTTP(w, req)
 
@@ -572,7 +538,7 @@ func TestSelectPageMiddleware(t *testing.T) {
 			return nil
 		})
 
-		middleware := SelectPageMiddleware(manager, authorizer, PatternArgs())
+		middleware := SelectPageMiddleware(manager, authorizer)
 		handler := middleware(next)
 		err := handler.ServeHTTP(w, req)
 
@@ -610,7 +576,7 @@ func TestSelectPageMiddleware(t *testing.T) {
 			return nil
 		})
 
-		middleware := SelectPageMiddleware(manager, authorizer, PatternArgs())
+		middleware := SelectPageMiddleware(manager, authorizer)
 		handler := middleware(next)
 		err := handler.ServeHTTP(w, req)
 
@@ -619,7 +585,7 @@ func TestSelectPageMiddleware(t *testing.T) {
 		assert.Equal(t, site.ID, FromContext(req.Context()).Page().SiteID)
 	})
 
-	t.Run("patternArgs for dynamic page", func(t *testing.T) {
+	t.Run("dynamic page", func(t *testing.T) {
 		manager := NewMockPageManager()
 		authorizer := NewMockPageAuthorizer()
 		authorizer.On("Authorize", mock.Anything, mock.Anything).Return(Allow)
@@ -648,7 +614,7 @@ func TestSelectPageMiddleware(t *testing.T) {
 			return nil
 		})
 
-		middleware := SelectPageMiddleware(manager, authorizer, PatternArgs())
+		middleware := SelectPageMiddleware(manager, authorizer)
 		handler := middleware(next)
 		err := handler.ServeHTTP(w, req)
 
@@ -682,7 +648,7 @@ func TestSelectPageMiddleware(t *testing.T) {
 			return nil
 		})
 
-		middleware := SelectPageMiddleware(manager, authorizer, PatternArgs())
+		middleware := SelectPageMiddleware(manager, authorizer)
 		handler := middleware(next)
 		err := handler.ServeHTTP(w, req)
 
@@ -717,7 +683,7 @@ func TestSelectPageMiddleware(t *testing.T) {
 			return nil
 		})
 
-		middleware := SelectPageMiddleware(manager, authorizer, PatternArgs())
+		middleware := SelectPageMiddleware(manager, authorizer)
 		handler := middleware(next)
 		err := handler.ServeHTTP(w, req)
 
@@ -752,7 +718,7 @@ func TestSelectPageMiddleware(t *testing.T) {
 			return nil
 		})
 
-		middleware := SelectPageMiddleware(manager, authorizer, PatternArgs())
+		middleware := SelectPageMiddleware(manager, authorizer)
 		handler := middleware(next)
 		err := handler.ServeHTTP(w, req)
 
@@ -787,7 +753,7 @@ func TestSelectPageMiddleware(t *testing.T) {
 			return nil
 		})
 
-		middleware := SelectPageMiddleware(manager, authorizer, PatternArgs())
+		middleware := SelectPageMiddleware(manager, authorizer)
 		handler := middleware(next)
 		err := handler.ServeHTTP(w, req)
 
@@ -823,7 +789,7 @@ func TestSelectPageMiddleware(t *testing.T) {
 			return nil
 		})
 
-		middleware := SelectPageMiddleware(manager, authorizer, PatternArgs())
+		middleware := SelectPageMiddleware(manager, authorizer)
 		handler := middleware(next)
 		err := handler.ServeHTTP(w, req)
 
@@ -858,7 +824,7 @@ func TestSelectPageMiddleware(t *testing.T) {
 			return nil
 		})
 
-		middleware := SelectPageMiddleware(manager, authorizer, PatternArgs())
+		middleware := SelectPageMiddleware(manager, authorizer)
 		handler := middleware(next)
 		err := handler.ServeHTTP(w, req)
 
@@ -1390,28 +1356,5 @@ func TestHybridPageMiddleware(t *testing.T) {
 		assert.Equal(t, http.StatusNotFound, w.Code)
 		assert.Equal(t, "not found", w.Body.String())
 		assert.Equal(t, http.StatusNotFound, c.Status())
-	})
-}
-
-func TestPatternArgsFunc(t *testing.T) {
-	t.Run("PatternArgs returns empty for no dynamic pattern", func(t *testing.T) {
-		req := httptest.NewRequest(http.MethodGet, "/test", nil)
-		req.Pattern = "GET /test"
-
-		argsFunc := PatternArgs()
-		args := argsFunc(req)
-
-		assert.Nil(t, args)
-	})
-
-	t.Run("PatternArgs returns args for dynamic pattern", func(t *testing.T) {
-		req := httptest.NewRequest(http.MethodGet, "/test/123", nil)
-		req.Pattern = "GET /test/{id}"
-		req.SetPathValue("{id}", "123")
-
-		argsFunc := PatternArgs()
-		args := argsFunc(req)
-
-		assert.NotNil(t, args)
 	})
 }

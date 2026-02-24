@@ -56,8 +56,7 @@ func TestLocalhostSiteStore_FindPublished(t *testing.T) {
 		assert.Equal(t, "UTC", site.Timezone, "Site should have default timezone")
 		assert.Equal(t, " | ", site.Separator, "Site should have default separator")
 		assert.False(t, site.IsDefault, "Site should not be default by default")
-		assert.NotNil(t, site.MetaTags, "Site should have MetaTags initialized")
-		assert.NotNil(t, site.Metadata, "Site should have Metadata initialized")
+		assert.NotNil(t, site.Meta, "Site should have Meta initialized")
 		assert.False(t, site.Created.IsZero(), "Site should have Created timestamp")
 		assert.False(t, site.Updated.IsZero(), "Site should have Updated timestamp")
 	})
@@ -199,8 +198,7 @@ func TestLocalhostSiteStore_IteratorBehavior(t *testing.T) {
 		assert.NotEmpty(t, site.Locale, "Site should have locale")
 		assert.NotEmpty(t, site.Timezone, "Site should have timezone")
 		assert.NotEmpty(t, site.Separator, "Site should have separator")
-		assert.NotNil(t, site.MetaTags, "Site should have MetaTags")
-		assert.NotNil(t, site.Metadata, "Site should have Metadata")
+		assert.NotNil(t, site.Meta, "Site should have Meta")
 		assert.False(t, site.Created.IsZero(), "Site should have Created time")
 		assert.False(t, site.Updated.IsZero(), "Site should have Updated time")
 	})
@@ -254,16 +252,9 @@ func TestLocalhostSiteStore_SiteProperties(t *testing.T) {
 		assert.True(t, site.Created.Equal(site.Updated), "Created and Updated should be equal for new site")
 	})
 
-	t.Run("MetaTags are properly initialized", func(t *testing.T) {
-		require.NotNil(t, site.MetaTags, "MetaTags should not be nil")
-		// We can't easily test the MetaTags content without accessing private fields,
-		// but we can verify it was initialized
-		assert.NotNil(t, site.MetaTags, "MetaTags should be initialized")
-	})
-
-	t.Run("Metadata map is properly initialized", func(t *testing.T) {
-		require.NotNil(t, site.Metadata, "Metadata should not be nil")
-		assert.Empty(t, site.Metadata, "Metadata should be empty initially")
+	t.Run("Meta map is properly initialized", func(t *testing.T) {
+		require.NotNil(t, site.Meta, "Meta should not be nil")
+		assert.Empty(t, site.Meta, "Meta should be empty initially")
 	})
 }
 

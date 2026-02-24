@@ -2,33 +2,14 @@ package pages
 
 import (
 	"context"
-	"html/template"
 	"testing"
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
-	"github.com/stretchr/testify/require"
 )
 
-func TestPageFuncMap(t *testing.T) {
-	mockURLGenerator := &MockURLGenerator{}
-	funcMap := PageFuncMap(mockURLGenerator)
-
-	// Test that funcMap is not nil
-	assert.NotNil(t, funcMap, "PageFuncMap() should return non-nil template.FuncMap")
-
-	// Test that page_url function exists
-	pageURLFunc, exists := funcMap["page_url"]
-	require.True(t, exists, "page_url function should exist in funcMap")
-	require.NotNil(t, pageURLFunc, "page_url function should not be nil")
-
-	// Test that page_url function is of correct type
-	_, isFunc := pageURLFunc.(func(context.Context, *Site, any, ...any) string)
-	require.True(t, isFunc, "page_url should be a function with correct signature")
-}
-
-func TestPageFuncMap_PageURLFunction(t *testing.T) {
+func TestFuncMap_PageURLFunction(t *testing.T) {
 	tests := []struct {
 		name          string
 		setupMock     func(*MockURLGenerator)
@@ -118,7 +99,7 @@ func TestPageFuncMap_PageURLFunction(t *testing.T) {
 			mockURLGenerator := &MockURLGenerator{}
 			tt.setupMock(mockURLGenerator)
 
-			funcMap := PageFuncMap(mockURLGenerator)
+			funcMap := FuncMap(mockURLGenerator)
 			pageURLFunc := funcMap["page_url"].(func(context.Context, *Site, any, ...any) string)
 
 			result := pageURLFunc(tt.ctx, tt.site, tt.arg, tt.args...)
@@ -134,7 +115,7 @@ func TestPageFuncMap_PageURLFunction(t *testing.T) {
 	}
 }
 
-func TestPageFuncMap_PageURLFunctionWithRealSite(t *testing.T) {
+func TestFuncMap_PageURLFunctionWithRealSite(t *testing.T) {
 	mockURLGenerator := &MockURLGenerator{}
 
 	// Create a realistic test site
@@ -147,7 +128,7 @@ func TestPageFuncMap_PageURLFunctionWithRealSite(t *testing.T) {
 
 	mockURLGenerator.On("Generate", context.Background(), site, "home-page", []any(nil)).Return("https://test.example.com/home", nil)
 
-	funcMap := PageFuncMap(mockURLGenerator)
+	funcMap := FuncMap(mockURLGenerator)
 	pageURLFunc := funcMap["page_url"].(func(context.Context, *Site, any, ...any) string)
 
 	result := pageURLFunc(context.Background(), site, "home-page")
@@ -156,29 +137,7 @@ func TestPageFuncMap_PageURLFunctionWithRealSite(t *testing.T) {
 	mockURLGenerator.AssertExpectations(t)
 }
 
-func TestPageFuncMap_IntegrationWithTemplate(t *testing.T) {
-	mockURLGenerator := &MockURLGenerator{}
-
-	funcMap := PageFuncMap(mockURLGenerator)
-
-	// Test that the function map can be used with Go templates
-	tmpl := template.New("test").Funcs(funcMap)
-
-	templateText := `
-		<nav>
-			<a href="{{page_url .Ctx .Site "about"}}">About</a>
-			<a href="{{page_url .Ctx .Site "contact"}}">Contact</a>
-		</nav>
-	`
-
-	_, err := tmpl.Parse(templateText)
-	require.NoError(t, err, "Template with page_url function should parse successfully")
-
-	// Note: We don't execute the template here as that would require more complex setup
-	// but the fact that it parses successfully shows the function map is compatible
-}
-
-func TestPageFuncMap_MultipleCalls(t *testing.T) {
+func TestFuncMap_MultipleCalls(t *testing.T) {
 	mockURLGenerator := &MockURLGenerator{}
 	site := NewTestSite()
 	ctx := context.Background()
@@ -188,7 +147,7 @@ func TestPageFuncMap_MultipleCalls(t *testing.T) {
 	mockURLGenerator.On("Generate", ctx, site, "page2", []any(nil)).Return("https://example.com/page2", nil)
 	mockURLGenerator.On("Generate", ctx, site, "page3", []any{"param1", "value1"}).Return("https://example.com/page3/value1", nil)
 
-	funcMap := PageFuncMap(mockURLGenerator)
+	funcMap := FuncMap(mockURLGenerator)
 	pageURLFunc := funcMap["page_url"].(func(context.Context, *Site, any, ...any) string)
 
 	// Make multiple calls
@@ -203,7 +162,7 @@ func TestPageFuncMap_MultipleCalls(t *testing.T) {
 	mockURLGenerator.AssertExpectations(t)
 }
 
-func TestPageFuncMap_EdgeCases(t *testing.T) {
+func TestFuncMap_EdgeCases(t *testing.T) {
 	tests := []struct {
 		name        string
 		setupMock   func(*MockURLGenerator)
@@ -238,7 +197,7 @@ func TestPageFuncMap_EdgeCases(t *testing.T) {
 			mockURLGenerator := &MockURLGenerator{}
 			tt.setupMock(mockURLGenerator)
 
-			funcMap := PageFuncMap(mockURLGenerator)
+			funcMap := FuncMap(mockURLGenerator)
 			pageURLFunc := funcMap["page_url"].(func(context.Context, *Site, any, ...any) string)
 
 			if tt.expectPanic {

@@ -22,6 +22,7 @@ type TemplateVarsFunc func(*http.Request, *Context) any
 type TemplateVars struct {
 	*Context
 	Request *http.Request
+	Ctx     context.Context
 }
 
 func (c TemplateVars) Value(key any) any {
@@ -53,6 +54,7 @@ func (*PageHandlerConfig) vars(r *http.Request, c *Context) any {
 	return TemplateVars{
 		Context: c,
 		Request: r,
+		Ctx:     r.Context(),
 	}
 }
 

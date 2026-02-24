@@ -19,8 +19,7 @@ func TestPage_AbsURL(t *testing.T) {
 		Created   time.Time
 		Updated   time.Time
 		Status    Status
-		MetaTags  *MetaTags
-		Metadata  Metadata
+		Metadata  Meta
 		Header    map[string][]string
 		Name      string
 		Title     string
@@ -113,8 +112,7 @@ func TestPage_AbsURL(t *testing.T) {
 				Created:   tt.fields.Created,
 				Updated:   tt.fields.Updated,
 				Status:    tt.fields.Status,
-				MetaTags:  tt.fields.MetaTags,
-				Metadata:  tt.fields.Metadata,
+				Meta:      tt.fields.Metadata,
 				Header:    tt.fields.Header,
 				Name:      tt.fields.Name,
 				Title:     tt.fields.Title,
@@ -144,8 +142,7 @@ func TestPage_FixURL(t *testing.T) {
 		Created   time.Time
 		Updated   time.Time
 		Status    Status
-		MetaTags  *MetaTags
-		Metadata  Metadata
+		Metadata  Meta
 		Header    map[string][]string
 		Name      string
 		Title     string
@@ -183,8 +180,7 @@ func TestPage_FixURL(t *testing.T) {
 				Created:   tt.fields.Created,
 				Updated:   tt.fields.Updated,
 				Status:    tt.fields.Status,
-				MetaTags:  tt.fields.MetaTags,
-				Metadata:  tt.fields.Metadata,
+				Meta:      tt.fields.Metadata,
 				Header:    tt.fields.Header,
 				Name:      tt.fields.Name,
 				Title:     tt.fields.Title,
@@ -214,8 +210,7 @@ func TestPage_IsCMS(t *testing.T) {
 		Created   time.Time
 		Updated   time.Time
 		Status    Status
-		MetaTags  *MetaTags
-		Metadata  Metadata
+		Metadata  Meta
 		Header    map[string][]string
 		Name      string
 		Title     string
@@ -250,8 +245,7 @@ func TestPage_IsCMS(t *testing.T) {
 				Created:   tt.fields.Created,
 				Updated:   tt.fields.Updated,
 				Status:    tt.fields.Status,
-				MetaTags:  tt.fields.MetaTags,
-				Metadata:  tt.fields.Metadata,
+				Meta:      tt.fields.Metadata,
 				Header:    tt.fields.Header,
 				Name:      tt.fields.Name,
 				Title:     tt.fields.Title,
@@ -280,8 +274,7 @@ func TestPage_IsDynamic(t *testing.T) {
 		Created   time.Time
 		Updated   time.Time
 		Status    Status
-		MetaTags  *MetaTags
-		Metadata  Metadata
+		Metadata  Meta
 		Header    map[string][]string
 		Name      string
 		Title     string
@@ -317,8 +310,7 @@ func TestPage_IsDynamic(t *testing.T) {
 				Created:   tt.fields.Created,
 				Updated:   tt.fields.Updated,
 				Status:    tt.fields.Status,
-				MetaTags:  tt.fields.MetaTags,
-				Metadata:  tt.fields.Metadata,
+				Meta:      tt.fields.Metadata,
 				Header:    tt.fields.Header,
 				Name:      tt.fields.Name,
 				Title:     tt.fields.Title,
@@ -347,8 +339,7 @@ func TestPage_IsError(t *testing.T) {
 		Created   time.Time
 		Updated   time.Time
 		Status    Status
-		MetaTags  *MetaTags
-		Metadata  Metadata
+		Metadata  Meta
 		Header    map[string][]string
 		Name      string
 		Title     string
@@ -385,8 +376,7 @@ func TestPage_IsError(t *testing.T) {
 				Created:   tt.fields.Created,
 				Updated:   tt.fields.Updated,
 				Status:    tt.fields.Status,
-				MetaTags:  tt.fields.MetaTags,
-				Metadata:  tt.fields.Metadata,
+				Meta:      tt.fields.Metadata,
 				Header:    tt.fields.Header,
 				Name:      tt.fields.Name,
 				Title:     tt.fields.Title,
@@ -415,8 +405,7 @@ func TestPage_IsHybrid(t *testing.T) {
 		Created   time.Time
 		Updated   time.Time
 		Status    Status
-		MetaTags  *MetaTags
-		Metadata  Metadata
+		Metadata  Meta
 		Header    map[string][]string
 		Name      string
 		Title     string
@@ -453,8 +442,7 @@ func TestPage_IsHybrid(t *testing.T) {
 				Created:   tt.fields.Created,
 				Updated:   tt.fields.Updated,
 				Status:    tt.fields.Status,
-				MetaTags:  tt.fields.MetaTags,
-				Metadata:  tt.fields.Metadata,
+				Meta:      tt.fields.Metadata,
 				Header:    tt.fields.Header,
 				Name:      tt.fields.Name,
 				Title:     tt.fields.Title,
@@ -483,8 +471,7 @@ func TestPage_IsInternal(t *testing.T) {
 		Created   time.Time
 		Updated   time.Time
 		Status    Status
-		MetaTags  *MetaTags
-		Metadata  Metadata
+		Metadata  Meta
 		Header    map[string][]string
 		Name      string
 		Title     string
@@ -521,8 +508,7 @@ func TestPage_IsInternal(t *testing.T) {
 				Created:   tt.fields.Created,
 				Updated:   tt.fields.Updated,
 				Status:    tt.fields.Status,
-				MetaTags:  tt.fields.MetaTags,
-				Metadata:  tt.fields.Metadata,
+				Meta:      tt.fields.Metadata,
 				Header:    tt.fields.Header,
 				Name:      tt.fields.Name,
 				Title:     tt.fields.Title,
@@ -551,8 +537,7 @@ func TestPage_SetAlias(t *testing.T) {
 		Created   time.Time
 		Updated   time.Time
 		Status    Status
-		MetaTags  *MetaTags
-		Metadata  Metadata
+		Metadata  Meta
 		Header    map[string][]string
 		Name      string
 		Title     string
@@ -589,8 +574,7 @@ func TestPage_SetAlias(t *testing.T) {
 				Created:   tt.fields.Created,
 				Updated:   tt.fields.Updated,
 				Status:    tt.fields.Status,
-				MetaTags:  tt.fields.MetaTags,
-				Metadata:  tt.fields.Metadata,
+				Meta:      tt.fields.Metadata,
 				Header:    tt.fields.Header,
 				Name:      tt.fields.Name,
 				Title:     tt.fields.Title,
@@ -618,15 +602,14 @@ func TestPage_Copy(t *testing.T) {
 
 	// Create parent page
 	parent := &Page{
-		ID:       parentID,
-		Name:     "Parent Page",
-		Pattern:  PageCMS,
-		URL:      "/parent",
-		Created:  originalTime,
-		Updated:  originalTime,
-		Metadata: NewMetadata(map[string]any{"key": "parent-value"}),
-		Header:   map[string][]string{"X-Parent": {"value1", "value2"}},
-		MetaTags: NewMetaTags("utf-8"),
+		ID:      parentID,
+		Name:    "Parent Page",
+		Pattern: PageCMS,
+		URL:     "/parent",
+		Created: originalTime,
+		Updated: originalTime,
+		Meta:    NewMeta(map[string]any{"key": "parent-value"}),
+		Header:  map[string][]string{"X-Parent": {"value1", "value2"}},
 	}
 
 	// Create child page with all fields populated
@@ -639,8 +622,7 @@ func TestPage_Copy(t *testing.T) {
 		Created:   originalTime,
 		Updated:   originalTime,
 		Status:    Published,
-		MetaTags:  NewMetaTags("iso-8859-1"),
-		Metadata:  NewMetadata(map[string]any{"key1": "value1", "key2": 42, "key3": true}),
+		Meta:      NewMeta(map[string]any{"key1": "value1", "key2": 42, "key3": true}),
 		Header:    map[string][]string{"Content-Type": {"text/html"}, "X-Custom": {"custom-value"}},
 		Name:      "Test Page",
 		Title:     "Test Title",
@@ -656,12 +638,12 @@ func TestPage_Copy(t *testing.T) {
 
 	// Add grandchild for testing nested children
 	grandchild := &Page{
-		ID:       ID("grandchild-id"),
-		Name:     "Grandchild Page",
-		Pattern:  PageCMS,
-		Created:  originalTime,
-		Updated:  originalTime,
-		Metadata: NewMetadata(map[string]any{"nested": "deep"}),
+		ID:      ID("grandchild-id"),
+		Name:    "Grandchild Page",
+		Pattern: PageCMS,
+		Created: originalTime,
+		Updated: originalTime,
+		Meta:    NewMeta(map[string]any{"nested": "deep"}),
 	}
 	child.Children = append(child.Children, grandchild)
 
@@ -695,14 +677,11 @@ func TestPage_Copy(t *testing.T) {
 				assert.Equal(t, *original.ParentID, *copied.ParentID, "ParentID value should be copied")
 
 				// Verify complex objects are cloned but not the same reference
-				assert.NotEqual(t, fmt.Sprintf("%p", original.Metadata), fmt.Sprintf("%p", copied.Metadata), "Metadata should be cloned")
-				assert.Equal(t, original.Metadata, copied.Metadata, "Metadata content should be copied")
+				assert.NotEqual(t, fmt.Sprintf("%p", original.Meta), fmt.Sprintf("%p", copied.Meta), "Meta should be cloned")
+				assert.Equal(t, original.Meta, copied.Meta, "Meta content should be copied")
 
 				assert.NotEqual(t, fmt.Sprintf("%p", original.Header), fmt.Sprintf("%p", copied.Header), "Header should be cloned")
 				assert.Equal(t, original.Header, copied.Header, "Header content should be copied")
-
-				assert.NotSame(t, original.MetaTags, copied.MetaTags, "MetaTags should be cloned")
-				assert.Equal(t, original.MetaTags.Charset, copied.MetaTags.Charset, "MetaTags charset should be copied")
 
 				// Verify nested objects are cloned
 				assert.NotSame(t, original.Parent, copied.Parent, "Parent should be cloned")
@@ -728,7 +707,6 @@ func TestPage_Copy(t *testing.T) {
 				ParentID: nil,
 				Parent:   nil,
 				Site:     nil,
-				MetaTags: nil,
 				Header:   nil,
 				Children: []*Page{},
 			},
@@ -736,7 +714,6 @@ func TestPage_Copy(t *testing.T) {
 				assert.Nil(t, copied.ParentID, "ParentID should remain nil")
 				assert.Nil(t, copied.Parent, "Parent should remain nil")
 				assert.Nil(t, copied.Site, "Site should remain nil")
-				assert.Nil(t, copied.MetaTags, "MetaTags should remain nil")
 				assert.Nil(t, copied.Header, "Header should remain nil")
 				assert.NotNil(t, copied.Children, "Children should be initialized")
 				assert.Empty(t, copied.Children, "Children should be empty")

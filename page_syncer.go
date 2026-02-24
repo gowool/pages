@@ -42,8 +42,8 @@ type PageConfig struct {
 	Decorate   *bool               `json:"decorate,omitempty" yaml:"decorate,omitempty"`
 	Status     *Status             `json:"status,omitempty" yaml:"status,omitempty"`
 	Visibility *Visibility         `json:"visibility,omitempty" yaml:"visibility,omitempty"`
-	MetaTags   *MetaTags           `json:"metaTags,omitempty" yaml:"metaTags,omitempty"`
-	Metadata   Metadata            `json:"metadata,omitempty" yaml:"metadata,omitempty"`
+	DOM        *DOM                `json:"dom,omitempty" yaml:"dom,omitempty"`
+	Meta       Meta                `json:"meta,omitempty" yaml:"meta,omitempty"`
 	Header     map[string][]string `json:"header,omitempty" yaml:"header,omitempty"`
 }
 
@@ -77,12 +77,8 @@ func (c *PageSyncerConfig) SetDefaults() {
 		c.DefaultPage.Visibility = new(Public)
 	}
 
-	if c.DefaultPage.MetaTags == nil {
-		c.DefaultPage.MetaTags = NewMetaTags(DefaultCharset)
-	}
-
-	if c.DefaultPage.Metadata == nil {
-		c.DefaultPage.Metadata = NewMetadata(nil)
+	if c.DefaultPage.Meta == nil {
+		c.DefaultPage.Meta = NewMeta(nil)
 	}
 
 	if c.DefaultPage.Header == nil {
@@ -348,11 +344,11 @@ func (s *DefaultPageSyncer) setPageConfig(page *Page, config *PageConfig) {
 	if config.Visibility != nil {
 		page.Visibility = *config.Visibility
 	}
-	if config.MetaTags != nil {
-		page.MetaTags = config.MetaTags
+	if config.DOM != nil {
+		page.DOM = config.DOM.Copy()
 	}
-	if config.Metadata != nil {
-		page.Metadata = config.Metadata
+	if config.Meta != nil {
+		page.Meta = config.Meta
 	}
 	if config.Header != nil {
 		page.Header = config.Header
