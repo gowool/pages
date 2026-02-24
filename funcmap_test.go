@@ -2,6 +2,7 @@ package pages
 
 import (
 	"context"
+	"strings"
 	"testing"
 
 	"github.com/google/uuid"
@@ -214,4 +215,129 @@ func TestFuncMap_EdgeCases(t *testing.T) {
 			mockURLGenerator.AssertExpectations(t)
 		})
 	}
+}
+
+func TestFuncMap_AttrFunctions(t *testing.T) {
+	ctx, cancel := NewContext(context.Background())
+	t.Cleanup(cancel)
+
+	c := MustContext(ctx)
+	c.SetSite(&Site{
+		DOM: DOM{
+			HTML: struct {
+				Attr Attr `envPrefix:"ATTR_" json:"attr,omitempty" yaml:"attr,omitempty"`
+			}{Attr: NewAttr("lang", "en", "class", "site")},
+			Head: Head{Attr: NewAttr("data-head", "site")},
+			Body: struct {
+				Attr Attr `envPrefix:"ATTR_" json:"attr,omitempty" yaml:"attr,omitempty"`
+			}{Attr: NewAttr("class", "site-body")},
+		},
+	})
+	c.SetPage(&Page{
+		DOM: DOM{
+			HTML: struct {
+				Attr Attr `envPrefix:"ATTR_" json:"attr,omitempty" yaml:"attr,omitempty"`
+			}{Attr: NewAttr("lang", "fr", "id", "page")},
+			Head: Head{Attr: NewAttr("data-head", "page")},
+			Body: struct {
+				Attr Attr `envPrefix:"ATTR_" json:"attr,omitempty" yaml:"attr,omitempty"`
+			}{Attr: NewAttr("class", "page-body")},
+		},
+	})
+	c.DOM().HTML.Attr = NewAttr("lang", "de", "dir", "ltr")
+	c.DOM().Head.Attr = NewAttr("data-head", "ctx", "data-ctx", "1")
+	c.DOM().Body.Attr = NewAttr("class", "ctx-body", "data-body", "1")
+
+	html := string(htmlAttr(ctx))
+	assert.Contains(t, html, ` lang="de"`)
+	assert.Contains(t, html, ` dir="ltr"`)
+	assert.Contains(t, html, ` id="page"`)
+
+	head := string(headAttr(ctx))
+	assert.Contains(t, head, ` data-head="ctx"`)
+	assert.Contains(t, head, ` data-ctx="1"`)
+
+	body := string(bodyAttr(ctx))
+	assert.Contains(t, body, ` class="ctx-body"`)
+	assert.Contains(t, body, ` data-body="1"`)
+}
+
+func TestFuncMap_HeadTags(t *testing.T) {
+	t.Run("empty", func(t *testing.T) {
+		ctx, cancel := NewContext(context.Background())
+		t.Cleanup(cancel)
+
+		assert.Equal(t, "", string(headTags(ctx)))
+	})
+
+	t.Run("site page and context nodes", func(t *testing.T) {
+		ctx, cancel := NewContext(context.Background())
+		t.Cleanup(cancel)
+
+		c := MustContext(ctx)
+		c.SetSite(&Site{
+			DOM: DOM{
+				Head: Head{
+					Nodes: Nodes{
+						TitleNode("Site"),
+					},
+				},
+			},
+		})
+		c.SetPage(&Page{
+			DOM: DOM{
+				Head: Head{
+					Nodes: Nodes{
+						NameMetaNode("description", "Page"),
+					},
+				},
+			},
+		})
+		c.DOM().Head.Add(HeadLinkNode(HeadLink{Rel: LinkRelCanonical, Href: "https://example.com"}))
+
+		got := string(headTags(ctx))
+		assert.Contains(t, got, "<title>Site</title>")
+		assert.Contains(t, got, `name="description"`)
+		assert.Contains(t, got, `rel="canonical"`)
+		assert.True(t, strings.Index(got, "<title>Site</title>") < strings.Index(got, `name="description"`))
+	})
+}
+
+func TestFuncMap_TitleFunctions(t *testing.T) {
+	t.Run("title and reverse title with defaults", func(t *testing.T) {
+		ctx, cancel := NewContext(context.Background())
+		t.Cleanup(cancel)
+
+		c := MustContext(ctx)
+		c.SetSite(&Site{Title: "Site"})
+		c.SetPage(&Page{Title: "Page"})
+
+		assert.Equal(t, "<title>Site - Page - Extra</title>", string(titleTag(ctx, "Extra")))
+		assert.Equal(t, "<title>Extra - Page - Site</title>", string(reverseTitleTag(ctx, "Extra")))
+	})
+
+	t.Run("title separator from site and strips tags", func(t *testing.T) {
+		ctx, cancel := NewContext(context.Background())
+		t.Cleanup(cancel)
+
+		c := MustContext(ctx)
+		c.SetSite(&Site{Title: "<b>Site</b>", Separator: " | "})
+		c.SetPage(&Page{Title: "&lt;i&gt;Page&lt;/i&gt;"})
+
+		assert.Equal(t, "<title>Site | Page</title>", string(titleTag(ctx)))
+	})
+
+	t.Run("title data without site/page title", func(t *testing.T) {
+		ctx, cancel := NewContext(context.Background())
+		t.Cleanup(cancel)
+
+		data, sep := titleData(ctx, "A", "B")
+		assert.Equal(t, defaultSeparator, sep)
+		assert.Equal(t, []string{"A", "B"}, data)
+	})
+}
+
+func TestFuncMap_StripTags(t *testing.T) {
+	got := stripTags("&lt;b&gt;Hello&lt;/b&gt; <i>World</i>")
+	assert.Equal(t, "Hello World", got)
 }
