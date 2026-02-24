@@ -112,6 +112,7 @@ func (p *Page) AbsURL(args ...any) string {
 
 		value := cast.ToString(args[i+1])
 
+		// Allow dynamic placeholders (for example "{id}") to be replaced inline.
 		if isDynamic && len(key) > 2 && key[0] == '{' && key[len(key)-1] == '}' {
 			path = strings.ReplaceAll(path, key, value)
 			continue

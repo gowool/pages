@@ -272,6 +272,7 @@ func (s *DefaultPageSyncer) getPatterns(ctx context.Context) ([]string, bool) {
 
 	for pattern := range s.patterns.Patterns() {
 		var ok bool
+		// Normalize method-bound routes and keep only GET patterns.
 		if pattern, ok = middleware.CheckMethod(http.MethodGet, pattern); !ok {
 			continue
 		}
@@ -291,6 +292,7 @@ func (s *DefaultPageSyncer) getPatterns(ctx context.Context) ([]string, bool) {
 	_, homeHybrid = patterns[HomeHybridPattern]
 
 	for pattern := range s.cfg.DefaultPatterns {
+		// Internal defaults are not part of the router, so add them explicitly.
 		if strings.HasPrefix(pattern, PageInternalPrefix) {
 			patterns[pattern] = struct{}{}
 		}

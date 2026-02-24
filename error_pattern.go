@@ -15,6 +15,8 @@ func ErrorPattern(authorizer PageAuthorizer, decoratorStrategy PageDecoratorStra
 
 	return func(r *http.Request, status int, err error) string {
 		e := err
+		// Walk wrapped errors to honor custom pattern providers at any depth.
+		// Keep the original err for Pattern(*http.Request, int, error).
 	Loop:
 		for {
 			switch t := e.(type) {

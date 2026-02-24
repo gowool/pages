@@ -196,6 +196,7 @@ func HybridPageMiddleware(pageHandler keratin.Handler, logger *slog.Logger, skip
 			buffer := response.buffer.Bytes()
 			c.SetContent(template.HTML(internal.BytesToString(buffer)))
 
+			// Skip decoration when the response should be returned as-is.
 			if !IsDecorable(response, r) {
 				w.WriteHeader(c.Status())
 
