@@ -7,10 +7,10 @@ replace github.com/gowool/pages => ../
 require (
 	github.com/danielgtaylor/huma/v2 v2.37.2
 	github.com/gowool/got v0.0.0-20260210095131-024e762e2838
-	github.com/gowool/keratin v0.0.0-20260218124945-9446fd8e2f0c
-	github.com/gowool/keratin/adapter v0.0.0-20260218124945-9446fd8e2f0c
-	github.com/gowool/keratin/server v0.0.0-20260218124945-9446fd8e2f0c
-	github.com/gowool/pages v0.0.0-20260221030620-b44445f16685
+	github.com/gowool/keratin v0.0.0-20260303154103-3031a3d8bf67
+	github.com/gowool/keratin/adapter v0.0.0-20260303154103-3031a3d8bf67
+	github.com/gowool/keratin/server v0.0.0-20260303154103-3031a3d8bf67
+	github.com/gowool/pages v0.0.0-20260224142320-c8de79506f90
 )
 
 require (
@@ -27,7 +27,7 @@ require (
 	github.com/segmentio/go-snakecase v1.2.0 // indirect
 	github.com/spf13/cast v1.10.0 // indirect
 	golang.org/x/crypto v0.48.0 // indirect
-	golang.org/x/net v0.50.0 // indirect
+	golang.org/x/net v0.51.0 // indirect
 	golang.org/x/sys v0.41.0 // indirect
 	golang.org/x/text v0.34.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect

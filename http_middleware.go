@@ -202,7 +202,7 @@ func HybridPageMiddleware(pageHandler keratin.Handler, logger *slog.Logger, skip
 
 				if len(buffer) > 0 {
 					if _, err := w.Write(buffer); err != nil {
-						logger.Error("write response error", "error", err)
+						logger.ErrorContext(r.Context(), "write response error", "error", err)
 					}
 				}
 

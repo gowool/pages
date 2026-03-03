@@ -112,7 +112,7 @@ func (h *PageHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) error {
 			return fmt.Errorf("page handler: %w", ErrTemplateEmpty)
 		}
 
-		h.logger.Error("template empty", "context_error", c.Error())
+		h.logger.ErrorContext(r.Context(), "template empty", "context_error", c.Error())
 
 		http.Error(w, http.StatusText(c.Status()), c.Status())
 		return nil
@@ -124,7 +124,7 @@ func (h *PageHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) error {
 			return fmt.Errorf("page handler: theme write error: %w", err)
 		}
 
-		h.logger.Error("theme write error", "error", err, "context_error", c.Error())
+		h.logger.ErrorContext(r.Context(), "theme write error", "error", err, "context_error", c.Error())
 
 		http.Error(w, http.StatusText(c.Status()), c.Status())
 		return nil
@@ -136,7 +136,7 @@ func (h *PageHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	if err = keratin.Blob(w, c.Status(), ct, data); err != nil {
-		h.logger.Error("write response error", "error", err)
+		h.logger.ErrorContext(r.Context(), "write response error", "error", err)
 	}
 
 	return nil

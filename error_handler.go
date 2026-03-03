@@ -79,7 +79,7 @@ func (cfg *ErrorHandlerConfig) jsonHandler(w http.ResponseWriter, r *http.Reques
 	}
 
 	if err := keratin.JSON(w, c.Status(), data); err != nil {
-		cfg.Logger.Error("write response error", "error", err, "data", data)
+		cfg.Logger.ErrorContext(r.Context(), "write response error", "error", err, "data", data)
 	}
 }
 
@@ -115,12 +115,13 @@ func ErrorHandler(cfg ErrorHandlerConfig, pageHandler keratin.Handler, manager P
 			logger = logger.With("request_id", requestID)
 		}
 
+		ctx := r.Context()
+
 		if committed(w) {
-			logger.Warn("response is committed, skip error handler", "error", e)
+			logger.WarnContext(ctx, "response is committed, skip error handler", "error", e)
 			return
 		}
 
-		ctx := r.Context()
 		status := cfg.StatusFunc(ctx, e)
 
 		c := MustContext(ctx)
@@ -129,7 +130,7 @@ func ErrorHandler(cfg ErrorHandlerConfig, pageHandler keratin.Handler, manager P
 		c.SetStatus(status)
 		c.SetTemplate(cfg.FallbackTemplate)
 
-		defer logger.Error("request failed",
+		defer logger.ErrorContext(ctx, "request failed",
 			slog.Int("code", c.Status()),
 			slog.String("method", r.Method),
 			slog.Int("status_code", status),
@@ -153,7 +154,7 @@ func ErrorHandler(cfg ErrorHandlerConfig, pageHandler keratin.Handler, manager P
 		}
 
 		if !c.HasSite() {
-			logger.Error("no site found in context", "error", e)
+			logger.ErrorContext(ctx, "no site found in context", "error", e)
 
 			serveHTTP(w, r, logger)
 			return
@@ -166,7 +167,7 @@ func ErrorHandler(cfg ErrorHandlerConfig, pageHandler keratin.Handler, manager P
 
 		page, err := manager.GetByPattern(ctx, c.Site(), pattern)
 		if err != nil {
-			logger.Error("find page by pattern return error", "error", err, "pattern", pattern)
+			logger.ErrorContext(ctx, "find page by pattern return error", "error", err, "pattern", pattern)
 
 			serveHTTP(w, r, logger)
 			return
