@@ -3,7 +3,6 @@ package pages
 import (
 	"errors"
 	"fmt"
-	"iter"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -24,21 +23,6 @@ func CreateTestSite(name, host, locale string, isDefault bool, countries ...stri
 	site.Countries = countries
 	site.Status = Published
 	return site
-}
-
-// SitesToIterator converts a slice of sites to an iterator for testing
-func SitesToIterator(sites []*Site, err error) iter.Seq2[*Site, error] {
-	return func(yield func(*Site, error) bool) {
-		if err != nil {
-			yield(nil, err)
-			return
-		}
-		for _, site := range sites {
-			if !yield(site, nil) {
-				break
-			}
-		}
-	}
 }
 
 func CreateTestRequest(method, url string, headers map[string]string) *http.Request {
@@ -81,7 +65,7 @@ func TestNewHTTPSiteRetriever(t *testing.T) {
 
 		// Test that the retriever works with default country function
 		testSite := CreateTestSite("Test", "example.com", "en", true)
-		store.On("FindPublished", mock.Anything).Return(SitesToIterator([]*Site{testSite}, nil))
+		store.On("FindPublished", mock.Anything).Return([]*Site{testSite}, nil)
 		site, _, err := retriever.Retrieve(req)
 
 		assert.NoError(t, err)
@@ -97,7 +81,7 @@ func TestNewHTTPSiteRetriever(t *testing.T) {
 		testErr := errors.New("test error")
 
 		// Test that the retriever returns error directly when no custom error func is provided
-		store.On("FindPublished", mock.Anything).Return(SitesToIterator([]*Site{}, testErr))
+		store.On("FindPublished", mock.Anything).Return(nil, testErr)
 		site, _, err := retriever.Retrieve(req)
 
 		assert.Error(t, err)
@@ -146,7 +130,7 @@ func TestHTTPSiteRetriever_Retrieve(t *testing.T) {
 			return CreateTestSite("Error Site", "example.com", "en", false), nil
 		}
 
-		store.On("FindPublished", mock.Anything).Return(SitesToIterator([]*Site{}, testErr))
+		store.On("FindPublished", mock.Anything).Return(nil, testErr)
 
 		retriever := NewHTTPSiteRetrieverWithConfig(store, HTTPSiteRetrieverConfig{
 			CountryFunc: countryFunc,
@@ -171,7 +155,7 @@ func TestHTTPSiteRetriever_Retrieve(t *testing.T) {
 			CreateTestSite("US Site", "example.com", "en-US", false, "US"),
 		}
 
-		store.On("FindPublished", mock.Anything).Return(SitesToIterator(sites, nil))
+		store.On("FindPublished", mock.Anything).Return(sites, nil)
 
 		retriever := NewHTTPSiteRetriever(store)
 		req := CreateTestRequest("GET", "http://example.com", map[string]string{
@@ -195,7 +179,7 @@ func TestHTTPSiteRetriever_Retrieve(t *testing.T) {
 			CreateTestSite("French Site", "example.com", "fr", false),
 		}
 
-		store.On("FindPublished", mock.Anything).Return(SitesToIterator(sites, nil))
+		store.On("FindPublished", mock.Anything).Return(sites, nil)
 
 		retriever := NewHTTPSiteRetrieverWithConfig(store, HTTPSiteRetrieverConfig{
 			CountryFunc: func(r *http.Request) (string, error) { return "US", nil },
@@ -217,7 +201,7 @@ func TestHTTPSiteRetriever_Retrieve(t *testing.T) {
 			CreateTestSite("Different Host", "other.com", "en", false),
 		}
 
-		store.On("FindPublished", mock.Anything).Return(SitesToIterator(sites, nil))
+		store.On("FindPublished", mock.Anything).Return(sites, nil)
 
 		retriever := NewHTTPSiteRetriever(store)
 		req := CreateTestRequest("GET", "http://example.com", nil)
@@ -238,7 +222,7 @@ func TestHTTPSiteRetriever_Retrieve(t *testing.T) {
 			CreateTestSite("Wrong Host", "other.com", "en", false),
 		}
 
-		store.On("FindPublished", mock.Anything).Return(SitesToIterator(sites, nil))
+		store.On("FindPublished", mock.Anything).Return(sites, nil)
 
 		retriever := NewHTTPSiteRetriever(store)
 		req := CreateTestRequest("GET", "http://example.com", nil)
@@ -263,7 +247,7 @@ func TestHTTPSiteRetriever_LanguageMatching(t *testing.T) {
 		spanishSite := CreateTestSite("Spanish", "example.com", "es", false)
 
 		sites := []*Site{englishSite, frenchSite, spanishSite}
-		store.On("FindPublished", mock.Anything).Return(SitesToIterator(sites, nil))
+		store.On("FindPublished", mock.Anything).Return(sites, nil)
 
 		retriever := NewHTTPSiteRetriever(store)
 
@@ -286,7 +270,7 @@ func TestHTTPSiteRetriever_LanguageMatching(t *testing.T) {
 		englishSite := CreateTestSite("English", "example.com", "en", false)
 
 		sites := []*Site{englishSite}
-		store.On("FindPublished", mock.Anything).Return(SitesToIterator(sites, nil))
+		store.On("FindPublished", mock.Anything).Return(sites, nil)
 
 		retriever := NewHTTPSiteRetriever(store)
 
@@ -309,7 +293,7 @@ func TestHTTPSiteRetriever_LanguageMatching(t *testing.T) {
 		defaultSite := CreateTestSite("Default", "example.com", "en", true)
 
 		sites := []*Site{defaultSite}
-		store.On("FindPublished", mock.Anything).Return(SitesToIterator(sites, nil))
+		store.On("FindPublished", mock.Anything).Return(sites, nil)
 
 		retriever := NewHTTPSiteRetriever(store)
 
@@ -338,7 +322,7 @@ func TestHTTPSiteRetriever_Integration(t *testing.T) {
 		sites := []*Site{defaultSite, frenchSite, germanSite, usSite}
 
 		store := &MockSiteStore{}
-		store.On("FindPublished", mock.Anything).Return(SitesToIterator(sites, nil))
+		store.On("FindPublished", mock.Anything).Return(sites, nil)
 
 		retriever := NewHTTPSiteRetrieverWithConfig(store, HTTPSiteRetrieverConfig{
 			CountryFunc: func(r *http.Request) (string, error) { return "US", nil },
@@ -391,7 +375,7 @@ func TestHTTPSiteRetriever_Integration(t *testing.T) {
 		sites := []*Site{site1, site2}
 
 		store := &MockSiteStore{}
-		store.On("FindPublished", mock.Anything).Return(SitesToIterator(sites, nil))
+		store.On("FindPublished", mock.Anything).Return(sites, nil)
 
 		retriever := NewHTTPSiteRetriever(store)
 
@@ -420,7 +404,7 @@ func TestHTTPSiteRetriever_CountryBasedSelection(t *testing.T) {
 		sites := []*Site{usSite, euSite, globalSite}
 
 		store := &MockSiteStore{}
-		store.On("FindPublished", mock.Anything).Return(SitesToIterator(sites, nil))
+		store.On("FindPublished", mock.Anything).Return(sites, nil)
 
 		retriever := NewHTTPSiteRetrieverWithConfig(store, HTTPSiteRetrieverConfig{
 			CountryFunc: func(r *http.Request) (string, error) { return "US", nil },
@@ -444,7 +428,7 @@ func TestHTTPSiteRetriever_CountryBasedSelection(t *testing.T) {
 		sites := []*Site{euOnlySite, defaultSite}
 
 		store := &MockSiteStore{}
-		store.On("FindPublished", mock.Anything).Return(SitesToIterator(sites, nil))
+		store.On("FindPublished", mock.Anything).Return(sites, nil)
 
 		retriever := NewHTTPSiteRetrieverWithConfig(store, HTTPSiteRetrieverConfig{
 			CountryFunc: func(r *http.Request) (string, error) { return "US", nil },
@@ -474,7 +458,7 @@ func BenchmarkSiteRetriever_Retrieve(b *testing.B) {
 	}
 
 	store := &MockSiteStore{}
-	store.On("FindPublished", mock.Anything).Return(SitesToIterator(sites, nil))
+	store.On("FindPublished", mock.Anything).Return(sites, nil)
 
 	retriever := NewHTTPSiteRetriever(store)
 	req := CreateTestRequest("GET", "http://example.com", map[string]string{
@@ -489,7 +473,7 @@ func BenchmarkSiteRetriever_Retrieve(b *testing.B) {
 
 func TestHTTPSiteRetriever_CandidateEdgeCases(t *testing.T) {
 	mockStore := &MockSiteStore{}
-	mockStore.On("FindPublished", mock.Anything).Return(SitesToIterator([]*Site{}, nil))
+	mockStore.On("FindPublished", mock.Anything).Return(nil, nil)
 	retriever := NewHTTPSiteRetriever(mockStore)
 
 	t.Run("ParseAcceptLanguage returns empty tags", func(t *testing.T) {
@@ -519,7 +503,7 @@ func TestHTTPSiteRetriever_CandidateEdgeCases(t *testing.T) {
 
 func TestHTTPSiteRetriever_ResolveErrorWithMatchRequestError(t *testing.T) {
 	mockStore := &MockSiteStore{}
-	mockStore.On("FindPublished", mock.Anything).Return(SitesToIterator([]*Site{}, nil))
+	mockStore.On("FindPublished", mock.Anything).Return(nil, nil)
 
 	expectedSite := CreateTestSite("Test", "example.com", "en-US", false)
 	expectedSite.RelativePath = "/invalid([regex"
@@ -542,14 +526,7 @@ func TestHTTPSiteRetriever_Retrieve_StoreErrorContinue(t *testing.T) {
 
 	expectedSite := CreateTestSite("Error Site", "example.com", "en-US", true)
 
-	var iterator iter.Seq2[*Site, error] = func(yield func(*Site, error) bool) {
-		if !yield(nil, errors.New("first error")) {
-			return
-		}
-		yield(expectedSite, nil)
-	}
-
-	mockStore.On("FindPublished", mock.Anything).Return(iterator)
+	mockStore.On("FindPublished", mock.Anything).Return([]*Site{expectedSite}, nil)
 
 	retriever := NewHTTPSiteRetrieverWithConfig(mockStore, HTTPSiteRetrieverConfig{
 		ErrorFunc: func(r *http.Request, err error) (*Site, error) {
@@ -572,7 +549,7 @@ func TestHTTPSiteRetriever_Retrieve_MultipleDefaults(t *testing.T) {
 	defaultSite2 := CreateTestSite("Default2", "example.com", "fr", true)
 
 	sites := []*Site{defaultSite1, defaultSite2}
-	mockStore.On("FindPublished", mock.Anything).Return(SitesToIterator(sites, nil))
+	mockStore.On("FindPublished", mock.Anything).Return(sites, nil)
 
 	retriever := NewHTTPSiteRetriever(mockStore)
 	req := CreateTestRequest("GET", "http://example.com", nil)
@@ -591,7 +568,7 @@ func TestHTTPSiteRetriever_Retrieve_LanguagePreferenceFallback(t *testing.T) {
 	site2 := CreateTestSite("Site2", "example.com", "fr", false)
 
 	sites := []*Site{site1, site2}
-	mockStore.On("FindPublished", mock.Anything).Return(SitesToIterator(sites, nil))
+	mockStore.On("FindPublished", mock.Anything).Return(sites, nil)
 
 	retriever := NewHTTPSiteRetriever(mockStore)
 	req := CreateTestRequest("GET", "http://example.com", map[string]string{
@@ -612,7 +589,7 @@ func TestHTTPSiteRetriever_Retrieve_SitesMatchNoCandidates(t *testing.T) {
 	site.RelativePath = "/nomatch"
 
 	sites := []*Site{site}
-	mockStore.On("FindPublished", mock.Anything).Return(SitesToIterator(sites, nil))
+	mockStore.On("FindPublished", mock.Anything).Return(sites, nil)
 
 	retriever := NewHTTPSiteRetriever(mockStore)
 	req := CreateTestRequest("GET", "http://example.com/test", nil)
@@ -632,7 +609,7 @@ func TestHTTPSiteRetriever_Retrieve_LocalhostFallback(t *testing.T) {
 	localhostSite.RelativePath = "/nomatch"
 
 	sites := []*Site{localhostSite}
-	mockStore.On("FindPublished", mock.Anything).Return(SitesToIterator(sites, nil))
+	mockStore.On("FindPublished", mock.Anything).Return(sites, nil)
 
 	retriever := NewHTTPSiteRetriever(mockStore)
 	req := CreateTestRequest("GET", "http://example.com/test", nil)
@@ -651,7 +628,7 @@ func TestHTTPSiteRetriever_ExactLanguageMatch(t *testing.T) {
 	site := CreateTestSite("French", "example.com", "fr", false)
 
 	sites := []*Site{site}
-	mockStore.On("FindPublished", mock.Anything).Return(SitesToIterator(sites, nil))
+	mockStore.On("FindPublished", mock.Anything).Return(sites, nil)
 
 	retriever := NewHTTPSiteRetriever(mockStore)
 	req := CreateTestRequest("GET", "http://example.com/test", map[string]string{
@@ -673,7 +650,7 @@ func TestHTTPSiteRetriever_MultipleCountriesSameLanguage(t *testing.T) {
 	gbSite := CreateTestSite("GB Site", "example.com", "en", false, "GB")
 
 	sites := []*Site{usSite, gbSite}
-	mockStore.On("FindPublished", mock.Anything).Return(SitesToIterator(sites, nil))
+	mockStore.On("FindPublished", mock.Anything).Return(sites, nil)
 
 	retriever := NewHTTPSiteRetrieverWithConfig(mockStore, HTTPSiteRetrieverConfig{
 		CountryFunc: func(r *http.Request) (string, error) { return "US", nil },
@@ -694,7 +671,7 @@ func TestHTTPSiteRetriever_ParentTagFallback(t *testing.T) {
 	site := CreateTestSite("English Generic", "example.com", "en", false)
 
 	sites := []*Site{site}
-	mockStore.On("FindPublished", mock.Anything).Return(SitesToIterator(sites, nil))
+	mockStore.On("FindPublished", mock.Anything).Return(sites, nil)
 
 	retriever := NewHTTPSiteRetriever(mockStore)
 	req := CreateTestRequest("GET", "http://example.com/test", map[string]string{

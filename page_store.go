@@ -2,9 +2,7 @@ package pages
 
 import (
 	"context"
-	"errors"
 	"fmt"
-	"iter"
 	"slices"
 	"sync"
 
@@ -17,7 +15,7 @@ type PageStore interface {
 	FindByID(ctx context.Context, id ID) (*Page, error)
 	FindByURL(ctx context.Context, siteID ID, url string) (*Page, error)
 	FindByPattern(ctx context.Context, siteID ID, pattern string) (*Page, error)
-	FindByPatterns(ctx context.Context, siteID ID, patterns ...string) iter.Seq2[*Page, error]
+	FindByPatterns(ctx context.Context, siteID ID, patterns ...string) ([]*Page, error)
 	FindByAlias(ctx context.Context, siteID ID, alias string) (*Page, error)
 	Save(ctx context.Context, pages ...*Page) error
 }
@@ -57,30 +55,29 @@ func (s *MemoryPageStore) FindByPattern(_ context.Context, siteID ID, pattern st
 	return s.findByPath(siteID, pattern)
 }
 
-func (s *MemoryPageStore) FindByPatterns(_ context.Context, siteID ID, patterns ...string) iter.Seq2[*Page, error] {
-	return func(yield func(*Page, error) bool) {
-		if len(patterns) == 0 {
-			return
-		}
-
-		visited := make(map[string]struct{})
-		for _, pattern := range patterns {
-			if _, ok := visited[pattern]; ok {
-				continue
-			}
-
-			visited[pattern] = struct{}{}
-
-			page, err := s.findByPath(siteID, pattern)
-			if errors.Is(err, ErrPageNotFound) {
-				continue
-			}
-
-			if !yield(page, err) {
-				return
-			}
-		}
+func (s *MemoryPageStore) FindByPatterns(_ context.Context, siteID ID, patterns ...string) ([]*Page, error) {
+	if len(patterns) == 0 {
+		return nil, nil
 	}
+
+	data := make([]*Page, 0, len(patterns))
+	visited := make(map[string]struct{})
+
+	for _, pattern := range patterns {
+		if _, ok := visited[pattern]; ok {
+			continue
+		}
+
+		visited[pattern] = struct{}{}
+
+		item, err := s.findByPath(siteID, pattern)
+		if err != nil {
+			continue
+		}
+		data = append(data, item)
+	}
+
+	return data, nil
 }
 
 func (s *MemoryPageStore) FindByAlias(_ context.Context, siteID ID, alias string) (*Page, error) {

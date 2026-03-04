@@ -56,7 +56,7 @@ func main() {
 
 	srv := server.New(server.Config{Address: ":8888"}, handler, logger.WithGroup("server"))
 
-	go srv.Start()
+	go srv.Start(context.Background())
 
 	<-ctx.Done()
 
@@ -231,11 +231,11 @@ func build(logger *slog.Logger) (*RouterWrapper, func(context.Context) error) {
 	)
 
 	sync := func(ctx context.Context) error {
-		for site, err := range siteStore.FindPublished(ctx) {
-			if err != nil {
-				return err
-			}
-
+		sites, err := siteStore.FindPublished(ctx)
+		if err != nil {
+			return err
+		}
+		for _, site := range sites {
 			if err = syncer.Sync(ctx, site); err != nil {
 				return err
 			}

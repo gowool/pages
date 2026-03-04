@@ -786,26 +786,10 @@ func TestMemoryPageStore_FindByPatterns(t *testing.T) {
 	}
 
 	t.Run("Find multiple existing patterns", func(t *testing.T) {
-		patterns := []string{"/pattern1", "/pattern2", "/pattern3"}
-		var foundPages []*Page
-		var foundErrors []error
-
-		seq := store.FindByPatterns(ctx, ID("site1"), patterns...)
-		for page, err := range seq {
-			if err == nil {
-				foundPages = append(foundPages, page)
-			} else {
-				foundErrors = append(foundErrors, err)
-			}
-		}
+		foundPages, err := store.FindByPatterns(ctx, "site1", "/pattern1", "/pattern2", "/pattern3")
+		assert.NoError(t, err, "Should not return error")
 
 		assert.Len(t, foundPages, 3, "Should find 3 pages")
-		assert.Len(t, foundErrors, 0, "Should have 0 error values")
-
-		// Check that all errors are nil (pages found)
-		for i, err := range foundErrors {
-			assert.NoError(t, err, "Page %d should be found without error", i)
-		}
 
 		// Extract found page IDs for verification
 		foundIDs := make([]ID, len(foundPages))
@@ -819,21 +803,10 @@ func TestMemoryPageStore_FindByPatterns(t *testing.T) {
 	})
 
 	t.Run("Find mix of existing and non-existing patterns", func(t *testing.T) {
-		patterns := []string{"/pattern1", "/non-existent1", "/pattern2", "/non-existent2"}
-		var foundPages []*Page
-		var foundErrors []error
-
-		seq := store.FindByPatterns(ctx, ID("site1"), patterns...)
-		for page, err := range seq {
-			if err == nil {
-				foundPages = append(foundPages, page)
-			} else {
-				foundErrors = append(foundErrors, err)
-			}
-		}
+		foundPages, err := store.FindByPatterns(ctx, "site1", "/pattern1", "/non-existent1", "/pattern2", "/non-existent2")
+		assert.NoError(t, err, "Should not return error")
 
 		assert.Len(t, foundPages, 2, "Should attempt to find 2 pages")
-		assert.Len(t, foundErrors, 0, "Should have 0 error values")
 
 		// Verify found pages
 		assert.Equal(t, ID("page1"), foundPages[0].ID, "First found page should be page1")
@@ -841,111 +814,30 @@ func TestMemoryPageStore_FindByPatterns(t *testing.T) {
 	})
 
 	t.Run("Find patterns from different sites", func(t *testing.T) {
-		patterns := []string{"/pattern1"}
-		var foundPages []*Page
-		var foundErrors []error
-
-		// Search in site1 - should find page1
-		seq := store.FindByPatterns(ctx, ID("site1"), patterns...)
-		for page, err := range seq {
-			if err == nil {
-				foundPages = append(foundPages, page)
-			} else {
-				foundErrors = append(foundErrors, err)
-			}
-		}
+		foundPages, err := store.FindByPatterns(ctx, "site1", "/pattern1")
+		assert.NoError(t, err, "Should not return error")
 
 		assert.Len(t, foundPages, 1, "Should find 1 page")
-		assert.Len(t, foundErrors, 0, "Should have 0 error values")
 		assert.Equal(t, ID("page1"), foundPages[0].ID, "Should find correct page from site1")
 
 		// Search in site2 - should find page4 (different page with same pattern)
-		foundPages = nil
-		foundErrors = nil
-		seq = store.FindByPatterns(ctx, ID("site2"), patterns...)
-		for page, err := range seq {
-			if err == nil {
-				foundPages = append(foundPages, page)
-			} else {
-				foundErrors = append(foundErrors, err)
-			}
-		}
+		foundPages, err = store.FindByPatterns(ctx, "site2", "/pattern1")
+		assert.NoError(t, err, "Should not return error")
 
 		assert.Len(t, foundPages, 1, "Should find 1 page")
-		assert.Len(t, foundErrors, 0, "Should have 0 error values")
 		assert.Equal(t, ID("page4"), foundPages[0].ID, "Should find correct page from site2")
 	})
 
-	t.Run("Find with empty patterns slice", func(t *testing.T) {
-		patterns := []string{}
-		var foundPages []*Page
-		var foundErrors []error
-
-		seq := store.FindByPatterns(ctx, ID("site1"), patterns...)
-		for page, err := range seq {
-			if err == nil {
-				foundPages = append(foundPages, page)
-			} else {
-				foundErrors = append(foundErrors, err)
-			}
-		}
-
-		assert.Len(t, foundPages, 0, "Should not find any pages with empty patterns")
-		assert.Len(t, foundErrors, 0, "Should not have any errors with empty patterns")
-	})
-
 	t.Run("Find with no patterns provided", func(t *testing.T) {
-		var foundPages []*Page
-		var foundErrors []error
-
-		seq := store.FindByPatterns(ctx, ID("site1"))
-		for page, err := range seq {
-			if err == nil {
-				foundPages = append(foundPages, page)
-			} else {
-				foundErrors = append(foundErrors, err)
-			}
-		}
-
+		foundPages, err := store.FindByPatterns(ctx, "site1")
+		assert.NoError(t, err, "Should not have any errors with no patterns")
 		assert.Len(t, foundPages, 0, "Should not find any pages with no patterns")
-		assert.Len(t, foundErrors, 0, "Should not have any errors with no patterns")
-	})
-
-	t.Run("Find single pattern", func(t *testing.T) {
-		patterns := []string{"/pattern2"}
-		var foundPages []*Page
-		var foundErrors []error
-
-		seq := store.FindByPatterns(ctx, ID("site1"), patterns...)
-		for page, err := range seq {
-			if err == nil {
-				foundPages = append(foundPages, page)
-			} else {
-				foundErrors = append(foundErrors, err)
-			}
-		}
-
-		assert.Len(t, foundPages, 1, "Should find 1 page")
-		assert.Len(t, foundErrors, 0, "Should have 0 error values")
-		assert.Equal(t, ID("page2"), foundPages[0].ID, "Should find correct page")
 	})
 
 	t.Run("Find with duplicate patterns", func(t *testing.T) {
-		patterns := []string{"/pattern1", "/pattern1", "/pattern2"}
-		var foundPages []*Page
-		var foundErrors []error
-
-		seq := store.FindByPatterns(ctx, ID("site1"), patterns...)
-		for page, err := range seq {
-			if err == nil {
-				foundPages = append(foundPages, page)
-			} else {
-				foundErrors = append(foundErrors, err)
-			}
-		}
-
+		foundPages, err := store.FindByPatterns(ctx, "site1", "/pattern1", "/pattern1", "/pattern2")
+		assert.NoError(t, err, "Should not return error")
 		assert.Len(t, foundPages, 2, "Should attempt to find 2 pages")
-		assert.Len(t, foundErrors, 0, "Should have 0 error values")
 
 		// Should find the same page multiple times for duplicates
 		assert.Equal(t, ID("page1"), foundPages[0].ID, "Should find page1")
@@ -953,34 +845,14 @@ func TestMemoryPageStore_FindByPatterns(t *testing.T) {
 	})
 
 	t.Run("Find patterns with wrong site ID", func(t *testing.T) {
-		patterns := []string{"/pattern1", "/pattern2"}
-		var foundPages []*Page
-		var foundErrors []error
-
-		seq := store.FindByPatterns(ctx, ID("wrong-site"), patterns...)
-		for page, err := range seq {
-			if err == nil {
-				foundPages = append(foundPages, page)
-			} else {
-				foundErrors = append(foundErrors, err)
-			}
-		}
-
+		foundPages, err := store.FindByPatterns(ctx, "wrong-site", "/pattern1", "/pattern2")
+		assert.NoError(t, err, "Should not return error")
 		assert.Len(t, foundPages, 0, "Should attempt to find 0 pages")
-		assert.Len(t, foundErrors, 0, "Should have 0 error values")
 	})
 
 	t.Run("Verify returned pages are copies", func(t *testing.T) {
-		patterns := []string{"/pattern1"}
-		var foundPages []*Page
-
-		seq := store.FindByPatterns(ctx, ID("site1"), patterns...)
-		for page, err := range seq {
-			if err == nil {
-				foundPages = append(foundPages, page)
-			}
-		}
-
+		foundPages, err := store.FindByPatterns(ctx, "site1", "/pattern1")
+		assert.NoError(t, err, "Should not return error")
 		require.Len(t, foundPages, 1, "Should find 1 page")
 
 		// Get original page for comparison

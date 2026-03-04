@@ -194,11 +194,12 @@ func (s *DefaultPageSyncer) Sync(ctx context.Context, site *Site) error {
 		root, _ = s.store.FindByURL(ctx, site.ID, "/")
 	}
 
-	for page, err := range s.store.FindByPatterns(ctx, site.ID, patterns...) {
-		if err != nil {
-			return fmt.Errorf("page syncer: find page by pattern error: %w", err)
-		}
+	data, err := s.store.FindByPatterns(ctx, site.ID, patterns...)
+	if err != nil {
+		return fmt.Errorf("page syncer: find pages by patterns error: %w", err)
+	}
 
+	for _, page := range data {
 		if page.Pattern == HomeHybridPattern {
 			root = page
 		}

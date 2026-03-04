@@ -15,9 +15,12 @@ type MockSiteStore struct {
 	mock.Mock
 }
 
-func (m *MockSiteStore) FindPublished(ctx context.Context) iter.Seq2[*Site, error] {
+func (m *MockSiteStore) FindPublished(ctx context.Context) ([]*Site, error) {
 	args := m.Called(ctx)
-	return args.Get(0).(iter.Seq2[*Site, error])
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]*Site), args.Error(1)
 }
 
 var _ PageStore = (*MockPageStore)(nil)
@@ -59,9 +62,12 @@ func (m *MockPageStore) FindByAlias(ctx context.Context, siteID ID, alias string
 	return args.Get(0).(*Page), args.Error(1)
 }
 
-func (m *MockPageStore) FindByPatterns(ctx context.Context, siteID ID, patterns ...string) iter.Seq2[*Page, error] {
+func (m *MockPageStore) FindByPatterns(ctx context.Context, siteID ID, patterns ...string) ([]*Page, error) {
 	args := m.Called(ctx, siteID, patterns)
-	return args.Get(0).(iter.Seq2[*Page, error])
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]*Page), args.Error(1)
 }
 
 func (m *MockPageStore) Save(ctx context.Context, pages ...*Page) error {

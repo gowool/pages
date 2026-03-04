@@ -3,7 +3,6 @@ package pages
 import (
 	"context"
 	"errors"
-	"iter"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -78,7 +77,7 @@ func TestDefaultPageSyncer_Sync(t *testing.T) {
 
 		mockStore.On("FindByPatterns", ctx, site.ID, mock.MatchedBy(func(ps []string) bool {
 			return assert.ElementsMatch(t, ps, []string{PageInternalCreate, PageErrorUnauthorized, PageErrorForbidden, PageErrorNotFound, PageError4xx, PageError5xx})
-		})).Return(iter.Seq2[*Page, error](func(yield func(*Page, error) bool) {}))
+		})).Return(nil, nil)
 
 		mockStore.On("Save", ctx, mock.MatchedBy(func(pages []*Page) bool {
 			return len(pages) == 6
@@ -109,7 +108,7 @@ func TestDefaultPageSyncer_Sync(t *testing.T) {
 
 		mockStore.On("FindByPatterns", ctx, site.ID, mock.MatchedBy(func(ps []string) bool {
 			return assert.ElementsMatch(t, ps, []string{PageInternalCreate, PageErrorUnauthorized, PageErrorForbidden, PageErrorNotFound, PageError4xx, PageError5xx})
-		})).Return(iter.Seq2[*Page, error](func(yield func(*Page, error) bool) {}))
+		})).Return(nil, nil)
 
 		// Mock save for internal pages
 		mockStore.On("Save", ctx, mock.MatchedBy(func(pages []*Page) bool {
@@ -133,7 +132,7 @@ func TestDefaultPageSyncer_Sync(t *testing.T) {
 
 		mockStore.On("FindByPatterns", ctx, site.ID, mock.MatchedBy(func(ps []string) bool {
 			return assert.ElementsMatch(t, ps, []string{HomeHybridPattern, PageInternalCreate, PageErrorUnauthorized, PageErrorForbidden, PageErrorNotFound, PageError4xx, PageError5xx})
-		})).Return(iter.Seq2[*Page, error](func(yield func(*Page, error) bool) {}))
+		})).Return(nil, nil)
 
 		// Mock save calls - root page is saved separately via createRootPage, then internal pages
 		mockStore.On("Save", ctx, mock.MatchedBy(func(pages []*Page) bool {
@@ -178,10 +177,7 @@ func TestDefaultPageSyncer_Sync(t *testing.T) {
 
 		mockStore.On("FindByPatterns", ctx, site.ID, mock.MatchedBy(func(ps []string) bool {
 			return assert.ElementsMatch(t, ps, []string{"/blog/{slug}", "/about", "/contact", PageInternalCreate, PageErrorUnauthorized, PageErrorForbidden, PageErrorNotFound, PageError4xx, PageError5xx})
-		})).Return(iter.Seq2[*Page, error](func(yield func(*Page, error) bool) {
-			// Return existing /about page
-			yield(existingPage, nil)
-		}))
+		})).Return([]*Page{existingPage}, nil)
 
 		// Mock save for new pages (blog/{slug}, contact, and internal pages)
 		mockStore.On("Save", ctx, mock.MatchedBy(func(pages []*Page) bool {
@@ -208,7 +204,7 @@ func TestDefaultPageSyncer_Sync(t *testing.T) {
 
 		mockStore.On("FindByPatterns", ctx, site.ID, mock.MatchedBy(func(ps []string) bool {
 			return assert.ElementsMatch(t, ps, []string{"/test", PageInternalCreate, PageErrorUnauthorized, PageErrorForbidden, PageErrorNotFound, PageError4xx, PageError5xx})
-		})).Return(iter.Seq2[*Page, error](func(yield func(*Page, error) bool) {}))
+		})).Return(nil, nil)
 
 		err := syncer.Sync(ctx, site)
 		assert.Error(t, err, "Sync should return error when generator fails")
@@ -231,13 +227,11 @@ func TestDefaultPageSyncer_Sync(t *testing.T) {
 		// Mock FindByPatterns returning an error
 		mockStore.On("FindByPatterns", ctx, site.ID, mock.MatchedBy(func(ps []string) bool {
 			return assert.ElementsMatch(t, ps, []string{"/test", PageInternalCreate, PageErrorUnauthorized, PageErrorForbidden, PageErrorNotFound, PageError4xx, PageError5xx})
-		})).Return(iter.Seq2[*Page, error](func(yield func(*Page, error) bool) {
-			yield(nil, errors.New("store error"))
-		}))
+		})).Return(nil, errors.New("store error"))
 
 		err := syncer.Sync(ctx, site)
 		assert.Error(t, err, "Sync should return error when FindByPatterns fails")
-		assert.Contains(t, err.Error(), "find page by pattern error")
+		assert.Contains(t, err.Error(), "find pages by patterns error")
 
 		mockStore.AssertExpectations(t)
 	})
@@ -266,7 +260,7 @@ func TestDefaultPageSyncer_Sync(t *testing.T) {
 
 		mockStore.On("FindByPatterns", ctx, site.ID, mock.MatchedBy(func(ps []string) bool {
 			return assert.ElementsMatch(t, ps, []string{"/blog/{slug}", "/about", PageInternalCreate, PageErrorUnauthorized, PageErrorForbidden, PageErrorNotFound, PageError4xx, PageError5xx})
-		})).Return(iter.Seq2[*Page, error](func(yield func(*Page, error) bool) {}))
+		})).Return(nil, nil)
 
 		// Mock save for root page (should succeed)
 		mockStore.On("Save", ctx, mock.MatchedBy(func(pages []*Page) bool {
@@ -295,7 +289,7 @@ func TestDefaultPageSyncer_Sync(t *testing.T) {
 
 		mockStore.On("FindByPatterns", ctx, site.ID, mock.MatchedBy(func(ps []string) bool {
 			return assert.ElementsMatch(t, ps, []string{"/test", PageInternalCreate, PageErrorUnauthorized, PageErrorForbidden, PageErrorNotFound, PageError4xx, PageError5xx})
-		})).Return(iter.Seq2[*Page, error](func(yield func(*Page, error) bool) {}))
+		})).Return(nil, nil)
 
 		// Mock save for root page (since root is nil, it creates one)
 		mockStore.On("Save", ctx, mock.MatchedBy(func(pages []*Page) bool {
@@ -331,9 +325,7 @@ func TestDefaultPageSyncer_Sync(t *testing.T) {
 
 		mockStore.On("FindByPatterns", ctx, site.ID, mock.MatchedBy(func(ps []string) bool {
 			return assert.ElementsMatch(t, ps, []string{HomeHybridPattern, "/test", PageInternalCreate, PageErrorUnauthorized, PageErrorForbidden, PageErrorNotFound, PageError4xx, PageError5xx})
-		})).Return(iter.Seq2[*Page, error](func(yield func(*Page, error) bool) {
-			yield(homeHybridPage, nil)
-		}))
+		})).Return([]*Page{homeHybridPage}, nil)
 
 		// Mock save for new pages (/test + 6 internal pages)
 		mockStore.On("Save", ctx, mock.MatchedBy(func(pages []*Page) bool {
@@ -373,9 +365,7 @@ func TestDefaultPageSyncer_Sync(t *testing.T) {
 
 		mockStore.On("FindByPatterns", ctx, site.ID, mock.MatchedBy(func(ps []string) bool {
 			return assert.ElementsMatch(t, ps, []string{"/test", PageInternalCreate, PageErrorUnauthorized, PageErrorForbidden, PageErrorNotFound, PageError4xx, PageError5xx})
-		})).Return(iter.Seq2[*Page, error](func(yield func(*Page, error) bool) {
-			yield(testPage, nil)
-		}))
+		})).Return([]*Page{testPage}, nil)
 
 		// Mock save for internal pages only (6 pages, since /test exists)
 		mockStore.On("Save", ctx, mock.MatchedBy(func(pages []*Page) bool {
@@ -418,7 +408,7 @@ func TestDefaultPageSyncer_Sync(t *testing.T) {
 
 		mockStore.On("FindByPatterns", ctx, site.ID, mock.MatchedBy(func(ps []string) bool {
 			return assert.ElementsMatch(t, ps, []string{"/test", PageInternalCreate, PageErrorUnauthorized, PageErrorForbidden, PageErrorNotFound, PageError4xx, PageError5xx})
-		})).Return(iter.Seq2[*Page, error](func(yield func(*Page, error) bool) {}))
+		})).Return(nil, nil)
 
 		mockStore.On("Save", ctx, mock.MatchedBy(func(pages []*Page) bool {
 			return len(pages) == 7
@@ -444,7 +434,7 @@ func TestDefaultPageSyncer_Sync(t *testing.T) {
 		// Mock FindByPatterns for internal pages
 		mockStore.On("FindByPatterns", ctx, site.ID, mock.MatchedBy(func(ps []string) bool {
 			return assert.ElementsMatch(t, ps, []string{"/test", PageInternalCreate, PageErrorUnauthorized, PageErrorForbidden, PageErrorNotFound, PageError4xx, PageError5xx})
-		})).Return(iter.Seq2[*Page, error](func(yield func(*Page, error) bool) {}))
+		})).Return(nil, nil)
 
 		// Mock save error
 		mockStore.On("Save", ctx, mock.AnythingOfType("[]*pages.Page")).Return(errors.New("save error"))

@@ -1,29 +1,22 @@
 package pages
 
-import (
-	"context"
-	"iter"
-)
+import "context"
 
 var _ SiteStore = (*LocalhostSiteStore)(nil)
 
 type SiteStore interface {
-	FindPublished(ctx context.Context) iter.Seq2[*Site, error]
+	FindPublished(ctx context.Context) ([]*Site, error)
 }
 
-type LocalhostSiteStore struct {
-	site *Site
-}
+type LocalhostSiteStore struct{}
 
 func NewLocalhostSiteStore() *LocalhostSiteStore {
+	return &LocalhostSiteStore{}
+}
+
+func (s *LocalhostSiteStore) FindPublished(context.Context) ([]*Site, error) {
 	site := NewSite()
 	site.Status = Published
 
-	return &LocalhostSiteStore{site: site}
-}
-
-func (s *LocalhostSiteStore) FindPublished(context.Context) iter.Seq2[*Site, error] {
-	return func(yield func(*Site, error) bool) {
-		yield(s.site, nil)
-	}
+	return []*Site{site}, nil
 }

@@ -88,14 +88,15 @@ func (s *HTTPSiteRetriever) Retrieve(r *http.Request) (*Site, string, error) {
 	candidates := make([]candidate, 0, 5)
 	sites := make([]candidate, 0, 10)
 
-	for site, err := range s.store.FindPublished(r.Context()) {
-		if err != nil {
-			if site, pathInfo, err := s.resolveError(r, err); site != nil || err != nil {
-				return site, pathInfo, err
-			}
-			continue
+	data, err := s.store.FindPublished(r.Context())
+	if err != nil {
+		if site, pathInfo, err := s.resolveError(r, err); site != nil || err != nil {
+			return site, pathInfo, err
 		}
+		return nil, "", ErrSiteNotFound
+	}
 
+	for _, site := range data {
 		if site.IsLocalhost() {
 			localhosts = append(localhosts, candidate{site: site})
 		}
